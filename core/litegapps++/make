@@ -1,0 +1,215 @@
+base2="$base/litegapps++"
+tmp2="$base2/tmp"
+flashable2="$base2/flashable"
+test -d $tmp2 && del $tmp2
+test ! -d $tmp2 && cdir $tmp2
+
+printlog " "
+printlog "            Building LiteGapps++"
+printlog " "
+printlog " "
+printlog "Builder : $PROP_BUILDER"
+printlog "Version : $PROP_VERSION"
+printlog "Codename : $(read_config codename)"
+printlog "Build Date : $(date +%d-%m-%Y)"
+printlog "Build Status : $PROP_STATUS"
+printlog " "
+printlog " "
+printlog " "
+
+#copying
+printlog "- Copying to tmp"
+cp -af $base2/gapps/* $tmp2/
+
+#unzip
+printlog "- Unzipping"
+find $tmp2 -name *.apk -type f | while read apkname; do
+case $apkname in
+*.apk)
+outdir=`dirname $apkname`
+while_log "$(basename $apkname)"
+cdir $outdir
+$bin/unzip -o $apkname -d $outdir
+del $apkname
+;;
+esac
+done >> $loglive
+
+print "- Creating tar file"
+find $tmp2 -type d | while read folname; do
+case "$(basename $folname)" in
+system)
+for i1 in $(ls -1 $folname); do
+    if [ -d $folname/$i1 ]; then
+       for i2 in $(ls -1 $folname/$i1); do
+             cd $folname/$i1
+             sedlog "- Creating .tar $folname/$i1/$i2"
+             tar -cf $i2.tar $i2
+             del $i2
+             cd /
+       done
+    fi
+done
+;;
+vendor)
+for b1 in $(ls -1 $folname); do
+    if [ -d $folname/$b1 ]; then
+       for b2 in $(ls -1 $folname/$b1); do
+             cd $folname/$b1
+             sedlog "- Creating .tar $folname/$b1/$b2"
+             tar -cf $b2.tar $b2
+             del $b2
+             cd /
+       done
+    fi
+done 
+;;
+esac
+done
+
+#creating tar tmp
+printlog "- Creating tar tmp"
+cd $tmp2
+tar -cf files.tar *
+for i in $(ls -1 $tmp2); do
+sedlog "- Deleleting $tmp2/$i"
+[ -d $tmp2/$i ] && del $tmp2/$i
+done
+
+
+
+#archive
+printlog "- Creating archive : $compression"
+printlog "- Level Compression : $lvlcom"
+cd $tmp2
+for archi in $(ls -1 $tmp2); do
+   case $compression in
+     xz)
+       if [ $lvlcom -lt 10 ]; then
+        $bin/xz -${lvlcom}e $tmp2/$archi
+       else
+       abort "xz level 1-9"
+       fi
+     ;;
+      br | brotli)
+       if [ $lvlcom -lt 10 ]; then
+        $bin/brotli -${lvlcom}j $archi
+        del $archi
+       else
+       abort "brotli level 1-9"
+       fi
+     ;;
+     zip)
+     if [ $lvlcom -lt 10 ]; then
+        $bin/zip -r${lvlcom} $archi.zip $archi >> $loglive
+        del $archi
+       else
+       abort "zip level 1-9"
+       fi
+     ;;
+     7z | 7za | 7zip | 7zr | p7zip)
+     if [ $lvlcom -lt 10 ]; then
+        $bin/7za a -t7z -m0=lzma -mx=$lvlcom -mfb=64 -md=32m -ms=on $archi.7z $archi >> $loglive
+        del $archi
+       else
+       abort "7zip level 1-9"
+       fi
+     ;;
+     zstd | zst)
+     if [ $lvlcom -lt 20 ]; then
+        $bin/zstd --rm -$lvlcom $archi >> $loglive
+       else
+       abort "Zstd level 1-19"
+       fi
+     ;;
+     gz | gzip | gunzip)
+     if [ $lvlcom -lt 10 ]; then
+        $bin/gzip -$lvlcom $archi
+       else
+       abort "gzip level 1-9"
+       fi
+     ;;
+     *)
+       printlog "!!! Format $compression Not support"
+       sleep 4s
+       exit 1
+      ;;
+     esac
+done
+
+printlog "- Creating MD5sum"
+for t1 in $(ls -1 $tmp2); do
+	$bin/busybox md5sum -b $tmp2/$t1 | cut -d ' ' -f1 > $tmp2/$t1.md5
+done
+
+#delete files
+for i in $(ls -1 $flashable2); do
+	 if [ -d $flashable2/$i/files ]; then
+	 	del $flashable2/$i/files
+	 	cdir $flashable2/$i/files
+	fi
+done
+#moving files
+printlog "- Moving Files"
+for i in $(ls -1 $tmp2); do
+	for Z in $(ls -1 $flashable2); do
+		sedlog "- copying <$tmp2/$i> ==> <$flashable2/$Z/files>"
+		cp -pf $tmp2/$i $flashable2/$Z/files
+	done
+done
+
+#set module.prop
+printlog "- Updating module.prop"
+find $flashable2 -name module.prop -type f | while read setmodule ; do
+sed -i 's/'"$(getp name $setmodule)"'/'"Litegapps++ ${PROP_STATUS}"'/g' $setmodule
+sed -i 's/'"$(getp author $setmodule)"'/'"$PROP_BUILDER"'/g' $setmodule
+sed -i 's/'"$(getp version $setmodule)"'/'"v${PROP_VERSION}"'/g' $setmodule
+sed -i 's/'"$(getp versionCode $setmodule)"'/'"$(read_config litegapps.version.code)"'/g' $setmodule
+sed -i 's/'"$(getp date $setmodule)"'/'"$(date +%d-%m-%Y)"'/g' $setmodule
+done
+
+
+#setime
+if [ $(read_config set.time) = true ] && [ $(read_config date.time) -eq $(read_config date.time) ]; then
+printlog "- Set time stamp"
+setime -r $flashable2 $(read_config date.time)
+fi
+
+#Magisk Module
+test ! -d $out && cdir $out
+zipname=`echo "[MAGISK]LiteGapps++_$(date +%Y%m%d)_${PROP_STATUS}"`
+printlog
+printlog "- Creating Magisk Module Only"
+printlog "- ZIP name  : $zipname"
+printlog "- ZIP level : $ziplevel"
+#del $tmp
+cd $flashable2/magisk
+test -f "$out/$zipname.zip" && del "$out/$zipname.zip"
+$bin/zip -r$ziplevel $out/"$zipname.zip" . >/dev/null
+cd $base
+printlog "- ZIP size  : $(du -sh $out/$zipname.zip | cut -f1)"
+
+zipname2=`echo "[RECOVERY]LiteGapps++_$(date +%Y%m%d)_${PROP_STATUS}"`
+printlog
+printlog "- Creating Recovery Only"
+printlog "- ZIP name  : $zipname2"
+printlog "- ZIP level : $ziplevel"
+#del $tmp
+cd $flashable2/recovery
+test -f "$out/$zipname2.zip" && del "$out/$zipname2.zip"
+$bin/zip -r$ziplevel $out/"$zipname2.zip" . >/dev/null
+cd $base
+printlog "- ZIP size  : $(du -sh $out/$zipname2.zip | cut -f1)"
+
+zipname3=`echo "[AUTO]LiteGapps++_$(date +%Y%m%d)_${PROP_STATUS}"`
+printlog
+printlog "- Creating AUTO RECOVERY/MAGISK"
+printlog "- ZIP name  : $zipname3"
+printlog "- ZIP level : $ziplevel"
+del $tmp2
+cd $flashable2/auto
+test -f "$out/$zipname3.zip" && del "$out/$zipname3.zip"
+$bin/zip -r$ziplevel $out/"$zipname3.zip" . >/dev/null
+cd $base
+printlog "- ZIP size  : $(du -sh $out/$zipname3.zip | cut -f1)"
+

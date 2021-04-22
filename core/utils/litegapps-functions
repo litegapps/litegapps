@@ -1,0 +1,141 @@
+####################################
+#       Litegapps Functions        #
+####################################
+#            04-04-2021            #
+####################################
+print(){ ui_print "$1"; }
+	
+printlog(){
+	print "$1"
+	if [ "$1" != " " ]; then
+	echo "$1 [$(date '+%d/%m/%Y %H:%M:%S')]" >> $log
+	echo "$1 [$(date '+%d/%m/%Y %H:%M:%S')]" >> $loglive
+	else
+	print "$1" >> $log
+	echo "$1" >> $loglive
+	fi
+	}
+sedlog(){
+	echo "[Processing]  $1 [$(date '+%d/%m/%Y %H:%M:%S')]" >> $log
+	echo "[Processing]  $1 [$(date '+%d/%m/%Y %H:%M:%S')]" >> $loglive
+	}
+	
+while_log(){
+	echo "$1" | tee -a $log
+	}
+listlog(){
+	echo " " >> $log
+	echo "---------- Folder List : $1 ----------" >> $log
+	echo " " >> $loglive
+	echo "---------- Folder List : $1 ----------" >> $loglive
+	find "$1" -type f | while read lol; do
+	while_log "| $(du -sah $lol | cut -f 1) | $lol"
+	done >> $loglive
+	echo "--------------------------------------" >> $log
+	echo " " >> $log
+	echo "--------------------------------------" >> $loglive
+	echo " " >> $loglive
+	}
+
+getp(){ grep "^$1" "$2" | head -n1 | cut -d = -f 2; }
+
+abort(){
+	print " " | tee -a $log | tee -a $loglive
+	print "!!! $1" | tee -a $log | tee -a $loglive
+	print " " | tee -a $log | tee -a $loglive
+	exit 1
+	}
+	
+make_log(){
+	#creating log
+	printlog "- Creating log"
+	datebug=`date '+%d•%m•%Y-%H•%M•%S'`
+	if [ -f $SYSDIR/build.prop ]; then
+	cp -pf $SYSDIR/build.prop $litegapps/log/sys_build.prop
+	fi
+
+	if [ -f $VENDIR/build.prop ]; then
+	cp -pf $VENDIR/build.prop $litegapps/log/ven_build.prop
+	fi
+	
+	if [ -d $litegapps/log ]; then
+	listlog $tmp
+	listlog $MODPATH
+	listlog $litegapps
+	ls -alZR $MODPATH/system >> $loglive
+	cd $litegapps/log
+	$bin/busybox tar -cz -f $litegapps/litegapps_log_${datebug}.tar.gz *
+	cd /
+	del $litegapps/log
+	fi
+}
+report_bug(){
+	make_log
+	printlog " "
+	printlog "###########################"
+	printlog "# installation failed !!! #"
+	printlog "###########################"
+	printlog " known error •> $1"
+	printlog "###########################"
+	printlog " Please report bug !"
+	printlog " send log : /sdcard/Android/litegapps/litegapps_log_${datebug}.tar.gz"
+	printlog " send in group telegram https://t.me/litegappsgroup"
+	printlog "############################"
+	printlog " "
+	exit 1
+}
+#
+del (){ rm -rf "$@"; }
+cdir (){ mkdir -p "$@"; }
+
+litegapps_info(){
+	device_abpartition=$(getprop ro.build.ab_update)
+	[ -n "$device_abpartition" ] || device_abpartition="A only"
+	
+MODULEVERSION=`getp version $MODPATH/module.prop`
+MODULECODE=`getp versionCode $MODPATH/module.prop`
+MODULENAME=`getp name $MODPATH/module.prop`
+MODULEANDROID=`getp android $MODPATH/module.prop`
+MODULEDATE=`getp date $MODPATH/module.prop`
+MODULEAUTHOR=`getp author $MODPATH/module.prop`
+ANDROIDVERSION=$(getp ro.build.version.release $SYSDIR/build.prop)
+ANDROIDMODEL=$(getp ro.product.vendor.model $VENDIR/build.prop)
+ANDROIDDEVICE=$(getp ro.product.vendor.device $VENDIR/build.prop)
+ANDROIDROM=$(getp ro.build.display.id $SYSDIR/build.prop)
+API=`getp ro.build.version.sdk $SYSDIR/build.prop`
+device_abpartition=$(getprop ro.build.ab_update)
+[ -n "$device_abpartition" ] || device_abpartition="A only"
+printlog "____________________________________"
+printlog "|"
+printlog "| Name            : $MODULENAME"
+printlog "| Version         : $MODULEVERSION"
+printlog "| Build date      : $MODULEDATE"
+printlog "| By              : $MODULEAUTHOR"
+printlog "|___________________________________"
+printlog "|"
+printlog "| Telegram        : https://t.me/litegapps"
+printlog "|___________________________________"
+printlog "|              Device Info"
+printlog "| Name Rom        : $ANDROIDROM"
+printlog "| Device          : $ANDROIDMODEL ($ANDROIDDEVICE)"
+printlog "| Android Version : $ANDROIDVERSION"
+printlog "| Architecture    : $ARCH"
+printlog "| Sdk             : $SDKTARGET"
+printlog "| Seamless        : $device_abpartition"
+printlog "|___________________________________"
+printlog " "
+}
+
+ch_con(){
+chcon -h u:object_r:system_file:s0 "$1" || sedlog "Failed chcon $1"
+}
+
+terminal_tips(){
+	print
+	printlog "*Tips"
+	print "- Open Terminal"
+	print "- su"
+	print "- litegapps"
+	print " "
+	print " "
+	}

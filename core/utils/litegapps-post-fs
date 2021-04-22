@@ -1,0 +1,71 @@
+#!/system/bin/sh
+# Litegapps_post-fs 
+# By wahyu6070
+sleep 25s
+litegapps_post_fs_version=1.0
+litegapps_post_fs_code=1
+log=/sdcard/Android/LiteGapps/LiteGapps_post-fs.log
+rm -f $log
+mkdir -p $(dirname $log)
+
+echo " " >> $log
+echo "Litegapps Post Fs" >> $log
+echo "Version=$litegapps_post_fs_version" >> $log
+echo "VersionCode=$litegapps_post_fs_code=1" >> $log
+echo "By wahyu6070" >> $log
+echo "Started -> $(date '+%d/%m/%Y %H:%M:%S')" >> $log
+echo " " >> $log
+
+list_package="
+com.google.android.gms
+com.android.vending
+com.google.android.configupdater
+com.google.android.backuptransport
+com.google.android.ext.services
+com.google.android.apps.restore
+com.google.android.gsf
+com.google.android.markup
+com.google.android.ext.shared
+com.google.android.syncadapters.contacts
+com.google.android.syncadapters.calendar
+"
+list_perm="
+android.permission.READ_CALENDAR
+android.permission.READ_CALL_LOG 
+android.permission.ACCESS_FINE_LOCATION
+android.permission.READ_EXTERNAL_STORAGE
+android.permission.ACCESS_COARSE_LOCATION
+android.permission.READ_PHONE_STATE
+android.permission.SEND_SMS
+android.permission.CALL_PHONE
+android.permission.WRITE_CONTACTSandroid.permission.CAMERA
+android.permission.WRITE_CALL_LOG
+android.permission.PROCESS_OUTGOING_CALLS
+android.permission.GET_ACCOUNTS
+android.permission.WRITE_EXTERNAL_STORAGE
+android.permission.RECORD_AUDIO
+android.permission.ACCESS_MEDIA_LOCATION
+android.permission.READ_CONTACTS
+android.permission.CAMERA
+android.permission.BODY_SENSORS
+"
+
+for i in $(pm list package); do
+insetapp=$(echo "$i" | head -n1 | cut -d : -f 2)
+  	for setapp in $list_package; do
+  		if [[ "$insetapp" == "$setapp" ]]; then
+  			for setperm_app in $list_perm; do
+  				pm grant $insetapp $setperm_app 2>/dev/null && echo "[OK] Set Permissions $insetapp $setperm_app" >> $log \
+  				|| echo "[ERROR] Set Permissions $insetapp $setperm_app" >> $log
+  			done
+  		else
+  		echo "[X] ${insetapp} -> package not gapps list" >> $log
+  		fi
+  	done	
+done
+
+echo " " >> $log
+echo "# $(date '+%d/%m/%Y %H:%M:%S')" >> $log
+echo "###########" >> $log
+echo "#   Done  #" >> $log
+echo "###########" >> $log

@@ -1,0 +1,10 @@
+id=litegapps
+name=Litegapps arm64 9.0 unofficial
+version=v1.2
+versionCode=12
+minsdk=off
+date=04-04-2021
+device=All
+author=example
+description=Litegapps is a mini version of GAPPS with a small size, this will make your RAM relieved and save your battery with additional tweaks and this great Systemless.
+typeinstall=auto
