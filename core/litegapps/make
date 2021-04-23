@@ -62,12 +62,10 @@ get_android_version(){
 	 esac
 	}
 make_flashable_litegapps(){
-	for WFL in magisk recovery auto; do
+	for WFL in MAGISK RECOVERY AUTO; do
+		printlog "- Build flashable [$WFL]"
 		cdir $tmp/$WFL
-		case $WFL in
-			magisk)
-			cp -af $base/core/utils/magisk/* $tmp/$WFL/
-			copy_binary_flashable $BIN_ARCH
+		copy_binary_flashable $BIN_ARCH
 			# copy core/utils/magisk or kopi installer
 			for W in 27-litegapps.sh litegapps-functions litegapps-post-fs; do
 				if [ -f $base/core/utils/$W ]; then
@@ -85,16 +83,27 @@ make_flashable_litegapps(){
 				ERROR "magisk files <$BASE_LITEGAPPS/utils/$W> not found"
 				fi
 			done
-			# copy file.tar.(type archive) in tmp
+		case $WFL in
+			MAGISK)
+				cp -af $base/core/utils/magisk/* $tmp/$WFL/
+			;;
+			RECOVERY)
+				cp -af $base/core/utils/kopi/* $tmp/$WFL/
+				#kopi mode install kopi (recovery)
+				sed -i 's/'"$(getp typeinstall $tmp/$WFL/module.prop)"'/'"kopi"'/g' $tmp/$WFL/module.prop
+			;;
+			AUTO)
+				cp -af $base/core/utils/kopi/* $tmp/$WFL/
+			;;
+		esac
+		# copy file.tar.(type archive) in tmp
 			for W in $(ls -1 $tmp); do
 				if [ -f $tmp/$W  ]; then
 					test ! -d $tmp/$WFL/files && cdir $tmp/$WFL/files
 				 	cp -pf $tmp/$W $tmp/$WFL/files/
-				 	del $tmp/$W
 				fi
 			done
-			#set time stamp
-			set_time_stamp $tmp/$WFL
+			
 			local MODULE_PROP=$tmp/$WFL/module.prop
 			if [ $(get_config litegapps.arch) = all ] && $(get_config litegapps.sdk) = all ]; then
 				sed -i 's/'"$(getp name $MODULE_PROP)"'/'"LiteGapps $PROP_STATUS"'/g' $MODULE_PROP
@@ -109,9 +118,26 @@ make_flashable_litegapps(){
 				sed -i 's/'"$(getp versionCode $MODULE_PROP)"'/'"$PROP_VERSIONCODE"'/g' $MODULE_PROP
 				sed -i 's/'"$(getp date $MODULE_PROP)"'/'"$(date +%d-%m-%Y)"'/g' $MODULE_PROP
 			fi
-			;;
 			
-		esac
+			#set time stamp
+			set_time_stamp $tmp/$WFL
+			
+			if [ $(get_config litegapps.arch) = all ] && $(get_config litegapps.sdk) = all ]; then
+				local NAME_ZIP="[$WFL]LiteGapps_$(date +%Y%m%d)_${PROP_STATUS}.zip"
+			else
+				local NAME_ZIP="[$WFL]LiteGapps_${W_ARCH}_$(get_android_version $W_SDK)_$(date +%Y%m%d)_${PROP_STATUS}.zip"
+			fi
+			printlog "- Build ZIP"
+			cd $tmp/$WFL
+			test ! -d $out/$W_ARCH/$W_SDK && cdir $out/$W_ARCH/$W_SDK
+			test -f $out/$W_ARCH/$W_SDK/$NAME_ZIP && del $out/$W_ARCH/$W_SDK/$NAME_ZIP
+			$bin/zip -r${PROP_ZIP_LEVEL} $out/$W_ARCH/$W_SDK/$NAME_ZIP . >/dev/null
+			printlog " Name   : $NAME_ZIP"
+			printlog " Level  : $PROP_ZIP_LEVEL"
+			printlog " Size   : $(du -sh $out/$W_ARCH/$W_SDK/$NAME_ZIP | cut -f1)"
+			printlog " Sha256 : $($bin/busybox sha256sum $out/$W_ARCH/$W_SDK/$NAME_ZIP | cut -d' ' -f1)"
+			printlog "- Done "
+			printlog " "
 	done
 	}
 
@@ -143,7 +169,6 @@ else
 			make_tar
 			make_tar_arch
 			make_archive
-			echo $BIN_ARCH
 			make_flashable_litegapps
 			
 		done
