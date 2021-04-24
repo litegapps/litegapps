@@ -26,6 +26,7 @@ git clone https://github.com/wahyu6070/litegapps
 ``zip.apk.compression=0`` level compress zip apk
  
 ``zip.level=0`` ZIP level flashable
+ 
 #LITEGAPPS PROPS
  
 ``litegapps.build=true`` build litegapps true/false
