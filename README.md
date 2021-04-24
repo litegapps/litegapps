@@ -26,13 +26,16 @@ git clone https://github.com/wahyu6070/litegapps
 ``zip.apk.compression=0`` level compress zip apk
  
 ``zip.level=0`` ZIP level flashable
-####LITEGAPPS PROPS
+#LITEGAPPS PROPS
+ 
 ``litegapps.build=true`` build litegapps true/false
  
 ``litegapps.arch=arm,arm64`` architecture example : ``arm,arm64`` or ``all``
  
 ``litegapps.sdk=all`` Android SDK example : ``27,28,29,30,31`` or ``all``
-####LITEGAPPS++ PROPS
+ 
+#LITEGAPPS++ PROPS
+ 
 ``litegapps++.build=false`` build litegapls++ true/false
 
 
