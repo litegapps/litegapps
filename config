@@ -1,0 +1,18 @@
+version=1.4
+version.code=14
+codename=stable
+name.builder=soekarno
+build.status=unofficial
+set.time.stamp=true
+date.time=202007122239
+compression=brotli
+compression.level=0
+zip.apk.compression=0
+zip.level=0
+#LITEGAPPS PROPS
+litegapps.build=true
+litegapps.arch=all
+litegapps.sdk=all
+#LITEGAPPS++ PROPS
+litegapps++.build=false
+litegapps++.sdk=27-30

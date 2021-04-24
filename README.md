@@ -5,24 +5,35 @@ this is a tool for building litegapps or litegapps++
 git clone https://github.com/wahyu6070/litegapps
 # Configure
 
-``version=1.4`` Litegapps version
-version.code=14
-codename=Canary
-name.builder=soekarno
-build.status=unofficial
-set.time.stamp=true
-date.time=202007122239
-compression=brotli
-compression.level=0
-zip.apk.compression=0
-zip.level=0
-#LITEGAPPS PROPS
-litegapps.build=true
-litegapps.arch=all
-litegapps.sdk=all
-#LITEGAPPS++ PROPS
-litegapps++.build=false
-litegapps++.sdk=27-30
+``version=1.4`` version litegapps
+ 
+``version.code=14`` version code litegapps
+ 
+``codename=Stable`` Codename status build``
+ 
+``name.builder=soekarno(example)`` Name builder``
+ 
+``build.status=unofficial`` build status official/unofficial
+ 
+``set.time.stamp=true``  Set time stamp true/false
+ 
+``date.time=202007122239`` date time stamp
+ 
+``compression=xz`` Compres type files Support : ``zstd,brotli,xz,gz,7z``
+ 
+``compression.level=0`` Level compress files
+ 
+``zip.apk.compression=0`` level compress zip apk
+ 
+``zip.level=0`` ZIP level flashable
+####LITEGAPPS PROPS
+``litegapps.build=true`` build litegapps true/false
+ 
+``litegapps.arch=arm,arm64`` architecture example : ``arm,arm64`` or ``all``
+ 
+``litegapps.sdk=all`` Android SDK example : ``27,28,29,30,31`` or ``all``
+####LITEGAPPS++ PROPS
+``litegapps++.build=false`` build litegapls++ true/false
 
 
 ### compression benchmark
