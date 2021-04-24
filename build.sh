@@ -119,6 +119,10 @@ if [ "$1" = push ]; then
 fi
 
 #################################################
+#Clean TMP
+#################################################
+[ ! -d $tmp ] && cdir $tmp
+#################################################
 #Litegapps
 #################################################
 del $tmp
@@ -127,9 +131,6 @@ printlog " "
 printlog "- Creating Litegapps"
 . $base/core/litegapps/make
 fi
-
-printlog " "
-printlog "- Done"
 
 
 #################################################
@@ -142,8 +143,6 @@ printlog "- Creating Litegapps++"
 fi
 
 del $tmp
-printlog " "
-printlog "- Done"
 
 #################################################
 #Done
