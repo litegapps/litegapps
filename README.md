@@ -33,7 +33,7 @@ git clone https://github.com/wahyu6070/litegapps
  
 ``litegapps.arch=arm,arm64`` architecture example : ``arm,arm64`` or ``all``
  
-``litegapps.sdk=all`` Android SDK example : ``27,28,29,30,31`` or ``all``
+``litegapps.sdk=27,28,29,30,31`` Android SDK example : ``27,28,29,30,31`` or ``all``
  
 #LITEGAPPS++ PROPS
  
