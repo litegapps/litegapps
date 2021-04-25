@@ -125,7 +125,6 @@ fi
 #################################################
 #Litegapps
 #################################################
-del $tmp
 if [ $(get_config litegapps.build) = true ]; then
 printlog " "
 printlog "- Creating Litegapps"
@@ -142,7 +141,7 @@ printlog "- Creating Litegapps++"
 . $base/core/litegapps++/make
 fi
 
-del $tmp
+
 
 #################################################
 #Done
