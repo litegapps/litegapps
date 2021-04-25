@@ -1,215 +1,135 @@
-base2="$base/litegapps++"
-tmp2="$base2/tmp"
-flashable2="$base2/flashable"
-test -d $tmp2 && del $tmp2
-test ! -d $tmp2 && cdir $tmp2
-
-printlog " "
-printlog "            Building LiteGapps++"
-printlog " "
-printlog " "
-printlog "Builder : $PROP_BUILDER"
-printlog "Version : $PROP_VERSION"
-printlog "Codename : $(read_config codename)"
-printlog "Build Date : $(date +%d-%m-%Y)"
-printlog "Build Status : $PROP_STATUS"
-printlog " "
-printlog " "
-printlog " "
-
-#copying
-printlog "- Copying to tmp"
-cp -af $base2/gapps/* $tmp2/
-
-#unzip
-printlog "- Unzipping"
-find $tmp2 -name *.apk -type f | while read apkname; do
-case $apkname in
-*.apk)
-outdir=`dirname $apkname`
-while_log "$(basename $apkname)"
-cdir $outdir
-$bin/unzip -o $apkname -d $outdir
-del $apkname
-;;
-esac
-done >> $loglive
-
-print "- Creating tar file"
-find $tmp2 -type d | while read folname; do
-case "$(basename $folname)" in
-system)
-for i1 in $(ls -1 $folname); do
-    if [ -d $folname/$i1 ]; then
-       for i2 in $(ls -1 $folname/$i1); do
-             cd $folname/$i1
-             sedlog "- Creating .tar $folname/$i1/$i2"
-             tar -cf $i2.tar $i2
-             del $i2
-             cd /
-       done
-    fi
-done
-;;
-vendor)
-for b1 in $(ls -1 $folname); do
-    if [ -d $folname/$b1 ]; then
-       for b2 in $(ls -1 $folname/$b1); do
-             cd $folname/$b1
-             sedlog "- Creating .tar $folname/$b1/$b2"
-             tar -cf $b2.tar $b2
-             del $b2
-             cd /
-       done
-    fi
-done 
-;;
-esac
-done
-
-#creating tar tmp
-printlog "- Creating tar tmp"
-cd $tmp2
-tar -cf files.tar *
-for i in $(ls -1 $tmp2); do
-sedlog "- Deleleting $tmp2/$i"
-[ -d $tmp2/$i ] && del $tmp2/$i
-done
-
-
-
-#archive
-printlog "- Creating archive : $compression"
-printlog "- Level Compression : $lvlcom"
-cd $tmp2
-for archi in $(ls -1 $tmp2); do
-   case $compression in
+#################################################
+#litegapps functions
+#################################################
+BASE_LITEGAPPS2=$base/core/litegapps++
+copy_binary_flashable(){
+	case $(get_config compression) in
      xz)
-       if [ $lvlcom -lt 10 ]; then
-        $bin/xz -${lvlcom}e $tmp2/$archi
-       else
-       abort "xz level 1-9"
-       fi
+       local flashable_bin_32=xz
      ;;
       br | brotli)
-       if [ $lvlcom -lt 10 ]; then
-        $bin/brotli -${lvlcom}j $archi
-        del $archi
-       else
-       abort "brotli level 1-9"
-       fi
+       local flashable_bin_32=brotli
      ;;
      zip)
-     if [ $lvlcom -lt 10 ]; then
-        $bin/zip -r${lvlcom} $archi.zip $archi >> $loglive
-        del $archi
-       else
-       abort "zip level 1-9"
-       fi
+     	local flashable_bin_32=zip
      ;;
      7z | 7za | 7zip | 7zr | p7zip)
-     if [ $lvlcom -lt 10 ]; then
-        $bin/7za a -t7z -m0=lzma -mx=$lvlcom -mfb=64 -md=32m -ms=on $archi.7z $archi >> $loglive
-        del $archi
-       else
-       abort "7zip level 1-9"
-       fi
+     	local flashable_bin_32=7za
      ;;
      zstd | zst)
-     if [ $lvlcom -lt 20 ]; then
-        $bin/zstd --rm -$lvlcom $archi >> $loglive
-       else
-       abort "Zstd level 1-19"
-       fi
+     	local flashable_bin_32=zstd
      ;;
      gz | gzip | gunzip)
-     if [ $lvlcom -lt 10 ]; then
-        $bin/gzip -$lvlcom $archi
-       else
-       abort "gzip level 1-9"
-       fi
+     	local flashable_bin_32=gz
      ;;
-     *)
-       printlog "!!! Format $compression Not support"
-       sleep 4s
-       exit 1
-      ;;
      esac
-done
+	local input_arch=$1
+	case $input_arch in
+		arm | arm64)
+			local ARCHINPUT=arm
+			for W in zipalign tar zip $flashable_bin_32; do
+				if [ -f $base/bin/$ARCHINPUT/$W ]; then
+				cdir $tmp/$WFL/bin/$ARCHINPUT
+				cp -pf $base/bin/$ARCHINPUT/$W $tmp/$WFL/bin/$ARCHINPUT/
+				else
+					ERROR "Binary <$base/bin/$ARCHINPUT/$W> not found"
+				fi
+			
+			done
+		
+		;;
+		x86 | x86_64)
+		echo
+		
+		;;
+	esac
+}
 
-printlog "- Creating MD5sum"
-for t1 in $(ls -1 $tmp2); do
-	$bin/busybox md5sum -b $tmp2/$t1 | cut -d ' ' -f1 > $tmp2/$t1.md5
-done
 
-#delete files
-for i in $(ls -1 $flashable2); do
-	 if [ -d $flashable2/$i/files ]; then
-	 	del $flashable2/$i/files
-	 	cdir $flashable2/$i/files
-	fi
-done
-#moving files
-printlog "- Moving Files"
-for i in $(ls -1 $tmp2); do
-	for Z in $(ls -1 $flashable2); do
-		sedlog "- copying <$tmp2/$i> ==> <$flashable2/$Z/files>"
-		cp -pf $tmp2/$i $flashable2/$Z/files
+make_flashable_litegapps_plus(){
+	for WFL in MAGISK RECOVERY AUTO; do
+		printlog "- Build flashable [$WFL]"
+		cdir $tmp/$WFL
+		copy_binary_flashable $BIN_ARCH
+			# copy core/utils/magisk or kopi installer
+			for W in 27-litegapps.sh litegapps-functions litegapps-post-fs; do
+				if [ -f $base/core/utils/$W ]; then
+					cp -pf $base/core/utils/$W $tmp/$WFL/bin/
+				else
+					ERROR "utils <$base/core/utils/$W> not found"
+				fi
+			
+			done
+			# copy core/utils files
+			for W in customize.sh README.md LICENSE; do
+				if [ -f $BASE_LITEGAPPS2/utils/$W ]; then
+				cp $BASE_LITEGAPPS2/utils/$W $tmp/$WFL/
+				else
+				ERROR "magisk files <$BASE_LITEGAPPS22/utils/$W> not found"
+				fi
+			done
+		case $WFL in
+			MAGISK)
+				cp -af $base/core/utils/magisk/* $tmp/$WFL/
+			;;
+			RECOVERY)
+				cp -af $base/core/utils/kopi/* $tmp/$WFL/
+				#kopi mode install kopi (recovery)
+				sed -i 's/'"$(getp typeinstall $tmp/$WFL/module.prop)"'/'"kopi"'/g' $tmp/$WFL/module.prop
+			;;
+			AUTO)
+				cp -af $base/core/utils/kopi/* $tmp/$WFL/
+			;;
+		esac
+		# copy file.tar.(type archive) in tmp
+			for W in $(ls -1 $tmp); do
+				if [ -f $tmp/$W  ]; then
+					test ! -d $tmp/$WFL/files && cdir $tmp/$WFL/files
+				 	cp -pf $tmp/$W $tmp/$WFL/files/
+				fi
+			done
+			
+			local MODULE_PROP=$tmp/$WFL/module.prop
+			local MODULE_DESC="litegapps++ is a google apps package that supports almost all arch and android versions while maintaining lightness, saving battery and more."
+			sed -i 's/'"$(getp name $MODULE_PROP)"'/'"LiteGapps++ $PROP_STATUS"'/g' $MODULE_PROP
+			sed -i 's/'"$(getp author $MODULE_PROP)"'/'"$PROP_BUILDER"'/g' $MODULE_PROP
+			sed -i 's/'"$(getp version $MODULE_PROP)"'/'"$PROP_VERSION"'/g' $MODULE_PROP
+			sed -i 's/'"$(getp versionCode $MODULE_PROP)"'/'"$PROP_VERSIONCODE"'/g' $MODULE_PROP
+			sed -i 's/'"$(getp date $MODULE_PROP)"'/'"$(date +%d-%m-%Y)"'/g' $MODULE_PROP
+			sed -i 's/'"$(getp description $MODULE_PROP)"'/'"$MODULE_DESC"'/g' $MODULE_PROP
+			
+			#set time stamp
+			set_time_stamp $tmp/$WFL
+			
+			local NAME_ZIP="[$WFL]LiteGapps++_${PROP_STATUS}.zip"
+			local OUT_ZIP=$out/litegapps++
+			printlog "- Build ZIP"
+			cd $tmp/$WFL
+			test ! -d $OUT_ZIP && cdir $OUT_ZIP
+			test -f $OUT_ZIP/$NAME_ZIP && del $OUT_ZIP/$NAME_ZIP
+			$bin/zip -r${PROP_ZIP_LEVEL} $OUT_ZIP/$NAME_ZIP . >/dev/null
+			printlog " Name   : $NAME_ZIP"
+			printlog " Level  : $PROP_ZIP_LEVEL"
+			printlog " Size   : $(du -sh $OUT_ZIP/$NAME_ZIP | cut -f1)"
+			printlog " Sha256 : $($bin/busybox sha256sum $OUT_ZIP/$NAME_ZIP | cut -d' ' -f1)"
+			printlog "- Done "
+			printlog " "
 	done
-done
+	}
 
-#set module.prop
-printlog "- Updating module.prop"
-find $flashable2 -name module.prop -type f | while read setmodule ; do
-sed -i 's/'"$(getp name $setmodule)"'/'"Litegapps++ ${PROP_STATUS}"'/g' $setmodule
-sed -i 's/'"$(getp author $setmodule)"'/'"$PROP_BUILDER"'/g' $setmodule
-sed -i 's/'"$(getp version $setmodule)"'/'"v${PROP_VERSION}"'/g' $setmodule
-sed -i 's/'"$(getp versionCode $setmodule)"'/'"$(read_config litegapps.version.code)"'/g' $setmodule
-sed -i 's/'"$(getp date $setmodule)"'/'"$(date +%d-%m-%Y)"'/g' $setmodule
-done
-
-
-#setime
-if [ $(read_config set.time) = true ] && [ $(read_config date.time) -eq $(read_config date.time) ]; then
-printlog "- Set time stamp"
-setime -r $flashable2 $(read_config date.time)
-fi
-
-#Magisk Module
-test ! -d $out && cdir $out
-zipname=`echo "[MAGISK]LiteGapps++_$(date +%Y%m%d)_${PROP_STATUS}"`
-printlog
-printlog "- Creating Magisk Module Only"
-printlog "- ZIP name  : $zipname"
-printlog "- ZIP level : $ziplevel"
-#del $tmp
-cd $flashable2/magisk
-test -f "$out/$zipname.zip" && del "$out/$zipname.zip"
-$bin/zip -r$ziplevel $out/"$zipname.zip" . >/dev/null
-cd $base
-printlog "- ZIP size  : $(du -sh $out/$zipname.zip | cut -f1)"
-
-zipname2=`echo "[RECOVERY]LiteGapps++_$(date +%Y%m%d)_${PROP_STATUS}"`
-printlog
-printlog "- Creating Recovery Only"
-printlog "- ZIP name  : $zipname2"
-printlog "- ZIP level : $ziplevel"
-#del $tmp
-cd $flashable2/recovery
-test -f "$out/$zipname2.zip" && del "$out/$zipname2.zip"
-$bin/zip -r$ziplevel $out/"$zipname2.zip" . >/dev/null
-cd $base
-printlog "- ZIP size  : $(du -sh $out/$zipname2.zip | cut -f1)"
-
-zipname3=`echo "[AUTO]LiteGapps++_$(date +%Y%m%d)_${PROP_STATUS}"`
-printlog
-printlog "- Creating AUTO RECOVERY/MAGISK"
-printlog "- ZIP name  : $zipname3"
-printlog "- ZIP level : $ziplevel"
-del $tmp2
-cd $flashable2/auto
-test -f "$out/$zipname3.zip" && del "$out/$zipname3.zip"
-$bin/zip -r$ziplevel $out/"$zipname3.zip" . >/dev/null
-cd $base
-printlog "- ZIP size  : $(du -sh $out/$zipname3.zip | cut -f1)"
-
+#################################################
+#Core
+#################################################
+#binary copy architecture type
+BIN_ARCH=arm
+clear
+printlog "## Building LiteGapps++ ##"
+printlog " "
+printlog " "
+cp -af $BASE_LITEGAPPS2/gapps/* $tmp/
+lgapps_unzip
+make_tar
+make_tar_arch
+make_archive
+make_flashable_litegapps_plus
+echo $BASE_LITEGAPPS2
