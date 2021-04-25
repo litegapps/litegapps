@@ -186,8 +186,9 @@ lgapps_unzip(){
 make_tar(){
 	print "- Make tar files"
 	find $tmp -type d | while read folname; do
-	case "$folname" in
-	*system)
+	local DIR_INPUT=`basename $folname`
+	case "$DIR_INPUT" in
+	system)
 	for i1 in $(ls -1 $folname); do
     	if [ -d $folname/$i1 ]; then
       	 for i2 in $(ls -1 $folname/$i1); do
@@ -200,7 +201,7 @@ make_tar(){
     	fi
 	done
 	;;
-	*vendor)
+	vendor)
 	for b1 in $(ls -1 $folname); do
    	 if [ -d $folname/$b1 ]; then
        	for b2 in $(ls -1 $folname/$b1); do
