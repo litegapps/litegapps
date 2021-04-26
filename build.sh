@@ -45,52 +45,31 @@ for P_TMP in $base/log $tmp; do
 done
 
 #################################################
-#Updating
-#################################################
-if [ "$1" = update ]; then
-	printmid "Litegapps Updates"
-	print
-	print "-Updating kopi installer"
-
-
-exit 0
-fi
-#################################################
 #Cleaning dir
 #################################################
 if [ "$1" = clean ]; then
-	flashable=$base/flashable
-	print "- Cleaning"
-	if [ -d $base/output ]; then
-		del $base/output
-		cdir $base/output
-		touch $base/output/placefolder
-	fi
-	
-	
-	if [ -d $base/log ]; then
-		del $base/log
-		cdir $base/log
-		touch $base/log/placefolder
-	fi
-	
-	if [ -d $base/tmp ]; then
-		del $base/tmp
-	fi
-	for G in $(ls -1 $base/flashable); do
-		if [ -d $base/flashable/$G/files ]; then
-			del $base/flashable/$G/files
-			cdir $base/flashable/$G/files
-			touch $base/flashable/$G/files/placefolder
-		fi
+	list_fol="
+	$base/output
+	$base/files
+	$base/core/litegapps/gapps
+	$base/core/litegapps++/gapps
+	$base/etc/extractor/input
+	$base/etc/extractor/output
+	$base/etc/
+	"
+	for W in $list_fol
+	do
+	 if [ -d $W ]; then
+	 	printlog "cleaning $W"
+	 	del $W
+	 	cdir $W
+	 	touch $W/placeholder
+	 fi
 	done
-	
-	for F in $(ls -1 $base/litegapps++/flashable); do
-		if [ -d $base/litegapps++/flashable/$F/files ]; then
-			del $base/litegapps++/flashable/$F/files
-			cdir $base/litegapps++/flashable/$F/files
-			touch $base/litegapps++/flashable/$F/files/placefolder
-			##
+	for W2 in $base/bin/arm $base/bin/x86; do
+		if [ -d $W2 ]; then
+			printlog "cleaning $W"
+			del $W2
 		fi
 	done
 	print "- Cleaning Done"
@@ -98,26 +77,41 @@ if [ "$1" = clean ]; then
 fi
 
 #################################################
-# Git update repository
+# Restore
 #################################################
-
-if [ "$1" = push ]; then
-	print "- Update repository github"
-	if [ ! -d $base/.git ]; then
-	print "- Cleating Git init"
-	git init
+if [ "$1" = restore ]; then
+	printlog "- Checking executable"
+	for W in curl unzip zip; do
+		if $(command -v $W >/dev/null); then
+		printlog "Executable <$W> <$(command -v $W)> [OK]"
+		else
+		printlog "Executable <$W> [ERROR] not found"
+		exit 1
+		fi
+	done
+	FILES=$base/files
+	if [ -f $FILES/litegapps.zip ] && [ -f $FILES/litegapps++.zip ] && [ -f $FILES/bin.zip ]; then
+	printlog "- Checking ZIP integrity"
+	for W2 in bin.zip litegapps.zip litegapps++.zip; do
+	[ $(zip -T $FILES/$W2 >/dev/null) ] && printlog "<$FILES/$W2> ZIP [OK]" || printlog "<$FILES/$W2> ZIP [ERROR"
+	done
+	printlog "- Extract $FILES/bin.zip"
+	unzip -o $FILES/bin.zip -d $base/bin
+	printlog "- Extract $FILES/litegapps.zip"
+	unzip -o $FILES/litegapps.zip -d $base/core/litegapps/gapps/
+	printlog "- Extract $FILES/litegapps++.zip"
+	unzip -o $FILES/litegapps++.zip -d $base/core/litegapps++/gapps/
+	else
+	echo
 	fi
-	cd $base
-	git commit -m "improvement •> $(date)"
-	if [ ! "$(grep https://github.com/Wahyu6070/litegapps.git $base/.git/config)" ]; then
-	print "- git remote add origin"
-	git remote add origin https://github.com/Wahyu6070/litegapps.git
-	fi
-	print "- git push" && git push -u origin master
-	print "- Git push done"
-	exit 0
 fi
-
+for W in $base/bin/arm $base/core/litegapps/arm64 $base/core/litegapps++/croos_system; do
+	if [ ! -d $W ]; then
+	printlog "bin or gapps files not found. please restore !"
+	printlog "usage : sh make restore"
+	exit 1
+	fi
+done
 #################################################
 #Clean TMP
 #################################################
