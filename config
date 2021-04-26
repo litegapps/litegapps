@@ -5,14 +5,14 @@ name.builder=soekarno
 build.status=unofficial
 set.time.stamp=true
 date.time=202007122239
-compression=brotli
-compression.level=0
+compression=xz
+compression.level=9
 zip.apk.compression=0
-zip.level=0
+zip.level=9
 #LITEGAPPS PROPS
 litegapps.build=true
-litegapps.arch=all
-litegapps.sdk=all
+litegapps.arch=arm,arm64
+litegapps.sdk=21,22,23,24,25,26,27,28,29,30,31
 #LITEGAPPS++ PROPS
-litegapps++.build=false
+litegapps++.build=true
 litegapps++.sdk=27-30
