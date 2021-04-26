@@ -89,7 +89,8 @@ if [ "$1" = upload ]; then
 		exit 1
 		fi
 	done
-	echo -n " UserName : "
+	printlog " Username account sourceforge
+	echo -n " UserName = "
 	read USERNAME
 	cd $out
 	find * -type f | while read INPUT_OUT; do
@@ -138,11 +139,11 @@ if [ "$1" = restore ]; then
 	unzip -o $FILES/litegapps++.zip -d $base/core/litegapps++/
 	else
 	printlog "- Downloading bin.zip"
-	curl -L -o $FILES/bin.zip https://gitlab.com/wahyu6070/litegapps-files/-/raw/master/bin.zip
+	curl -L -o $FILES/bin.zip https://sourceforge.net/projects/litegapps/files/files/bin.zip/download
 	printlog "- Downloading litegapps.zip"
-	curl -L -o $FILES/litegapps.zip https://gitlab.com/wahyu6070/litegapps-files/-/raw/master/litegapps.zip
+	curl -L -o $FILES/litegapps.zip https://sourceforge.net/projects/litegapps/files/files/litegapps.zip/download
 	printlog "- Downloading litegapps++.zip"
-	curl -L -o $FILES/litegapps++.zip https://gitlab.com/wahyu6070/litegapps-files/-/raw/master/litegapps++.zip
+	curl -L -o $FILES/litegapps++.zip https://sourceforge.net/projects/litegapps/files/files/litegapps%2B%2B.zip/download
 	printlog "- Checking ZIP integrity"
 	for W2 in bin.zip litegapps.zip litegapps++.zip; do
 		if  $(zip -T $FILES/$W2 >/dev/null); then
@@ -190,7 +191,7 @@ printlog "- Creating Litegapps++"
 . $base/core/litegapps++/make
 fi
 
-
+[ -d $tmp ] && del $tmp
 
 #################################################
 #Done
