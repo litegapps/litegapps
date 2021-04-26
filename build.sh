@@ -89,7 +89,7 @@ if [ "$1" = upload ]; then
 		exit 1
 		fi
 	done
-	printlog " Username account sourceforge
+	printlog " Username account sourceforge"
 	echo -n " UserName = "
 	read USERNAME
 	cd $out
@@ -114,9 +114,9 @@ if [ "$1" = restore ]; then
 	printlog "- Checking executable"
 	for W in curl unzip zip; do
 		if $(command -v $W >/dev/null); then
-		printlog "Executable <$W> <$(command -v $W)> [OK]"
+			printlog "Executable <$W> <$(command -v $W)> [OK]"
 		else
-		printlog "Executable <$W> [ERROR] not found"
+			printlog "Executable <$W> [ERROR] not found"
 		exit 1
 		fi
 	done
