@@ -43,13 +43,9 @@ git clone https://github.com/wahyu6070/litegapps
 ### compression benchmark
 ![Benchmark](/etc/images/compres_lvl.jpg?raw=true "benchmark compression")
 # building
+``sh make restore`` Restoring files bin,gapps files
+ 
 ``sh make (Building)``
- 
-``sh make update (Updating,script,binary,and other)``
- 
-``
-sh make resize (Resize apk to zio best compress"
-``
 
 ``
 sh make clean (Cleaning Directory)
