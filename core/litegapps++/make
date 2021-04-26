@@ -52,7 +52,7 @@ make_flashable_litegapps_plus(){
 		cdir $tmp/$WFL
 		copy_binary_flashable $BIN_ARCH
 			# copy core/utils/magisk or kopi installer
-			for W in 27-litegapps.sh litegapps-functions litegapps-post-fs; do
+			for W in 27-litegapps.sh litegapps-functions litegapps-post-fs litegapps; do
 				if [ -f $base/core/utils/$W ]; then
 					cp -pf $base/core/utils/$W $tmp/$WFL/bin/
 				else

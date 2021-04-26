@@ -1,7 +1,7 @@
 ####################################
 #       Litegapps Functions        #
 ####################################
-#            04-04-2021            #
+#            26-04-2021            #
 ####################################
 print(){ ui_print "$1"; }
 	
@@ -138,4 +138,21 @@ terminal_tips(){
 	print "- litegapps"
 	print " "
 	print " "
+	}
+litegapps_plus(){
+	#sdk
+	if [ -d $tmp/sdk/$SDKTARGET ]; then
+	cp -a $tmp/sdk/$SDKTARGET/* $tmp/$ARCH/$SDKTARGET/
+	else
+	report_bug "Your Android Version Not Support"
+	fi
+
+	#arch
+	if [ -d $tmp/arch/$ARCH ]; then
+	cp -af $tmp/arch/$ARCH/* $tmp/$ARCH/$API/
+	fi
+	#croos system
+	if [ -d $tmp/croos_system ]; then
+	cp -af $tmp/croos_system/* $tmp/$ARCH/$API/
+	fi
 	}
