@@ -55,7 +55,7 @@ if [ "$1" = clean ]; then
 	$base/core/litegapps++/gapps
 	$base/etc/extractor/input
 	$base/etc/extractor/output
-	$base/etc/
+	$base/log
 	"
 	for W in $list_fol
 	do
@@ -76,6 +76,31 @@ if [ "$1" = clean ]; then
 	exit 0
 fi
 
+
+#################################################
+# Upload
+#################################################
+if [ "$1" = upload ]; then
+	for W in sftp scp; do
+		if $(command -v $W >/dev/null); then
+		printlog "Executable <$W> <$(command -v $W)> [OK]"
+		else
+		printlog "Executable <$W> [ERROR] not found"
+		exit 1
+		fi
+	done
+	echo -n " UserName : "
+	read USERNAME
+	cd $out
+	find * -type f | while read INPUT_OUT; do
+	SC=$INPUT_OUT
+	TG=/home/frs/project/litegapps/$SC
+	printlog "- Uploading <$SC> to <$TG>"
+	
+	done
+	
+	
+fi
 #################################################
 # Restore
 #################################################
@@ -93,19 +118,44 @@ if [ "$1" = restore ]; then
 	if [ -f $FILES/litegapps.zip ] && [ -f $FILES/litegapps++.zip ] && [ -f $FILES/bin.zip ]; then
 	printlog "- Checking ZIP integrity"
 	for W2 in bin.zip litegapps.zip litegapps++.zip; do
-	[ $(zip -T $FILES/$W2 >/dev/null) ] && printlog "<$FILES/$W2> ZIP [OK]" || printlog "<$FILES/$W2> ZIP [ERROR"
+		if  $(zip -T $FILES/$W2 >/dev/null); then
+		printlog "<$FILES/$W2> ZIP [OK]"
+		else
+		printlog "<$FILES/$W2> ZIP [ERROR]"
+		exit 1
+		fi
 	done
 	printlog "- Extract $FILES/bin.zip"
 	unzip -o $FILES/bin.zip -d $base/bin
 	printlog "- Extract $FILES/litegapps.zip"
-	unzip -o $FILES/litegapps.zip -d $base/core/litegapps/gapps/
+	unzip -o $FILES/litegapps.zip -d $base/core/litegapps/
 	printlog "- Extract $FILES/litegapps++.zip"
-	unzip -o $FILES/litegapps++.zip -d $base/core/litegapps++/gapps/
+	unzip -o $FILES/litegapps++.zip -d $base/core/litegapps++/
 	else
-	echo
+	printlog "- Downloading bin.zip"
+	curl -L -o $FILES/bin.zip https://gitlab.com/wahyu6070/litegapps-files/-/raw/master/bin.zip
+	printlog "- Downloading litegapps.zip"
+	curl -L -o $FILES/litegapps.zip https://gitlab.com/wahyu6070/litegapps-files/-/raw/master/litegapps.zip
+	printlog "- Downloading litegapps++.zip"
+	curl -L -o $FILES/litegapps++.zip https://gitlab.com/wahyu6070/litegapps-files/-/raw/master/litegapps++.zip
+	printlog "- Checking ZIP integrity"
+	for W2 in bin.zip litegapps.zip litegapps++.zip; do
+		if  $(zip -T $FILES/$W2 >/dev/null); then
+		printlog "<$FILES/$W2> ZIP [OK]"
+		else
+		printlog "<$FILES/$W2> ZIP [ERROR]"
+		exit 1
+		fi
+	done
+	printlog "- Extract $FILES/bin.zip"
+	unzip -o $FILES/bin.zip -d $base/bin
+	printlog "- Extract $FILES/litegapps.zip"
+	unzip -o $FILES/litegapps.zip -d $base/core/litegapps/
+	printlog "- Extract $FILES/litegapps++.zip"
+	unzip -o $FILES/litegapps++.zip -d $base/core/litegapps++/
 	fi
 fi
-for W in $base/bin/arm $base/core/litegapps/arm64 $base/core/litegapps++/croos_system; do
+for W in $base/bin/arm $base/core/litegapps/gapps/arm64 $base/core/litegapps++/gapps/croos_system; do
 	if [ ! -d $W ]; then
 	printlog "bin or gapps files not found. please restore !"
 	printlog "usage : sh make restore"
