@@ -95,11 +95,16 @@ if [ "$1" = upload ]; then
 	find * -type f | while read INPUT_OUT; do
 	SC=$INPUT_OUT
 	TG=/home/frs/project/litegapps/$SC
+	case $SC in
+	*[MAGISK]*)
 	printlog "- Uploading <$SC> to <$TG>"
+	scp $SC $USERNAME@web.sourceforge.net:$TG
+	;;
+	esac
 	
 	done
 	
-	
+	exit 1
 fi
 #################################################
 # Restore
