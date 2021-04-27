@@ -7,10 +7,10 @@ case $(uname -m) in
 esac
 bin=$base/bin/$ARCH32
 chmod 775 $base/build.sh
-if $(command -v bash >/dev/null); then
+if [ -f $bin/bash ]; then
+$bin/bash $base/build.sh $@
+elif $(command -v bash >/dev/null); then
 bash $base/build.sh $@
 elif $(command -v sh >/dev/null); then
 sh $base/build.sh $@
-elif [ -f $bin/bash ]; then
-$bin/bash $base/build.sh $@
 fi
