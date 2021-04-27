@@ -2,7 +2,7 @@
 #
 #
 base="`dirname $(readlink -f "$0")`"
-chmod -R 775 $base/bin
+chmod -R 755 $base/bin
 . $base/bin/core-functions
 case $(uname -m) in
 *x86*) ARCH32=x86 ;;
