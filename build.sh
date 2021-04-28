@@ -81,6 +81,9 @@ fi
 # Upload
 #################################################
 if [ "$1" = upload ]; then
+	clear
+	printlog " Litegapps Uploading files"
+	printlog " "
 	for W in sftp scp; do
 		if $(command -v $W >/dev/null); then
 		printlog "Executable <$W> <$(command -v $W)> [OK]"
@@ -89,22 +92,30 @@ if [ "$1" = upload ]; then
 		exit 1
 		fi
 	done
+	printlog " Total Size file upload : $(du -sh $out)"
+	printlog " Server : Sourceforge"
 	printlog " Username account sourceforge"
-	echo -n " UserName = "
+	echo -n " User name = "
 	read USERNAME
 	cd $out
-	find * -type f | while read INPUT_OUT; do
+	find * -type f -name *MAGISK* | while read INPUT_OUT; do
 	SC=$INPUT_OUT
 	TG=/home/frs/project/litegapps/$SC
-	case $SC in
-	*[MAGISK]*)
 	printlog "- Uploading <$SC> to <$TG>"
-	scp $SC $USERNAME@web.sourceforge.net:$TG
-	;;
-	esac
-	
+	#scp $SC $USERNAME@web.sourceforge.net:$TG
 	done
-	
+	find * -type f -name *RECOVERY* | while read INPUT_OUT; do
+	SC=$INPUT_OUT
+	TG=/home/frs/project/litegapps/$SC
+	printlog "- Uploading <$SC> to <$TG>"
+	#scp $SC $USERNAME@web.sourceforge.net:$TG
+	done
+	find * -type f -name *AUTO* | while read INPUT_OUT; do
+	SC=$INPUT_OUT
+	TG=/home/frs/project/litegapps/$SC
+	printlog "- Uploading <$SC> to <$TG>"
+	#scp $SC $USERNAME@web.sourceforge.net:$TG
+	done
 	exit 1
 fi
 #################################################
