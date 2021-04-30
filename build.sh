@@ -50,13 +50,34 @@ done
 if [ "$1" = clean ]; then
 	list_fol="
 	$base/output
-	$base/files
 	$base/core/litegapps/gapps
 	$base/core/litegapps++/gapps
 	$base/etc/extractor/input
 	$base/etc/extractor/output
 	$base/log
 	"
+	if [ -f $base/files/bin.zip ] && [ $base/files/litegapps.zip ] && [ $base/files/litegapps++.zip ]; then
+		printlog "!!! files <bin.zip> <litegapps.zip> <litegapps++.zip> found"
+		printlog " do you want to removing files ?"
+		echo -n " yes/no : "
+		read filesrm
+		case $filesrm in
+		y | Y | yes | YES)
+		printlog "- Removing files"
+		del $base/files
+		cdir $base/files
+		touch $base/files/placeholder
+		;;
+		*)
+		printlog "Skipping removing files"
+		;;
+		esac
+	else
+		printlog "- Removing files"
+		del $base/files
+		cdir $base/files
+		touch $base/files/placeholder
+	fi
 	for W in $list_fol
 	do
 	 if [ -d $W ]; then
@@ -102,19 +123,22 @@ if [ "$1" = upload ]; then
 	SC=$INPUT_OUT
 	TG=/home/frs/project/litegapps/$SC
 	printlog "- Uploading <$SC> to <$TG>"
-	#scp $SC $USERNAME@web.sourceforge.net:$TG
+	scp $SC $USERNAME@web.sourceforge.net:$TG
+	[ $? ] && del $SC && rmdir $(dirname $SC) >/dev/null
 	done
 	find * -type f -name *RECOVERY* | while read INPUT_OUT; do
 	SC=$INPUT_OUT
 	TG=/home/frs/project/litegapps/$SC
 	printlog "- Uploading <$SC> to <$TG>"
-	#scp $SC $USERNAME@web.sourceforge.net:$TG
+	scp $SC $USERNAME@web.sourceforge.net:$TG
+	[ $? ] && del $SC && rmdir $(dirname $SC) >/dev/null
 	done
 	find * -type f -name *AUTO* | while read INPUT_OUT; do
 	SC=$INPUT_OUT
 	TG=/home/frs/project/litegapps/$SC
 	printlog "- Uploading <$SC> to <$TG>"
-	#scp $SC $USERNAME@web.sourceforge.net:$TG
+	scp $SC $USERNAME@web.sourceforge.net:$TG
+	[ $? ] && del $SC && rmdir $(dirname $SC) >/dev/null
 	done
 	exit 1
 fi
