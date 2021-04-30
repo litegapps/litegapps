@@ -93,6 +93,7 @@ if [ "$1" = clean ]; then
 			del $W2
 		fi
 	done
+	[ -d $tmp ] && del $tmp
 	print "- Cleaning Done"
 	exit 0
 fi
