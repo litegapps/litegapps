@@ -180,7 +180,7 @@ make_flashable_litegapps_all(){
 			sed -i 's/'"$(getp name $MODULE_PROP)"'/'"LiteGapps $PROP_STATUS"'/g' $MODULE_PROP
 			sed -i 's/'"$(getp author $MODULE_PROP)"'/'"$PROP_BUILDER"'/g' $MODULE_PROP
 			sed -i 's/'"$(getp version $MODULE_PROP)"'/'"$PROP_VERSION"'/g' $MODULE_PROP
-			sed -i 's/'"$(getp versionCode $MODULE_PROP)"'/'"$PROP_CODE"'/g' $MODULE_PROP
+			sed -i 's/'"$(getp versionCode $MODULE_PROP)"'/'"$PROP_VERSIONCODE"'/g' $MODULE_PROP
 			sed -i 's/'"$(getp date $MODULE_PROP)"'/'"$(date +%d-%m-%Y)"'/g' $MODULE_PROP
 			sed -i 's/'"$(getp description $MODULE_PROP)"'/'"$MODULE_DESC"'/g' $MODULE_PROP
 			
