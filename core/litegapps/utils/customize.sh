@@ -31,7 +31,7 @@ x86_64) ARCH=x86_64 ;;
 esac
 
 for CCACHE in $litegapps/log $tmp; do
-	test -d $CCACHE && del $CCACHE && cdir $CCACHE
+	test -d $CCACHE && del $CCACHE && cdir $CCACHE || cdir $CCACHE
 done
 
 #functions litegapps info module.prop and build.prop
@@ -67,15 +67,15 @@ bin=$MODPATH/bin/$arch32
 chmod -R 775 $bin
 
 #checking format file
-if [ -f $files/arch.tar.xz ]; then
+if [ -f $files/files.tar.xz ]; then
 	format_file=xz
-elif [ -f $files/arch.tar.7z ]; then
+elif [ -f $files/files.tar.7z ]; then
 	format_file=7za
-elif [ -f $files/arch.tar.br ]; then
+elif [ -f $files/files.tar.br ]; then
 	format_file=brotli
-elif [ -f $files/arch.tar.gz ]; then
+elif [ -f $files/filez.tar.gz ]; then
 	format_file=gzip
-elif [ -f $files/arch.tar.zst ]; then
+elif [ -f $files/files.tar.zst ]; then
 	format_file=zstd
 else
 	report_bug "File Gapps not found or format not support"
@@ -93,16 +93,16 @@ done
 printlog "- Extracting Gapps"
 case $format_file in
 xz)
-$bin/xz -d $files/arch.tar.xz
+$bin/xz -d $files/files.tar.xz
 ;;
 7za)
-	$bin/7za e -y $files/arch.tar.7z > $livelog ;;
+	$bin/7za e -y $files/files.tar.7z > $livelog ;;
 gunzip)
-	$bin/gzip -d $files/arch.tar.gz ;;
+	$bin/gzip -d $files/files.tar.gz ;;
 brotli)
-	$bin/brotli -dj $files/arch.tar.br ;;
+	$bin/brotli -dj $files/files.tar.br ;;
 zstd)
-	$bin/zstd -df --rm $files/arch.tar.zst ;;
+	$bin/zstd -df --rm $files/files.tar.zst ;;
 *)
 	report_bug "File format not support"
 	listlog $files ;;
@@ -110,10 +110,12 @@ esac
 
 #extract tar files
 printlog "- Extracting archive"
-if [ -f $files/arch.tar ]; then
+if [ -f $files/files.tar ]; then
 	sedlog "Extracting $files/$ARCH.tar"
-	$bin/tar -xf $files/arch.tar -C $tmp
+	$bin/tar -xf $files/files.tar -C $tmp
 	listlog $files
+else
+report_bug "File <files.tar> not found !!!"
 fi
 
 #### Diference litegapps++
