@@ -196,6 +196,8 @@ if [ "$1" = restore ]; then
 	printlog "- Extract $FILES/litegapps++.zip"
 	unzip -o $FILES/litegapps++.zip -d $base/core/litegapps++/
 	fi
+#
+exit 0
 fi
 for W in $base/bin/arm $base/core/litegapps/gapps/arm64 $base/core/litegapps++/gapps/croos_system; do
 	if [ ! -d $W ]; then
