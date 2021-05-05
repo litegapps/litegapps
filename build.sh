@@ -211,6 +211,19 @@ done
 #################################################
 [ ! -d $tmp ] && cdir $tmp
 #################################################
+#Remove placeholder file
+#################################################
+RM_PLACEHOLDER="
+$base/core/litegapps/gapps
+$base/core/litegapps++/gapps
+"
+for W in $RM_PLACEHOLDER; do
+	if [ -f $W/placeholder ]; then
+		printlog "- Removing file <$W/placeholder>"
+		del $W/placeholder
+	fi
+done
+#################################################
 #Litegapps
 #################################################
 if [ $(get_config litegapps.build) = true ]; then
