@@ -141,7 +141,7 @@ if [ "$1" = upload ]; then
 	scp $SC $USERNAME@web.sourceforge.net:$TG
 	[ $? ] && del $SC && rmdir $(dirname $SC) >/dev/null
 	done
-	exit 1
+	exit 0
 fi
 #################################################
 # Restore
