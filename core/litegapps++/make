@@ -101,7 +101,7 @@ make_flashable_litegapps_plus(){
 			#set time stamp
 			set_time_stamp $tmp/$WFL
 			
-			local NAME_ZIP="[$WFL]LiteGapps++_${PROP_STATUS}.zip"
+			local NAME_ZIP="[$WFL]LiteGapps++_$(date +%Y%m%d)_${PROP_STATUS}.zip"
 			local OUT_ZIP=$out/litegapps++
 			printlog "- Build ZIP"
 			cd $tmp/$WFL
