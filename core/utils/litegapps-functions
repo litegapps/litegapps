@@ -140,6 +140,7 @@ terminal_tips(){
 	print " "
 	}
 litegapps_plus(){
+	test ! -d $tmp/$ARCH/$SDKTARGET && cdir $tmp/$ARCH/$SDKTARGET
 	#sdk
 	if [ -d $tmp/sdk/$SDKTARGET ]; then
 	cp -a $tmp/sdk/$SDKTARGET/* $tmp/$ARCH/$SDKTARGET/
@@ -149,10 +150,10 @@ litegapps_plus(){
 
 	#arch
 	if [ -d $tmp/arch/$ARCH ]; then
-	cp -af $tmp/arch/$ARCH/* $tmp/$ARCH/$API/
+	cp -af $tmp/arch/$ARCH/* $tmp/$ARCH/$SDKTARGET/
 	fi
 	#croos system
 	if [ -d $tmp/croos_system ]; then
-	cp -af $tmp/croos_system/* $tmp/$ARCH/$API/
+	cp -af $tmp/croos_system/* $tmp/$ARCH/$SDKTARGET/
 	fi
 	}
