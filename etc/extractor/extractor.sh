@@ -90,3 +90,4 @@ for GAPPSNAME in $(ls -1 $base/input); do
 	echo " $GAPPSNAME NOT SUPPORT FILE"
 	fi
 done
+test -d $base/tmp && rm -rf $base/tmp
