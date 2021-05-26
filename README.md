@@ -54,7 +54,7 @@ sh make clean (Cleaning Directory)
 # Watch video building
 [<img src="https://img.youtube.com/vi/m-wtBAqmizI/maxresdefault.jpg" width="50%">](https://youtu.be/m-wtBAqmizI)
 # Download
-[Click here](https://wahyu6070.github.io/litegapps)
+[Click here](https://litegapps.github.io/)
 # Social Media
 [Telegram](https://t.me/litegapps)
  
