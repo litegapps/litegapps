@@ -170,18 +170,23 @@ ERROR(){
 	}
 lgapps_unzip(){
 	printlog "- Unzip"
-	find $tmp -name *.apk -type f | while read apkname; do
-	case $apkname in
-	*.apk)
-	outdir=`dirname $apkname`
-	while_log "$(basename $apkname)"
-	cdir $outdir
-	$bin/unzip -o $apkname -d $outdir
-	del $apkname
-	;;
-	esac
-	done >> $loglive
-	
+	find $tmp -name *app -type d | while read DIRAPP; do
+	for WAHYU1 in $(ls -1 $DIRAPP); do
+		if [ -d $DIRAPP/$WAHYU1 ]; then
+			if [ -f $DIRAPP/${WAHYU1}/${WAHYU1}.apk ]; then
+				sedlog "Unzipping <<$DIRAPP/${WAHYU1}/${WAHYU1}.apk>>"
+				sedlog "To <<$DIRAPP/${WAHYU1}/${WAHYU1}>>"
+				test ! -d $DIRAPP/${WAHYU1}/${WAHYU1} && cdir $DIRAPP/${WAHYU1}/${WAHYU1}
+				$bin/unzip -o $DIRAPP/${WAHYU1}/${WAHYU1}.apk -d $DIRAPP/${WAHYU1}/${WAHYU1} >/dev/null
+				if [ -f $DIRAPP/${WAHYU1}/${WAHYU1}.apk ]; then
+					sedlog "- Deleting $DIRAPP/${WAHYU1}/${WAHYU1}.apk"
+					del $DIRAPP/${WAHYU1}/${WAHYU1}.apk
+				fi
+				
+			fi
+		fi
+	done
+	done
 	}
 make_tar(){
 	print "- Make tar files"

@@ -1,6 +1,6 @@
 # LiteGapps
 # customize.sh 
-# latest update 04-04-2021
+# latest update 26-05-2021
 # By wahyu6070
 chmod 755 $MODPATH/bin/litegapps-functions
 #litegapps functions
@@ -15,9 +15,9 @@ else
 fi
 VENDIR=/vendor
 tmp=/data/adb/litegapps
-litegapps=/data/media/0/Android/litegapps
-log=$litegapps/log/litegapps.log
-loglive=$litegapps/log/litegapps_live.log
+LITEGAPPS=/data/media/0/Android/litegapps
+log=$LITEGAPPS/log/litegapps.log
+loglive=$LITEGAPPS/log/litegapps_live.log
 files=$MODPATH/files
 SDKTARGET=$(getp ro.build.version.sdk $SYSDIR/build.prop)
 
@@ -30,7 +30,7 @@ x86_64) ARCH=x86_64 ;;
 *) report_bug " <$findarch> Your Architecture Not Support" ;;
 esac
 
-for CCACHE in $litegapps/log $tmp; do
+for CCACHE in $LITEGAPPS/log $tmp; do
 	test -d $CCACHE && del $CCACHE && cdir $CCACHE || cdir $CCACHE
 done
 
@@ -64,7 +64,7 @@ arch32=arm
 esac
 bin=$MODPATH/bin/$arch32
 
-chmod -R 775 $bin
+chmod -R 755 $bin
 
 #checking format file
 if [ -f $files/files.tar.xz ]; then
@@ -73,7 +73,7 @@ elif [ -f $files/files.tar.7z ]; then
 	format_file=7za
 elif [ -f $files/files.tar.br ]; then
 	format_file=brotli
-elif [ -f $files/filez.tar.gz ]; then
+elif [ -f $files/files.tar.gz ]; then
 	format_file=gzip
 elif [ -f $files/files.tar.zst ]; then
 	format_file=zstd
@@ -93,16 +93,20 @@ done
 printlog "- Extracting Gapps"
 case $format_file in
 xz)
-$bin/xz -d $files/files.tar.xz
+	$bin/xz -d $files/files.tar.xz || report_bug "Failed extract <files.tar.gz>"
 ;;
 7za)
-	$bin/7za e -y $files/files.tar.7z > $livelog ;;
+	$bin/7za e -y $files/files.tar.7z >/dev/null || report_bug "Failed extract <files.tar.7z>"
+	;;
 gunzip)
-	$bin/gzip -d $files/files.tar.gz ;;
+	$bin/gzip -d $files/files.tar.gz || report_bug "Failed extract <files.tar.gz>"
+	;;
 brotli)
-	$bin/brotli -dj $files/files.tar.br ;;
+	$bin/brotli -dj $files/files.tar.br || report_bug "Failed extract <files.tar.br>"
+	;;
 zstd)
-	$bin/zstd -df --rm $files/files.tar.zst ;;
+	$bin/zstd -df --rm $files/files.tar.zst || report_bug "Failed extract <files.tar.zst>"
+	;;
 *)
 	report_bug "File format not support"
 	listlog $files ;;
@@ -115,7 +119,7 @@ if [ -f $files/files.tar ]; then
 	$bin/tar -xf $files/files.tar -C $tmp
 	listlog $files
 else
-report_bug "File <files.tar> not found !!!"
+	report_bug "File <files.tar> not found !!!"
 fi
 
 #### Diference litegapps++
@@ -141,29 +145,37 @@ datanull=/data/adb/abcdfghijk
 cdir $datanull
 #$datanull is fix creating ..apk
 print "- Building Gapps"
-find $tmp/$ARCH/$SDKTARGET -name AndroidManifest.xml -type f 2>/dev/null | while read xml_name; do
-apkdir=`dirname "$(readlink -f $xml_name)"`
-apk_zip_level=0
-while_log "- Creating Archive Apk : $apkdir"
-cd $apkdir
-$bin/zip -r${apk_zip_level} $apkdir.apk *
-del $apkdir
-cdir $apkdir
-mv -f $apkdir.apk $apkdir/
-cd $datanull
+find $tmp/$ARCH/$SDKTARGET -name *app -type d 2>/dev/null | while read DIRAPP; do
+	for WAHYU1 in $(ls -1 $DIRAPP); do
+		if [ -d $DIRAPP/$WAHYU1/$WAHYU1 ]; then
+			apk_zip_level=0
+			apkdir="$DIRAPP/$WAHYU1/$WAHYU1"
+			while_log "- Creating Archive Apk : $apkdir"
+			cd $apkdir
+			$bin/zip -r${apk_zip_level} $apkdir.apk *
+			del $apkdir
+			cd $datanull
+		fi
+	done
 done >/dev/null
 del $datanull
 
 
 #Zipalign
 printlog "- Zipalign"
-find $tmp/$ARCH/$SDKTARGET -name *.apk -type f 2>/dev/null | while read apk_file; do
-apkdir1=`dirname "$(readlink -f $apk_file)"`
-while_log "- Zipalign $apk_file"
-$bin/zipalign -f -p -v 4 $apk_file $apkdir1/new.apk
-del $apk_file
-mv -f $apkdir1/new.apk $apk_file
-done >> $loglive
+find $tmp/$ARCH/$SDKTARGET -name *app -type d 2>/dev/null | while read DIRAPP2; do
+	for WAHYU2 in $(ls -1 $DIRAPP2); do
+		if [ -f $DIRAPP2/$WAHYU2/${WAHYU2}.apk ]; then
+			APK_FILE="$DIRAPP2/$WAHYU2/${WAHYU2}.apk"
+			while_log "- Zipalign <$APK_FILE>"
+			$bin/zipalign -f -p -v 4 $APK_FILE $DIRAPP2/$WAHYU2/new.apk
+			del $APK_FILE
+			mv $DIRAPP2/$WAHYU2/new.apk $APK_FILE
+		else
+			while_log "- Failed Zipalign <$DIRAPP2/$WAHYU2/${WAHYU2}.apk>"
+		fi
+	done
+done >/dev/null
 
 
 #copying file

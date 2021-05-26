@@ -51,22 +51,22 @@ make_log(){
 	printlog "- Creating log"
 	datebug=`date '+%d•%m•%Y-%H•%M•%S'`
 	if [ -f $SYSDIR/build.prop ]; then
-	cp -pf $SYSDIR/build.prop $litegapps/log/sys_build.prop
+	cp -pf $SYSDIR/build.prop $LITEGAPPS/log/sys_build.prop
 	fi
 
 	if [ -f $VENDIR/build.prop ]; then
-	cp -pf $VENDIR/build.prop $litegapps/log/ven_build.prop
+	cp -pf $VENDIR/build.prop $LITEGAPPS/log/ven_build.prop
 	fi
 	
-	if [ -d $litegapps/log ]; then
+	if [ -d $LITEGAPPS/log ]; then
 	listlog $tmp
 	listlog $MODPATH
-	listlog $litegapps
+	listlog $LITEGAPPS
 	ls -alZR $MODPATH/system >> $loglive
-	cd $litegapps/log
-	$bin/busybox tar -cz -f $litegapps/litegapps_log_${datebug}.tar.gz *
+	cd $LITEGAPPS/log
+	$bin/tar -cz -f $LITEGAPPS/litegapps_log_${datebug}.tar.gz *
 	cd /
-	del $litegapps/log
+	del $LITEGAPPS/log
 	fi
 }
 report_bug(){
@@ -78,7 +78,7 @@ report_bug(){
 	printlog " known error •> $1"
 	printlog "###########################"
 	printlog " Please report bug !"
-	printlog " send log : /sdcard/Android/litegapps/litegapps_log_${datebug}.tar.gz"
+	printlog " send log : /sdcard/Android/litegapps/litegapps_log_${datebug}.tar"
 	printlog " send in group telegram https://t.me/litegappsgroup"
 	printlog "############################"
 	printlog " "
