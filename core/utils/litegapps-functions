@@ -153,7 +153,10 @@ litegapps_plus(){
 	cp -af $tmp/arch/$ARCH/* $tmp/$ARCH/$SDKTARGET/
 	fi
 	#croos system
-	if [ -d $tmp/cross_system ]; then
+	if [ $SDKTARGET -ge 29 ]; then
+	[ ! -d $tmp/$ARCH/$SDKTARGET/product ] && cdir $tmp/$ARCH/$SDKTARGET/product
+	cp -af $tmp/cross_system/* $tmp/$ARCH/$SDKTARGET/product/
+	else
 	cp -af $tmp/cross_system/* $tmp/$ARCH/$SDKTARGET/
 	fi
 	}
