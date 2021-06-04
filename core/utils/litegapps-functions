@@ -153,7 +153,7 @@ litegapps_plus(){
 	cp -af $tmp/arch/$ARCH/* $tmp/$ARCH/$SDKTARGET/
 	fi
 	#croos system
-	if [ -d $tmp/croos_system ]; then
-	cp -af $tmp/croos_system/* $tmp/$ARCH/$SDKTARGET/
+	if [ -d $tmp/cross_system ]; then
+	cp -af $tmp/cross_system/* $tmp/$ARCH/$SDKTARGET/
 	fi
 	}

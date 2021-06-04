@@ -1,6 +1,6 @@
 # LiteGapps
 # customize.sh 
-# latest update 26-05-2021
+# latest update 05-06-2021
 # By wahyu6070
 chmod 755 $MODPATH/bin/litegapps-functions
 #litegapps functions
@@ -180,17 +180,10 @@ done >/dev/null
 
 #copying file
 printlog "- Copying Gapps"
-if [ $SDKTARGET -lt 29 ]; then
 sysdirtarget=$MODPATH/system
 vendirtarget=$MODPATH/system/vendor
 cdir $sysdirtarget
 #cdir $vendirtarget
-else
-sysdirtarget=$MODPATH/system/product
-vendirtarget=$MODPATH/system/vendor
-cdir $sysdirtarget
-#cdir $vendirtarget
-fi
 
 if [ -d $tmp/$ARCH/$SDKTARGET/system ]; then
 sedlog "- Copying system"

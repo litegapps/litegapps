@@ -190,7 +190,7 @@ if [ "$1" = restore ]; then
        curl -L -o $base/files/bin.zip https://sourceforge.net/projects/litegapps/files/files-server/bin/bin.zip >/dev/null 2>&1
        if [  $? -eq 0 ]; then
        	printlog "     Downloading status : Successful"
-       	printlog "     File size : $(su -sh $base/files/bin.zip | cut -f1)"
+       	printlog "     File size : $(du -sh $base/files/bin.zip | cut -f1)"
        else
        	printlog "     Downloading status : Failed"
        	printlog "     ! PLEASE CEK YOUR INTERNET CONNECTION AND RESTORE AGAIN"
@@ -221,7 +221,7 @@ if [ "$1" = restore ]; then
 #
 exit 0
 fi
-for W in $base/bin/arm $base/core/litegapps/gapps/arm64 $base/core/litegapps++/gapps/croos_system; do
+for W in $base/bin/arm $base/core/litegapps/gapps/arm64 $base/core/litegapps++/gapps/cross_system; do
 	if [ ! -d $W ]; then
 	printlog "bin or gapps files not found. please restore !"
 	printlog "usage : sh make restore"
