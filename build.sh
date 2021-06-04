@@ -4,6 +4,9 @@
 base="`dirname $(readlink -f "$0")`"
 chmod -R 755 $base/bin
 . $base/bin/core-functions
+#actived bash function colos
+bash_color
+#
 case $(uname -m) in
 *x86*) ARCH32=x86 ;;
 *) ARCH32=arm ;;
@@ -56,24 +59,32 @@ if [ "$1" = clean ]; then
 	$base/etc/extractor/output
 	$base/log
 	"
-	if [ -f $base/files/bin.zip ] && [ $base/files/litegapps.zip ] && [ $base/files/litegapps++.zip ]; then
-		printlog "!!! files <bin.zip> <litegapps.zip> <litegapps++.zip> found"
-		printlog " do you want to removing files ?"
+	if [ -f $base/files/bin.zip ] && [ $base/core/litegapps/files/arm64/30/30.zip ] && [ $base/core/litegapps++/files/sdk.zip ]; then
+		print "!!! files <bin.zip> <litegapps.zip> <litegapps++.zip> found"
+		print " do you want to removing files ?"
 		echo -n " yes/no : "
 		read filesrm
 		case $filesrm in
 		y | Y | yes | YES)
-		printlog "- Removing files"
-		del $base/files
-		cdir $base/files
-		touch $base/files/placeholder
+		print "- Removing files"
+		LIST_FILES="
+		$base/files
+		$base/core/litegapps/files
+		$base/core/litegapps++/files
+		"
+		for WAH in $LIST_FILES; do
+		print "Cleaning $WAH"
+		del $WAH
+		cdir $WAH
+		touch $WAH/placeholder
+		done
 		;;
 		*)
-		printlog "Skipping removing files"
+		print "Skipping removing files"
 		;;
 		esac
 	else
-		printlog "- Removing files"
+		print "- Removing files"
 		del $base/files
 		cdir $base/files
 		touch $base/files/placeholder
@@ -81,7 +92,7 @@ if [ "$1" = clean ]; then
 	for W in $list_fol
 	do
 	 if [ -d $W ]; then
-	 	printlog "cleaning $W"
+	 	print "Cleaning $W"
 	 	del $W
 	 	cdir $W
 	 	touch $W/placeholder
@@ -89,7 +100,7 @@ if [ "$1" = clean ]; then
 	done
 	for W2 in $base/bin/arm $base/bin/x86; do
 		if [ -d $W2 ]; then
-			printlog "cleaning $W"
+			print "cleaning $W"
 			del $W2
 		fi
 	done
@@ -147,8 +158,12 @@ fi
 # Restore
 #################################################
 if [ "$1" = restore ]; then
+	clear
+	[ ! -d $base/files ] && cdir $base/files
+	printlog "               Restoring Files"
+	printlog " "
 	printlog "- Checking executable"
-	for W in curl unzip zip; do
+	for W in curl unzip; do
 		if $(command -v $W >/dev/null); then
 			printlog "Executable <$W> <$(command -v $W)> [OK]"
 		else
@@ -156,46 +171,53 @@ if [ "$1" = restore ]; then
 		exit 1
 		fi
 	done
-	FILES=$base/files
-	if [ -f $FILES/litegapps.zip ] && [ -f $FILES/litegapps++.zip ] && [ -f $FILES/bin.zip ]; then
-	printlog "- Checking ZIP integrity"
-	for W2 in bin.zip litegapps.zip litegapps++.zip; do
-		if  $(zip -T $FILES/$W2 >/dev/null); then
-		printlog "<$FILES/$W2> ZIP [OK]"
+	
+	printlog " "
+	if [ -f $base/files/bin.zip ]; then
+		printlog "1. Available : bin.zip"
+		printlog "    Size zip : $(du -sh $base/files/bin.zip | cut -f1)"
+		unzip -o $base/files/bin.zip -d $base/bin >/dev/null 2>&1
+		if [ $? -eq 0 ]; then
+		printlog "    Extract status : Successful"
 		else
-		printlog "<$FILES/$W2> ZIP [ERROR]"
+		printlog "    Extract status : Failed"
+		printlog "    REMOVING FILES"
+		del $base/files/bin.zip
 		exit 1
 		fi
-	done
-	printlog "- Extract $FILES/bin.zip"
-	unzip -o $FILES/bin.zip -d $base/bin
-	printlog "- Extract $FILES/litegapps.zip"
-	unzip -o $FILES/litegapps.zip -d $base/core/litegapps/
-	printlog "- Extract $FILES/litegapps++.zip"
-	unzip -o $FILES/litegapps++.zip -d $base/core/litegapps++/
 	else
-	printlog "- Downloading bin.zip"
-	curl -L -o $FILES/bin.zip https://sourceforge.net/projects/litegapps/files/files/bin.zip/download
-	printlog "- Downloading litegapps.zip"
-	curl -L -o $FILES/litegapps.zip https://sourceforge.net/projects/litegapps/files/files/litegapps.zip/download
-	printlog "- Downloading litegapps++.zip"
-	curl -L -o $FILES/litegapps++.zip https://sourceforge.net/projects/litegapps/files/files/litegapps%2B%2B.zip/download
-	printlog "- Checking ZIP integrity"
-	for W2 in bin.zip litegapps.zip litegapps++.zip; do
-		if  $(zip -T $FILES/$W2 >/dev/null); then
-		printlog "<$FILES/$W2> ZIP [OK]"
-		else
-		printlog "<$FILES/$W2> ZIP [ERROR]"
-		exit 1
-		fi
-	done
-	printlog "- Extract $FILES/bin.zip"
-	unzip -o $FILES/bin.zip -d $base/bin
-	printlog "- Extract $FILES/litegapps.zip"
-	unzip -o $FILES/litegapps.zip -d $base/core/litegapps/
-	printlog "- Extract $FILES/litegapps++.zip"
-	unzip -o $FILES/litegapps++.zip -d $base/core/litegapps++/
+		printlog "1. Downloading : bin.zip"
+       curl -L -o $base/files/bin.zip https://sourceforge.net/projects/litegapps/files/files-server/bin/bin.zip >/dev/null 2>&1
+       if [  $? -eq 0 ]; then
+       	printlog "     Downloading status : Successful"
+       	printlog "     File size : $(su -sh $base/files/bin.zip | cut -f1)"
+       else
+       	printlog "     Downloading status : Failed"
+       	printlog "     ! PLEASE CEK YOUR INTERNET CONNECTION AND RESTORE AGAIN"
+       	del $base/files/bin.zip
+       	exit 1
+       fi
+       unzip -o $base/files/bin.zip -d $base/bin >/dev/null 2>&1
+       if [ $? -eq 0 ]; then
+       	printlog "     Unzip : $base/files/bin.zip"
+       	printlog "     unzip status : Successful"
+       else
+       	printlog "     Unzip : $base/files/bin.zip"
+       	printlog "     unzip status : Failed"
+       	printlog "     REMOVING FILES"
+       	del $base/files/bin.zip
+       	exit 1
+       fi
 	fi
+	for W in $(ls $base/core); do
+		if [ -d $base/core/$W ]; then
+			if [ -f $base/core/$W/restore ]; then
+				chmod 755 $base/core/$W/restore
+				. $base/core/$W/restore
+			fi
+		fi
+	
+	done
 #
 exit 0
 fi
