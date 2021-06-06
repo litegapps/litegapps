@@ -228,10 +228,7 @@ for W in $base/bin/arm $base/core/litegapps/gapps/arm64 $base/core/litegapps++/g
 	exit 1
 	fi
 done
-#################################################
-#Clean TMP
-#################################################
-[ ! -d $tmp ] && cdir $tmp
+
 #################################################
 #Remove placeholder file
 #################################################
@@ -251,6 +248,7 @@ done
 if [ $(get_config litegapps.build) = true ]; then
 printlog " "
 printlog "- Creating Litegapps"
+[ ! -d $tmp ] && cdir $tmp || del $tmp && cdir $tmp
 . $base/core/litegapps/make
 fi
 
@@ -261,6 +259,7 @@ fi
 if [ $(get_config litegapps++.build) = true ]; then
 printlog " "
 printlog "- Creating Litegapps++"
+[ ! -d $tmp ] && cdir $tmp || del $tmp && cdir $tmp
 . $base/core/litegapps++/make
 fi
 
