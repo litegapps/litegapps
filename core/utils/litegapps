@@ -4,8 +4,8 @@
 #since 08-07-2019
 #License GPL3+
 
-propversion=V0.3
-propdate=23-03-2021
+propversion=V0.4
+propdate=08-06-2021
 
 # Colors
 GREEN='\e[01;32m'
@@ -688,7 +688,7 @@ print "License GPLv3+: GNU GPL version 3 or later <https://gnu.org/licenses/gpl.
 print "This is free software: you are free to change and redistribute it."
 print "There is NO WARRANTY, to the extent permitted by law."
 print "${YELLOW}"
-print " Github  : https://github.com/wahyu6070/litegapps "
+print " Github  : https://github.com/litegapps/litegapps-controller"
 print " Telegram: https://t.me/litegapps"
 print " $GREEN"
 }
@@ -753,7 +753,7 @@ case $pilih in
 	if [ -f /data/litegapps/litegapps_menu.sh ]; then
 		. /data/litegapps/litegapps_menu.sh 
 	else
-		error "Please Install Litegapps controller !"
+		error "Please Install Litegapps Controller !"
 		sleep 5s
 	fi
 ;;

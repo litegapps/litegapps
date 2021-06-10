@@ -136,21 +136,21 @@ if [ "$1" = upload ]; then
 	TG=/home/frs/project/litegapps/$SC
 	printlog "- Uploading <$SC> to <$TG>"
 	scp $SC $USERNAME@web.sourceforge.net:$TG
-	[ $? ] && del $SC && rmdir $(dirname $SC) >/dev/null
+	[ $? ] && del $SC && rmdir $(dirname $SC) 2>/dev/null
 	done
 	find * -type f -name *RECOVERY* | while read INPUT_OUT; do
 	SC=$INPUT_OUT
 	TG=/home/frs/project/litegapps/$SC
 	printlog "- Uploading <$SC> to <$TG>"
 	scp $SC $USERNAME@web.sourceforge.net:$TG
-	[ $? ] && del $SC && rmdir $(dirname $SC) >/dev/null
+	[ $? ] && del $SC && rmdir $(dirname $SC) 2>/dev/null
 	done
 	find * -type f -name *AUTO* | while read INPUT_OUT; do
 	SC=$INPUT_OUT
 	TG=/home/frs/project/litegapps/$SC
 	printlog "- Uploading <$SC> to <$TG>"
 	scp $SC $USERNAME@web.sourceforge.net:$TG
-	[ $? ] && del $SC && rmdir $(dirname $SC) >/dev/null
+	[ $? ] && del $SC && rmdir $(dirname $SC) 2>/dev/null
 	done
 	exit 0
 fi

@@ -130,6 +130,10 @@ ch_con(){
 chcon -h u:object_r:system_file:s0 "$1" || sedlog "Failed chcon $1"
 }
 
+ch_con_r(){
+chcon -hR u:object_r:system_file:s0 "$1" || sedlog "Failed chcon $1"
+}
+
 terminal_tips(){
 	print
 	printlog "*Tips"

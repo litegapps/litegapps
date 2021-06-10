@@ -1,7 +1,7 @@
 #!/sbin/sh
-# Kopi Installer V1.3
+# Kopi Installer V1.4
 # Since 08-05-2020
-# Latest Update 09-04-2021
+# Latest Update 11-06-2021
 # by wahyu6070 (dont change)
 
 OUTFD=/proc/self/fd/$2;
@@ -294,11 +294,8 @@ if ! $BOOTMODE; then
   done
   mount_apex
 else
-	for MOUNT6070 in /system /vendor /data /cache; do
-		if $is_mounted $MOUNT6070; then
-			mount -o rw,remount $MOUNT6070 || mount $MOUNT6070 || mount -o rw,remount -t auto $MOUNT6070 || mount -o rw,remount / || abort "- Abort mounting $MOUNT6070"
-		fi
-	done
+	mount -o rw,remount /system || mount /system || mount -o rw,remount -t auto /system || mount -o rw,remount / || abort "- Abort mounting system"
+	mount -o rw,remount /vendor || mount /vendor || mount -o rw,remount -t auto /vendor || mount -o rw,remount / || abort "- Abort mounting vendor"
 fi
 #RECOVERY ACTIONS
 OLD_LD_LIB=$LD_LIBRARY_PATH
@@ -363,6 +360,7 @@ DATE=`getp date $MODULE`
 AUTHOR=`getp author $MODULE`
 KOPIMOD=/data/kopi/modules/"$ID"
 MAGISKMOD=/data/adb/modules/$ID
+MAGISKUP="/data/adb/modules_update/$ID"
 set_progress 0.5;
 
 #req
@@ -399,22 +397,43 @@ else
 	magisk)
 	print "- Type Magisk Module"
 	[ -f /data/adb/magisk/util_functions.sh ] && [ $TYPEINSTALL = magisk ] && . /data/adb/magisk/util_functions.sh
-	modup="/data/adb/modules_update/$ID"
-	del $modup
-	cdir "$modup"
-	cdir "/data/adb/modules/$ID"
+	for W8989 in $MAGISKMOD $MAGISKUP; do
+		test -d $W8989 && del $W8989 && cdir $W8989 || cdir $W8989
+	done
 	touch "/data/adb/modules/$ID/update"
 	cp -pf $kopi/module.prop "/data/adb/modules/$ID/"
-	[ -f $kopi/magisk-uninstall.sh ] && cp -pf $kopi/magisk-uninstall.sh $modup/uninstall.sh && chmod 755 $modup/uninstall.sh
-	[ -f $kopi/magisk-system.prop ] && cp -pf $kopi/magisk-system.prop $modup/system.prop
-	[ -f $kopi/magisk-service.sh ] && cp -pf $kopi/magisk-service.sh $modup/service.sh && chmod 755 $modup/service.sh
-	[ -f $kopi/magisk-post-fs-data.sh ] && cp -pf $kopi/magisk-post-fs-data.sh $modup/post-fs-data.sh && chmod 755 $modup/post-fs-data.sh
-	cp -rdf $kopi/* "$modup"
-	del $modup/META-INF
-	del $modup/install.sh
-	del $modup/customize.sh
-	del $modup/install.zip
-	del $modup/README.md
+	if [ -f $kopi/magisk-uninstall.sh ]; then
+		test -f $kopi/uninstall.sh && del $kopi/uninstall.sh
+		cp -pf $kopi/magisk-uninstall.sh $MAGISKUP/uninstall.sh
+		chmod 755 $MAGISKUP/uninstall.sh
+		del $kopi/magisk-uninstall.sh
+	fi
+	if [ -f $kopi/magisk-system.prop ]; then
+		cp -pf $kopi/magisk-system.prop $MAGISKUP/system.prop
+		del $kopi/magisk-system.prop
+	fi
+	if [ -f $kopi/magisk-service.sh ]; then
+		cp -pf $kopi/magisk-service.sh $MAGISKUP/service.sh
+		chmod 755 $MAGISKUP/service.sh
+		del $kopi/magisk-service.sh
+	fi
+	if [ -f $kopi/magisk-post-fs-data.sh ]; then
+		cp -pf $kopi/magisk-post-fs-data.sh $MAGISKUP/post-fs-data.sh
+		chmod 755 $MAGISKUP/post-fs-data.sh
+		del $kopi/magisk-post-fs-data.sh
+	fi
+	cp -rdf $kopi/* "$MAGISKUP"
+	
+	LIST_RM="
+	$MAGISKUP/META-INF
+	$MAGISKUP/install.sh
+	$MAGISKUP/customize.sh
+	$MAGISKUP/install.zip
+	$MAGISKUP/README.md
+	"
+	for W7878 in $LIST_RM; do
+		del $W7878
+	done
 	;;
 	kopi)
 	print "- Type Kopi Module"

@@ -7,8 +7,9 @@ loglive=$litegapps/log/litegapps_live.log
 #
 
 if [ $TYPEINSTALL = magisk ]; then
-ls -alZR $modup >> $loglive
-find $modup/system -type f | while read anjay; do
+ls -alZR $MAGISKUP >> $loglive
+ch_con_r $MAGISKUP/system
+find $MAGISKUP/system -type f | while read anjay; do
 	dir6070=$(dirname $anjay)
 	while_log "- Set ch_con file $anjay"
 	ch_con $anjay
@@ -19,6 +20,6 @@ find $modup/system -type f | while read anjay; do
 	while_log "- Set chmod file $dir6070"
 	chmod 755 $dir6070
 done >> $loglive
-ls -alZR $modup >> $loglive
+ls -alZR $MAGISKUP >> $loglive
 fi
 ls -alZR $system > $litegapps/log/new_system.log
