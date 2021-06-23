@@ -163,6 +163,7 @@ abort(){
 get_config() {
 	getp "$1" "$base/config"
 }
+
 ERROR(){
 	printlog "[ERROR] <$1>"
 	sleep 5s

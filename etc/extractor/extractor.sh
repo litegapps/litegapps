@@ -6,6 +6,7 @@ esac
 bin=$base/bin/$ARCH32
 chmod -R 777 $bin
 cd $base
+[ ! $bin/busybox ] && print "<$bin/busybox> not found" && exit 1
 [ ! -d $base/input ] && mkdir -p $base/input
 [ -d $base/tmp ] && rm -rf $base/tmp && mkdir -p $base/tmp || mkdir -p $base/tmp
 [ -d $base/output ] && rm -rf $base/output && mkdir -p $base/output || mkdir -p $base/output

@@ -1,7 +1,7 @@
 #################################################
 #litegapps functions
 #################################################
-BASE_LITEGAPPS2=$base/core/litegapps++
+BASE_LITEGAPPS_PIXEL=$base/core/litegapps_pixel
 copy_binary_flashable(){
 	case $(get_config compression) in
      xz)
@@ -45,8 +45,24 @@ copy_binary_flashable(){
 	esac
 }
 
+get_android_version(){
+	local input=$1
+	case $input in
+		21) echo 5.0 ;;
+		22) echo 5.1 ;;
+		23) echo 6.0 ;;
+		24) echo 7.0 ;;
+		25) echo 7.1 ;;
+		26) echo 8.0 ;;
+		27) echo 8.1 ;;
+		28) echo 9.0 ;;
+		29) echo 10.0 ;;
+		30) echo 11.0 ;;
+		31) echo 12.0 ;;
+	 esac
+	}
 
-make_flashable_litegapps_plus(){
+make_flashable_litegapps(){
 	for WFL in MAGISK RECOVERY AUTO; do
 		printlog "- Build flashable [$WFL]"
 		cdir $tmp/$WFL
@@ -62,10 +78,10 @@ make_flashable_litegapps_plus(){
 			done
 			# copy core/utils files
 			for W in customize.sh README.md LICENSE; do
-				if [ -f $BASE_LITEGAPPS2/utils/$W ]; then
-				cp $BASE_LITEGAPPS2/utils/$W $tmp/$WFL/
+				if [ -f $BASE_LITEGAPPS_PIXEL/utils/$W ]; then
+				cp $BASE_LITEGAPPS_PIXEL/utils/$W $tmp/$WFL/
 				else
-				ERROR "magisk files <$BASE_LITEGAPPS22/utils/$W> not found"
+				ERROR "magisk files <$BASE_LITEGAPPS_PIXEL/utils/$W> not found"
 				fi
 			done
 		case $WFL in
@@ -89,12 +105,9 @@ make_flashable_litegapps_plus(){
 				fi
 			done
 			
-			#set apk level compression in customize.sh
-			sed -i 's/'"apk_zip_level=0"'/'"apk_zip_level=$(get_config litegapps++.apk.compress)"'/g' $tmp/$WFL/customize.sh
-			#
 			local MODULE_PROP=$tmp/$WFL/module.prop
-			local MODULE_DESC="litegapps++ is a google apps package that supports almost all arch and android versions while maintaining lightness, saving battery and more."
-			sed -i 's/'"$(getp name $MODULE_PROP)"'/'"LiteGapps++ $PROP_STATUS"'/g' $MODULE_PROP
+			local MODULE_DESC="litegapps pixel is custom google apps ported from Google Pixel devices to various devices."
+			sed -i 's/'"$(getp name $MODULE_PROP)"'/'"LiteGapps Pixel $W_ARCH $(get_android_version $W_SDK) $PROP_STATUS"'/g' $MODULE_PROP
 			sed -i 's/'"$(getp author $MODULE_PROP)"'/'"$PROP_BUILDER"'/g' $MODULE_PROP
 			sed -i 's/'"$(getp version $MODULE_PROP)"'/'"$PROP_VERSION"'/g' $MODULE_PROP
 			sed -i 's/'"$(getp versionCode $MODULE_PROP)"'/'"$PROP_VERSIONCODE"'/g' $MODULE_PROP
@@ -104,8 +117,8 @@ make_flashable_litegapps_plus(){
 			#set time stamp
 			set_time_stamp $tmp/$WFL
 			
-			local NAME_ZIP="[$WFL]LiteGapps++_$(date +%Y%m%d)_${PROP_STATUS}.zip"
-			local OUT_ZIP=$out/litegapps++
+			local NAME_ZIP="[$WFL]LiteGapps_Pixel_${W_ARCH}_$(get_android_version $W_SDK)_$(date +%Y%m%d)_${PROP_STATUS}.zip"
+			local OUT_ZIP=$out/litegapps_pixel/$W_ARCH/$W_SDK
 			printlog "- Build ZIP"
 			cd $tmp/$WFL
 			test ! -d $OUT_ZIP && cdir $OUT_ZIP
@@ -123,16 +136,33 @@ make_flashable_litegapps_plus(){
 #################################################
 #Core
 #################################################
-#binary copy architecture type
-BIN_ARCH=arm
-clear
-printlog "## Building LiteGapps++ ##"
-printlog " "
-printlog " "
-cp -af $BASE_LITEGAPPS2/gapps/* $tmp/
-lgapps_unzip
-make_tar
-make_tar_arch
-make_archive
-make_flashable_litegapps_plus
-echo $BASE_LITEGAPPS2
+
+	LITEGAPPS_PIXEL_ARCH=`get_config litegapps.pixel.arch | sed "s/,/ /g"`
+	LITEGAPPS_PIXEL_SDK=`get_config litegapps.pixel.sdk | sed "s/,/ /g"`
+	for W_ARCH in $LITEGAPPS_PIXEL_ARCH; do
+		#binary copy architecture type
+		BIN_ARCH=$W_ARCH
+		for W_SDK in $LITEGAPPS_PIXEL_SDK; do
+			clear
+			printlog "## Building LiteGapps Pixel ##"
+			printlog " "
+			printlog "Architecture=$W_ARCH"
+			printlog "SDK=$W_SDK"
+			printlog "Android Target=$(get_android_version $W_SDK)"
+			printlog " "
+			[ -d $tmp ] && del $tmp && cdir $tmp || cdir $tmp
+			if [ ! -d $BASE_LITEGAPPS_PIXEL/gapps/$W_ARCH/$W_SDK ]; then
+				printlog "[ERROR] <$BASE_LITEGAPPS_PIXEL/gapps/$W_ARCH/$W_SDK> not found"
+				sleep 2s
+				continue
+			fi
+			[ ! -d $tmp/$W_ARCH/$W_SDK/ ] && cdir $tmp/$W_ARCH/$W_SDK/
+			cp -af $BASE_LITEGAPPS_PIXEL/gapps/$W_ARCH/$W_SDK/* $tmp/$W_ARCH/$W_SDK/
+			make_tar_arch
+			make_archive
+			make_flashable_litegapps
+			
+		done
+	done
+
+

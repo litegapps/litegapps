@@ -55,6 +55,7 @@ if [ "$1" = clean ]; then
 	$base/output
 	$base/core/litegapps/gapps
 	$base/core/litegapps++/gapps
+	$base/core/litegapps_pixel/gapps
 	$base/etc/extractor/input
 	$base/etc/extractor/output
 	$base/log
@@ -71,6 +72,7 @@ if [ "$1" = clean ]; then
 		$base/files
 		$base/core/litegapps/files
 		$base/core/litegapps++/files
+		$base/core/litegapps_pixel/files
 		"
 		for WAH in $LIST_FILES; do
 		print "Cleaning $WAH"
@@ -235,6 +237,7 @@ done
 RM_PLACEHOLDER="
 $base/core/litegapps/gapps
 $base/core/litegapps++/gapps
+$base/core/litegapps_pixel/gapps
 "
 for W in $RM_PLACEHOLDER; do
 	if [ -f $W/placeholder ]; then
@@ -247,7 +250,7 @@ done
 #################################################
 if [ $(get_config litegapps.build) = true ]; then
 printlog " "
-printlog "- Creating Litegapps"
+printlog "- Buulding Litegapps"
 [ ! -d $tmp ] && cdir $tmp || del $tmp && cdir $tmp
 . $base/core/litegapps/make
 fi
@@ -258,11 +261,19 @@ fi
 #################################################
 if [ $(get_config litegapps++.build) = true ]; then
 printlog " "
-printlog "- Creating Litegapps++"
+printlog "- Building Litegapps++"
 [ ! -d $tmp ] && cdir $tmp || del $tmp && cdir $tmp
 . $base/core/litegapps++/make
 fi
-
+#################################################
+#Litegapps pixel
+#################################################
+if [ $(get_config litegapps.pixel.build) = true ]; then
+printlog " "
+printlog "- Building Litegapps"
+[ ! -d $tmp ] && cdir $tmp || del $tmp && cdir $tmp
+. $base/core/litegapps_pixel/make
+fi
 [ -d $tmp ] && del $tmp
 
 #################################################

@@ -1,18 +1,22 @@
-version=1.8
-version.code=18
+version=2.0
+version.code=2.0
 codename=stable
 name.builder=soekarno
 build.status=unofficial
 set.time.stamp=true
 date.time=202007122239
-compression=xz
-compression.level=9
-zip.apk.compression=0
-zip.level=9
-#LITEGAPPS PROPS
+compression=br
+compression.level=1
+zip.level=1
+#Litegapps prop
 litegapps.build=true
 litegapps.arch=arm64
-litegapps.sdk=29,30,31
-#LITEGAPPS++ PROPS
-litegapps++.build=true
-litegapps++.sdk=27-30
+litegapps.sdk=29
+litegapps.apk.compress=0
+#Litegapps++ prop
+litegapps++.build=truez
+litegapps++.apk.compress=0
+#Litegapps pixel prop
+litegapps.pixel.build=true
+litegapps.pixel.arch=arm64
+litegapps.pixel.sdk=29
