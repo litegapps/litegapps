@@ -5,9 +5,9 @@ this is a tool for building litegapps or litegapps++
 git clone https://github.com/wahyu6070/litegapps
 # Configure
 
-``version=1.4`` version litegapps
+``version=2.1`` version litegapps
  
-``version.code=14`` version code litegapps
+``version.code=21`` version code litegapps
  
 ``codename=Stable`` Codename status build``
  

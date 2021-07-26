@@ -1,11 +1,11 @@
 #!/system/bin/sh
-#Pingger Stable Control
+#LiteGapps Controller
 #by wahyu6070 @xda-developers
 #since 08-07-2019
 #License GPL3+
 
-propversion=V0.4
-propdate=08-06-2021
+propversion=V0.5
+propdate=14-07-2021
 
 # Colors
 GREEN='\e[01;32m'
@@ -22,11 +22,9 @@ NC='\033[0m'
 N='\e[0m'
 
 
-base=/data/media/0/Android/litegapps
-log=$base/pingger.log
-data=$base/data
-base2=/data/litegapps
-bin2=$base2/bin
+BASED=/data/media/0/Android/litegapps
+LOG=$BASED/liteggapps_controller.log
+DATA=$BASED/data
 
 #▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
 #Functions
@@ -65,9 +63,9 @@ loadings() {
 #▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
 system_list="
 org.lineageos.snap
-"
-apps_list="
-code.name.monkey.retromusic
+com.android.vending
+com.google.android.calculator
+com.google.android.calendar
 "
 
 blacklist_term="
@@ -85,18 +83,25 @@ com.google.android.play.games
 ch.deletescape.lawnchair.plah
 "
 
-blacklist_game="
-com.mobile.legends
-com.tencent.ig
-com.supercell.clashofclans
-"
-
-if [ -f $data/black_list_gaming2 ]; then
-blacklist_gaming="$(cat $data/black_list_gaming2)"
-fi
-
 
 black_func(){
+	BLACK_LIST_GAMING_2=$DATA/black_list_gaming2
+	if [ -f $DATA/black_list_gaming2 ]; then
+		blacklist_game="$(cat $BLACK_LIST_GAMING_2)"
+	else
+		LIST_GAME_WAHYU4545="
+		com.mobile.legends
+		com.tencent.ig
+		com.supercell.clashofclans
+		com.neptune.domino
+		com.garena.game.codm
+		com.chess
+		"
+		for WAHYU2345 in $LIST_GAME_WAHYU4545; do
+			echo "$WAHYU2345" >> $BLACK_LIST_GAMING_2
+		done
+		blacklist_game="$(cat $BLACK_LIST_GAMING_2)"
+	fi
 	for zzz in $blacklist_apps $blacklist_game $blacklist_system $blacklist_term; do
 		[[ "$1" == $zzz ]] && return 0
 	done
@@ -141,113 +146,6 @@ spinner() {
   set -x 2>>$VERLOG
 }
 
-download_file(){
-clear
-print "             Download Files"
-url=$2
-name=$1
-print "- Name : $name"
-del $base2/download
-test ! -d $base2/download && mkdir -p $base2/download
-$bin2/curl -L -o $base2/download/$name.tar.xz $url 2>/dev/null & spinner "- Downloading" 2>/dev/null
-print
-print "- Size : $(du -sh $base2/download/$name.tar.xz | cut -f1)"
-print "- Extracting"
-$bin2/busybox tar -xf $base2/download/$name.tar.xz -C $base2/download
-if [ -d $base2/download/system ]; then
-cd $base2/download/system
-find * | while read sfile; do
-echo "$sfile" >> $base2/download/list_system
-done
-cd /
-fi
-print "- Pushing"
-cp -af $base2/download/system/* $SYSDIR/
-print "- set permissions"
-for i1 in $(cat $base2/download/list_system); do
-if [ -d $SYSDIR/$i1 ]; then
-chcon -h u:object_r:system_file:s0 $SYSDIR/$i1
-chmod 755 $SYSDIR/$i1
-elif [ -f $SYSDIR/$i1 ]; then
-chcon -h u:object_r:system_file:s0 $SYSDIR/$i1
-chmod 644 $SYSDIR/$i1
-fi
-done
-#del $base2/download
-print "- Done"
-print
-print
-print "1.Reboot"
-print "2.Back"
-print
-echo -n "Select Menu : "
-read menud
-case $menud in
-1)
-reboot
-;;
-2)
-echo
-;;
-esac
-
-}
-
-
-download_menu(){
-	while true; do
-	clear
-	print "      Download list"
-	print
-	print "1.Wellbeing"
-	print "2.Youtube Vanced"
-	print "3.About"
-	print "4.Exit"
-	echo -n "Select List :"
-	read dmenu
-	case $dmenu in
-	1)
-	download_file Wellbeing https://sourceforge.net/projects/litegapps/files/database/$ARCH/$SDK/Wellbeing.tar.xz/download
-	;;
-	2)
-	download_file Youtube https://sourceforge.net/projects/litegapps/files/database/$ARCH/$SDK/YoutubeVanced.tar.xz/download
-	;;
-	3)
-	clear
-	
-	printmid "About"
-	print
-	print "This is a tool to download the manual Litegapps application."
-	print
-	print "Problem solving : "
-	print "1.make sure you have a good internet connection"
-	print "2.make sure you are using the latest version of litegapps control"
-	print
-	print "Report bug : https://t.me/litegapps"
-	print
-	print "1.Back"
-	print
-	echo -n "Select Menu : "
-	read lololo
-	;;
-	4)
-	break
-	;;
-	esac
-	done
-	
-	}
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -261,7 +159,7 @@ download_menu(){
 boost(){
 print "- Boost...";
 print " ";
-for z in $(pm list packages -3) $gappslist $syslist; do
+for z in $(pm list packages -3) $system_list; do
 boost6071=`getp1 $z`
    case $boost6071 in
      com.termux | com.termoneplus )
@@ -280,18 +178,18 @@ device(){
 	print
     ROM=$(getprop ro.build.display.id | cut -d'-' -f1)
 	print "Name ROM = $ROM ($(getprop ro.product.vendor.device)) "
-	print "Android Version = $(getprop ro.build.version.release)" |  tee -a $log;
+	print "Android Version = $(getprop ro.build.version.release)" |  tee -a $LOG;
 	print "Android Security patch = $(getprop ro.build.version.security_patch)"
 	print "battery Status = $(cat /sys/class/power_supply/battery/status)"
 	print "battery = $(cat /sys/class/power_supply/battery/capacity)%"
 	print "battery Technology = $(cat /sys/class/power_supply/battery/technology)"
 	print "battery Health = $(cat /sys/class/power_supply/battery/health)"
 	ARM=$(getprop ro.product.cpu.abi)
-	print "Architecture = $ARM" |  tee -a $log;
+	print "Architecture = $ARM" |  tee -a $LOG;
 	selinux=$(getenforce)
-	print "Selinux = $selinux " |  tee -a $log;
-	print "Kernel = $(uname -r)" |  tee -a $log;
-	print "Chipset = $(getprop ro.product.board) " |  tee -a $log;
+	print "Selinux = $selinux " |  tee -a $LOG;
+	print "Kernel = $(uname -r)" |  tee -a $LOG;
+	print "Chipset = $(getprop ro.product.board) " |  tee -a $LOG;
 	print "GPU = $(cat /sys/kernel/gpu/gpu_model)"
 	for i in /system/xbin/busybox /sbin/busybox /system/bin/busybox /vendor/bin
 	do
@@ -324,55 +222,65 @@ gaming1(){
 
 
 gaming2(){
-	if [ ! -f $data/gaming_mode_2 ]; then
+	if [ ! -f $DATA/gaming_mode_2 ]; then
 	clear
 	print
 	printmid "${CYAN}Gaming Mode 2${NC}$WHITE"
 	print " ";
-	del $data/gaming2_list_apps
-		for z in $(pm list packages -3); do
+	del $DATA/gaming2_list_apps
+		for z in $(pm list packages -3) $system_list; do
 			boost6071=`getp1 $z`
 			 if black_func $boost6071; then
 			 	  print "${YELLOW}[SKIP] •> ${WHITE}${boost6071//com.}"
 			 else	  
 			 	  pm disable $boost6071 2>/dev/null | >/dev/null && print "${GREEN}[OK] •> ${WHITE}${boost6071//com.}" || print "${GREEN}[ERROR] •> ${WHITE}${boost6071//com.}"
-			 	  echo "$boost6071" >> $data/gaming2_list_apps
+			 	  echo "$boost6071" >> $DATA/gaming2_list_apps
 			 fi
  	   done
- 	echo actived > $data/gaming_mode_2
+ 	echo actived > $DATA/gaming_mode_2
  	print "- ${GREEN}Done${WHITE}"
  	sleep 6s
-	elif [ -f $data/gaming_mode_2 ]; then
+	elif [ -f $DATA/gaming_mode_2 ]; then
 	clear
 	printmid "${BRED}DisablingGaming Mode 2${NC}$WHITE"
 		 while IFS=' ' read -r gaming2_apps; do
 		 	pm enable $gaming2_apps 2>/dev/null | >/dev/null  && print "${GREEN}[OK] •> ${WHITE}${gaming2_apps//com.}" || print "${RED}[ERROR] •> ${WHITE}${gaming2_apps//com.}"
-		 done < $data/gaming2_list_apps
-	del $data/gaming2_list_apps
-	del $data/gaming_mode_2
+		 done < $DATA/gaming2_list_apps
+	del $DATA/gaming2_list_apps
+	del $DATA/gaming_mode_2
 	print "- Done"
 	sleep 6s
 	fi
 	}
 gaming3(){
-	status_gaming3=$data/gaming_mode_3
-	list_gaming3=$data/gaming_mode_3_list
+	status_gaming3=$DATA/gaming_mode_3
+	list_gaming3=$DATA/gaming_mode_3_list
+	if [ ! -f $list_gaming3 ]; then
+		ADD_LIST_GAMING3="
+		com.android.vending
+		com.google.android.calendar
+		com.google.android.calculator
+		"
+		for WAHYU666 in $ADD_LIST_GAMING3; do
+			echo "$WAHYU666" >> $list_gaming3
+		done
+	fi
 	[ ! -f $list_gaming3 ] && [ ! $(grep . $list_gaming3) ] && error "$list_gaming3 Not found list app" && sleep 7s && return 1;
 	if [ -f $status_gaming3 ]; then
 		clear
-		printmid "${BRED}Disabling Gaming Mode 2 ${NC}$GREEN"
+		printmid "${BRED}Disabling Gaming Mode 3 ${NC}$GREEN"
 		print
 		sleep 1s
 		while IFS=' ' read -r gaming3_list; do
 			pm enable $gaming3_list 2>/dev/null | >/dev/null && print "${GREEN}[OK] •> ${WHITE}${gaming3_list//com.}" || print "${RED}[ERROR] •> ${WHITE}${gaming3_list//com.}"
 		done < $list_gaming3
 		
-		rm -rf $data/gaming_mode_3
+		del $DATA/gaming_mode_3
 		print "${GREEN}- Done"
 		sleep 5s
 	else
 	clear
-		printmid "${BRED}Enabling Gaming Mode 2${NC}${GREEN}"
+		printmid "${BRED}Enabling Gaming Mode 3${NC}${GREEN}"
 		print
 		sleep 1s
 		while IFS=' ' read -r gaming3_list; do
@@ -388,14 +296,16 @@ gaming3(){
 gaming(){
 	while true; do
 	clear
-	[ -f $data/gaming_mode_2 ] && gaming22="${VIOLET}2.Disable Gaming Mode 2${GREEN}" || gaming22="2.Gaming Mode 2 (Not Recomended)"
-	[ -f $data/gaming_mode_3 ] && gaming23="${VIOLET}3.Disable Gaming Mode 3${GREEN}" || gaming23="3.Gaming Mode 3"
+	[ -f $DATA/gaming_mode_2 ] && gaming22="${VIOLET}2.Disable Gaming Mode 2${GREEN}" || gaming22="2.Gaming Mode 2 (Not Recomended)"
+	[ -f $DATA/gaming_mode_3 ] && gaming23="${VIOLET}3.Disable Gaming Mode 3${GREEN}" || gaming23="3.Gaming Mode 3"
 	print "$YELLOW                  Gaming Mode Select $GREEN"
 	print
 	print "1.Gaming Mode 1"
 	print "$gaming22"
 	print "$gaming23"
-	print "4.Exit"
+	print "4.Make List Apps"
+	print "5.About"
+	print "6.Exit"
 	print
 	echo -n "Select Gaming Mode : "
 	read gamemodeselect
@@ -404,13 +314,115 @@ gaming(){
 	1) gaming1 ;;
 	2) gaming2 ;;
 	3) gaming3 ;;
-	4) break ;;
+	4)
+	clear
+	printmid "Select list all"
+	print
+	print "1.List apps installed"
+	print "2.List system and apps"
+	print "3.Exit"
+	print
+	echo -n "Select Menu : "
+	read appps
+	case $appps in
+		1)
+		clear
+		printmid "- Creating list apps installed"
+		print
+		del $BASED/list_apps_installed
+		for capps in $(pm list packages -3); do
+		print "••> $(getp1 $capps)"
+		print "$(getp1 $capps)" >> $BASED/list_apps_installed
+		done
+		print
+		print "${WHITE}- Check in •> $BASED/list_apps_installed $GREEN"
+		print "- done"
+		print
+		print "1.Back"
+		print " "
+		echo -n "  Select Menu : "
+		read WAHYU89
+		;;
+		2)
+		clear
+		printmid "- Creating list system and apps"
+		print
+		del $BASED/list_system_apps
+		for capps in $(pm list packages); do
+		print "••> $(getp1 $capps)"
+		print "$(getp1 $capps)" >> $BASED/list_system_apps
+		done
+		print
+		print "${WHITE}- Check in •> $BASED/$base/list_system_apps $GREEN"
+		print "- done"
+		print
+		print
+		print "1.Back"
+		print " "
+		echo -n "  Select Menu : "
+		read WAHYU88
+		;;
+	esac
+	;;
+	5)
+	clear
+	printmid "${CYAN}Gaming Mode About${GREEN}"
+	print
+	print "${YELLOW}1.Gaming Mode 1 $GREEN"
+	print "   • Every 60 seconds application installed on your device will be forced to stop.to add a blacklist app, add it here : ${WHITE}<$DATA/black_list_gaming2>${GREEN}"
+	print "${YELLOW}#.Blacklist Gaming Mode 1"
+	for WAHYU6767 in $blacklist_apps $blacklist_system $blacklist_term $(cat $DATA/black_list_gaming2); do
+		print "${CYAN}  • $WAHYU6767"
+	done
+	print "${YELLOW}#.List Apps Gaming Mode 1"
+	for z in $(pm list packages -3) $gappslist $syslist; do
+			boost6071=`getp1 $z`
+  			 if black_func $boost6071; then
+			 	  shift 0
+			   else	  
+			 	  print "${CYAN}  • $boost6071"
+			   fi
+    done
+	print
+	print "${YELLOW}2.Gaming Mode 2 $GREEN"
+	print "   •  Applications installed on your device will be disabled. To add a blacklist app, add it here : ${WHITE}<$DATA/black_list_gaming2>${GREEN}"
+	print "${YELLOW}#.Blacklist Gaming Mode 2"
+	for WAHYU6767 in $blacklist_apps $blacklist_system $blacklist_term $(cat $DATA/black_list_gaming2); do
+		print "${CYAN}  • $WAHYU6767"
+	done
+	print "${YELLOW}#.List Apps Gaming Mode 2"
+	for z in $(pm list packages -3) $gappslist $syslist; do
+			boost6071=`getp1 $z`
+  			 if black_func $boost6071; then
+			 	  shift 0
+			   else	  
+			 	  print "${CYAN}  • $boost6071"
+			   fi
+    done
+    print
+    print "${YELLOW}3.Gaming Mode 3 $GREEN"
+	print "   • Listed Applications list ${WHITE}<$DATA/gaming_mode_3_list>${GREEN} will be deactivated."
+	print "${YELLOW}#.List Gaming Mode 3"
+    if [ -f $DATA/gaming_mode_3_list ]; then
+    	for WAHYU90 in $(cat $DATA/gaming_mode_3_list); do
+    		print "$CYAN  • $WAHYU90"
+    	done
+    else
+    	print "$WHITE  • NULL"
+    fi
+	print
+	print "$GREEN 1.Back $YELLOW"
+	print
+	echo -n " Select Menu : "
+	read asw
+	;;
+	6) break ;;
 	*) error "Invalid selection"; sleep 2s ;;
 	esac
 	done
 	}
 battery(){
-	if [ ! -f $data/battery_saver ]; then
+	if [ ! -f $DATA/battery_saver ]; then
 	print "${CYAN}Enabling Battery Saving${NC}$WHITE"
 		for z in $(pm list packages -3) $gappslist $syslist; do
 		boost6071=`getp1 $z`
@@ -422,12 +434,12 @@ battery(){
    		fi   
 		done
 		pm disable com.google.android.gms/com.google.android.gms.mdm.receivers.MdmDeviceAdminReceiver >/dev/null
-		print "actived" > $data/battery_saver
+		print "actived" > $DATA/battery_saver
 		print "- Done ";
-	elif [ -f $data/battery_saver ]; then
+	elif [ -f $DATA/battery_saver ]; then
 		print "${CYAN}Disabling Battery Saving${NC}$WHITE"
 		pm enable com.google.android.gms/com.google.android.gms.mdm.receivers.MdmDeviceAdminReceiver >/dev/null
-		del $data/battery_saver
+		del $DATA/battery_saver
 		print "- Done"
 	fi
 }
@@ -443,8 +455,8 @@ addon(){
 	print "4. Set brightness"
 	print "5. Boot Unpacker"
 	print "6. Set all permissions apk installed"
-	print "7. Check List Apps"
-	print "8. exit"
+	print "7. Enable All Apps"
+	print "8. Exit"
 	print " "
 	echo -n "Select Menu : "
 	read addons
@@ -515,8 +527,8 @@ addon(){
 		fi
 	;;
 	5)
-		if [ -f $base/boot.img ]; then
-			block=$base/boot.img
+		if [ -f $BASED/boot.img ]; then
+			block=$BASED/boot.img
 		elif [ ! -z $(find /dev/block -type l -iname boot | head -n 1) ]; then
 			block=$(find /dev/block -type l -iname boot | head -n 1)
 		elif [ ! -z /dev/block/by-name/boot ]; then
@@ -528,26 +540,27 @@ addon(){
 			block=$setboot
 		fi
 	
-		if [ magiskboot ] && [ ! -z $block ]; then
+		if [ $(command -v magiskboot) ] && [ ! -z $block ]; then
 			print
 			print "       Boot image Unpacker"
 			print
 			print "- Block  : $block"
-			print "- Output : $base/boot/<here>"
+			print "- Output : $BASED/boot/<here>"
 			print " "
 			sleep 2s
-			del $base/boot
-			cdir $base/boot
-			cd $base/boot
+			del $BASED/boot
+			cdir $BASED/boot
+			cd $BASED/boot
 			print "- Unpack boot image"
 			sleep 1s
-			cat $block > $base/boot/old-boot.img
+			cat $block > $BASED/boot/old-boot.img
 			magiskboot unpack -h $block 2>/dev/null
 			print "- Repack boot image"
 			magiskboot repack $block 2>/dev/null
 			cd /
 			sleep 1s
-			print "- Unpackimg Done"sleep 3s
+			print "- Unpackimg Done"
+			sleep 7s
 		else
 			print
 			print "- Magiskboot or Boot.img Not found"
@@ -581,46 +594,15 @@ addon(){
 	;;
 	7)
 	clear
-	printmid "Select list all"
+	printmid "${YELLOW}Enable All APPS"
 	print
-	print "1.List apps installed"
-	print "2.List system and apps"
-	print "3.Exit"
+	for WAHYU67 in $(pm list packages); do
+		pm enable $(getp1 $WAHYU67) 2>/dev/null | >/dev/null  && print "${GREEN}[OK] •> $(getp1 $WAHYU67)" || print "${RED}[ERROR] •> $(getp $WAHYU67)"
+	done
+	print " "
+	print "- Done"
 	print
-	echo -n "Select Menu : "
-	read appps
-	case $appps in
-		1)
-		clear
-		printmid "- Creating list apps installed"
-		print
-		del $base/list_apps_installed
-		for capps in $(pm list packages -3); do
-		print "••> $(getp1 $capps)"
-		print "$(getp1 $capps)" >> $base/list_apps_installed
-		done
-		print
-		print "${WHITE}- Check in •> $base/list_apps_installed $GREEN"
-		print "- done"
-		sleep 8s
-		print
-		;;
-		2)
-		clear
-		printmid "- Creating list system and apps"
-		print
-		del $base/list_system_apps
-		for capps in $(pm list packages); do
-		print "••> $(getp1 $capps)"
-		print "$(getp1 $capps)" >> $base/list_system_apps
-		done
-		print
-		print "${WHITE}- Check in •> $base/$base/list_system_apps $GREEN"
-		print "- done"
-		print
-		sleep 8s
-		;;
-	esac
+	sleep 8s
 	;;
 	8) break ;;
 	*)
@@ -679,11 +661,15 @@ meminfo(){
 	print "/vendor Free  = $(df -h /vendor | tail -n 1 | tr -s ' ' | cut -d' ' -f4)"
 	print "/vendor Used  = $(df -h /vendor | tail -n 1 | tr -s ' ' | cut -d' ' -f3)"
 	print "/vendor Total = $(df -h /vendor | tail -n 1 | tr -s ' ' | cut -d' ' -f2)"
+	print
+	print "/cache Free  = $(df -h /cache | tail -n 1 | tr -s ' ' | cut -d' ' -f4)"
+	print "/cache Used  = $(df -h /cache | tail -n 1 | tr -s ' ' | cut -d' ' -f3)"
+	print "/cache Total = $(df -h /cache | tail -n 1 | tr -s ' ' | cut -d' ' -f2)"
 	}
 about(){
 print "$CYAN "
 print "Litegapps Controller $propversion ($propdate)"
-print "Copyright (C) 2020 wahyu kurniawan (wahyu6070)."
+print "Copyright (C) 2019 wahyu kurniawan (wahyu6070)."
 print "License GPLv3+: GNU GPL version 3 or later <https://gnu.org/licenses/gpl.html>."
 print "This is free software: you are free to change and redistribute it."
 print "There is NO WARRANTY, to the extent permitted by law."
@@ -727,8 +713,9 @@ exit 1
 fi
 
 #▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
-test ! -d $base && cdir $base
-test ! -d $data && cdir $data
+for WAHYU45 in $BASED $DATA; do
+	test ! -d $WAHYU45 && cdir $WAHYU45
+done
 #▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
 while true; do
 clear
@@ -750,10 +737,10 @@ case $pilih in
 3) menu battery "Battery Saver" ;;
 4) menu testping "Test Ping" ;;
 5)
-	if [ -f /data/litegapps/litegapps_menu.sh ]; then
-		. /data/litegapps/litegapps_menu.sh 
+	if [ -f /data/media/0/Android/litegapps/litegapps_controller/litegapps_menu.sh ]; then
+		. /data/media/0/Android/litegapps/litegapps_controller/litegapps_menu.sh
 	else
-		error "Please Install Litegapps Controller !"
+		error "Please Install Litegapps Controller full version !"
 		sleep 5s
 	fi
 ;;

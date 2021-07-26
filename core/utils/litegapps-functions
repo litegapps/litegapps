@@ -143,6 +143,41 @@ terminal_tips(){
 	print " "
 	print " "
 	}
+rm_backup(){
+	local INPUT=$1
+	local WAHYU78="
+	app
+	priv-app
+	product/app
+	product/priv-app
+	system_ext/app
+	system_ext/priv-app
+	"
+	for WAHYU56 in $WAHYU78; do
+		if [ -d $SYSDIR/$WAHYU56/$INPUT ]; then
+			if [ $TYPEINSTALL = magisk ]; then
+				SYSMOD=/data/adb/modules/litegapps/system
+				[ ! -d $SYSMOD/$WAHYU56/$INPUT ] && cdir $SYSMOD/$WAHYU56/$INPUT
+				sedlog "Debloating <$SYSMOD/$WAHYU56/$INPUT>"
+				touch $SYSMOD/$WAHYU56/$INPUT/${INPUT}.apk
+			elif [ $TYPEINSTALL = kopi ]; then
+				SYSMOD=/data/litegapps/backup/system
+				[ ! -d $SYSMOD ] && cdir $SYSMOD
+				sedlog "Backuping <$SYSDIR/$WAHYU56/$INPUT>"
+				[ ! -d $SYSMOD/$WAHYU56/$INPUT ] && cdir $SYSMOD/$WAHYU56/$INPUT
+				cp -af $SYSDIR/$WAHYU56/$INPUT $SYSMOD/$WAHYU56/$INPUT
+				echo "$WAHYU56/$INPUT" >> /data/litegapps/backup/list_file
+				sedlog "Removing <$SYSDIR/$WAHYU56/$INPUT>"
+				del $SYSDIR/$WAHYU56/$INPUT
+			fi
+		
+		fi
+	
+	done
+	
+	
+	}
+	
 litegapps_plus(){
 	test ! -d $tmp/$ARCH/$SDKTARGET && cdir $tmp/$ARCH/$SDKTARGET
 	#sdk

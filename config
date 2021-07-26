@@ -1,22 +1,23 @@
-version=2.0
-version.code=2.0
+version=2.1
+version.code=21
 codename=stable
 name.builder=soekarno
-build.status=unofficial
+build.status=soekarno
 set.time.stamp=true
 date.time=202007122239
-compression=br
+compression=xz
 compression.level=1
 zip.level=1
 #Litegapps prop
-litegapps.build=true
-litegapps.arch=arm64
+litegapps.build=false
+litegapps.arch=arm64a
 litegapps.sdk=29
 litegapps.apk.compress=0
 #Litegapps++ prop
-litegapps++.build=truez
+litegapps++.build=true
+litegapps++.type=lts
 litegapps++.apk.compress=0
 #Litegapps pixel prop
-litegapps.pixel.build=true
+litegapps.pixel.build=false
 litegapps.pixel.arch=arm64
-litegapps.pixel.sdk=29
+litegapps.pixel.sdk=30

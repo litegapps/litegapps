@@ -1,6 +1,7 @@
 # Litegapps Core Script
 #
-#
+# copyright 2020 - 2021 litegapps
+
 base="`dirname $(readlink -f "$0")`"
 chmod -R 755 $base/bin
 . $base/bin/core-functions
@@ -56,6 +57,7 @@ if [ "$1" = clean ]; then
 	$base/core/litegapps/gapps
 	$base/core/litegapps++/gapps
 	$base/core/litegapps_pixel/gapps
+	$base/core/litegapps++_lts/gapps
 	$base/etc/extractor/input
 	$base/etc/extractor/output
 	$base/log
@@ -73,6 +75,7 @@ if [ "$1" = clean ]; then
 		$base/core/litegapps/files
 		$base/core/litegapps++/files
 		$base/core/litegapps_pixel/files
+		$base/core/litegapps++_lts/files
 		"
 		for WAH in $LIST_FILES; do
 		print "Cleaning $WAH"
@@ -237,6 +240,7 @@ done
 RM_PLACEHOLDER="
 $base/core/litegapps/gapps
 $base/core/litegapps++/gapps
+$base/core/litegapps++_lts/gapps
 $base/core/litegapps_pixel/gapps
 "
 for W in $RM_PLACEHOLDER; do
@@ -250,7 +254,7 @@ done
 #################################################
 if [ $(get_config litegapps.build) = true ]; then
 printlog " "
-printlog "- Buulding Litegapps"
+printlog "- Building Litegapps"
 [ ! -d $tmp ] && cdir $tmp || del $tmp && cdir $tmp
 . $base/core/litegapps/make
 fi
@@ -260,10 +264,17 @@ fi
 #Litegapps++
 #################################################
 if [ $(get_config litegapps++.build) = true ]; then
-printlog " "
-printlog "- Building Litegapps++"
-[ ! -d $tmp ] && cdir $tmp || del $tmp && cdir $tmp
-. $base/core/litegapps++/make
+	if [ "$(get_config litegapps++.type)" = lts ]; then
+		printlog " "
+		printlog "- Building Litegapps++ LTS"
+		[ ! -d $tmp ] && cdir $tmp || del $tmp && cdir $tmp
+		. $base/core/litegapps++_lts/make
+	else
+		printlog " "
+		printlog "- Building Litegapps++"
+		[ ! -d $tmp ] && cdir $tmp || del $tmp && cdir $tmp
+		. $base/core/litegapps++/make
+	fi
 fi
 #################################################
 #Litegapps pixel

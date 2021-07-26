@@ -123,11 +123,12 @@ else
 fi
 
 #### Diference litegapps++
-#litegapps_plus
+litegapps_plus
 #### End defference litegapps++
 
 #cheking sdk files
 [ ! -d $tmp/$ARCH/$SDKTARGET ] && abort "Your Android Version Not Support"
+
 #copying file
 printlog "- Copying Gapps"
 sysdirtarget=$MODPATH/system
@@ -187,4 +188,3 @@ done
 
 #terminal tips
 terminal_tips
-
