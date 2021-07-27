@@ -1,8 +1,9 @@
 #!/sbin/sh
 #
-#Litegapps
-#by wahyu6070
-#
+# Copyright 2020 - 2021 the litegapps project
+# by wahyu6070
+# Lincense GPL2
+
 . /tmp/backuptool.functions
 log=/data/media/0/Android/litegapps/27-litegapps.log
 loglive=log=/data/media/0/Android/litegapps/27-litegappslive.log

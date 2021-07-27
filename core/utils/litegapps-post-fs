@@ -1,6 +1,7 @@
 #!/system/bin/sh
 # Litegapps_post-fs 
-# By wahyu6070
+# Copyright (C) 2020 - 2021 The Litegapps Project By wahyu6070
+
 sleep 25s
 litegapps_post_fs_version=1.0
 litegapps_post_fs_code=1

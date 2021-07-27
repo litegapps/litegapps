@@ -90,8 +90,13 @@ make_flashable_litegapps_plus(){
 			done
 			
 			#set apk level compression in customize.sh
-			sed -i 's/'"apk_zip_level=0"'/'"apk_zip_level=$(get_config litegapps++.apk.compress)"'/g' $tmp/$WFL/customize.sh
+			#sed -i 's/'"apk_zip_level=0"'/'"apk_zip_level=$(get_config litegapps++.apk.compress)"'/g' $tmp/$WFL/customize.sh
 			#
+			local CUSTOMIZE_SH=$tmp/$WFL/costumize.sh
+			#607061 is code litegapps++
+			sed -i 's/'"$(getp litegapps.type $CUSTOMIZE_SH)"'/'"607061"'/g' $CUSTOMIZE_SH
+			sed -i 's/'"$(getp litegapps.apk.compress $CUSTOMIZE_SH)"'/'"${apk_compessed_type}"'/g' $CUSTOMIZE_SH
+			
 			local MODULE_PROP=$tmp/$WFL/module.prop
 			local MODULE_DESC="litegapps++ is a google apps package that supports almost all arch and android versions while maintaining lightness, saving battery and more."
 			sed -i 's/'"$(getp name $MODULE_PROP)"'/'"LiteGapps++ $PROP_STATUS"'/g' $MODULE_PROP
@@ -130,8 +135,10 @@ printlog "## Building LiteGapps++ ##"
 printlog " "
 printlog " "
 cp -af $BASE_LITEGAPPS2/gapps/* $tmp/
-lgapps_unzip
-make_tar
+if [ "$apk_compessed_type" -eq 607070 ]; then
+	lgapps_unzip
+	make_tar
+fi
 make_tar_arch
 make_archive
 make_flashable_litegapps_plus

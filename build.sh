@@ -39,6 +39,19 @@ case $(get_config build.status) in
 	*) 
 		PROP_STATUS=unofficial ;;
 esac
+
+case "$(get_config apk.compress.type)" in
+litegapps_compressed)
+apk_compessed_type=607070
+;;
+google_compessed)
+apk_compessed_type=607071
+;;
+*)
+apk_compessed_type=607071
+;;
+esac
+
 case $(get_config zip.level) in
 	0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9) ziplevel=$(get_config zip.level) ;;
 	*) ziplevel=1 ;;
