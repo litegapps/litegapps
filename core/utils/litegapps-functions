@@ -175,56 +175,7 @@ rm_backup(){
 	
 	
 	}
-	
-litegapps_compress_system(){
-	#extrack tar files
-	print "- Extracting tar file"
-	find $tmp/$ARCH/$SDKTARGET -name *.tar -type f 2>/dev/null | while read tarfile; do
-	tarout=`echo "$tarfile" | cut -d '.' -f -1`
-	tarin=$tarfile
-	tarout=`dirname "$(readlink -f $tarin)"`
-	while_log "- Extracting tar : $tarin"
-	$bin/tar -xf $tarin -C $tarout
-	del $tarin
-	done >> $loglive
 
-	#Building Gapps
-	datanull=/data/adb/abcdfghijk
-	cdir $datanull
-	#$datanull is fix creating ..apk
-	print "- Building Gapps"
-	find $tmp/$ARCH/$SDKTARGET -name *app -type d 2>/dev/null | while read DIRAPP; do
-		for WAHYU1 in $(ls -1 $DIRAPP); do
-			if [ -d $DIRAPP/$WAHYU1/$WAHYU1 ]; then
-				apk_zip_level=0
-				apkdir="$DIRAPP/$WAHYU1/$WAHYU1"
-				while_log "- Creating Archive Apk : $apkdir"
-				cd $apkdir
-				$bin/zip -r${apk_zip_level} $apkdir.apk *
-				del $apkdir
-				cd $datanull
-			fi
-		done
-	done >/dev/null
-	del $datanull
-
-
-	#Zipalign
-	printlog "- Zipalign"
-	find $tmp/$ARCH/$SDKTARGET -name *app -type d 2>/dev/null | while read DIRAPP2; do
-		for WAHYU2 in $(ls -1 $DIRAPP2); do
-			if [ -f $DIRAPP2/$WAHYU2/${WAHYU2}.apk ]; then
-				APK_FILE="$DIRAPP2/$WAHYU2/${WAHYU2}.apk"
-				while_log "- Zipalign <$APK_FILE>"
-				$bin/zipalign -f -p -v 4 $APK_FILE $DIRAPP2/$WAHYU2/new.apk
-				del $APK_FILE
-				mv $DIRAPP2/$WAHYU2/new.apk $APK_FILE
-			else
-				while_log "- Failed Zipalign <$DIRAPP2/$WAHYU2/${WAHYU2}.apk>"
-			fi
-		done
-	done >/dev/null
-}
 
 litegapps_plus(){
 	test ! -d $tmp/$ARCH/$SDKTARGET && cdir $tmp/$ARCH/$SDKTARGET
