@@ -41,14 +41,14 @@ case $(get_config build.status) in
 esac
 
 case "$(get_config apk.compress.type)" in
-litegapps_compressed)
-apk_compessed_type=607070
+litegapps_compress)
+apk_compessed_type=litegapps_compress
 ;;
-google_compessed)
-apk_compessed_type=607071
+litegapps_default)
+apk_compessed_type=litegapps_default
 ;;
 *)
-apk_compessed_type=607071
+apk_compessed_type=litegapps_default
 ;;
 esac
 
