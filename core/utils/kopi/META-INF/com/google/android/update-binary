@@ -1,6 +1,6 @@
 #!/sbin/sh
-# Kopi Installer V1.4
-# Since 08-05-2020
+# Kopi Installer V1.5
+# Since 20-09-2020
 # Latest Update 11-06-2021
 # by wahyu6070 (dont change)
 
@@ -144,168 +144,237 @@ set_prop() {
     echo "${property}=${value}" >>"${file_location}"
   fi
 }
-is_mounted() { mount | grep -q " $1 "; }
-
-setup_mountpoint() {
-  test -L $1 && mv -f $1 ${1}_link
-  if [ ! -d $1 ]; then
-    rm -f $1
-    mkdir $1
-  fi
-}
-
-mount_apex() {
-  # For reference, check: https://github.com/osm0sis/AnyKernel3/blob/master/META-INF/com/google/android/update-binary
-  if [ -d $SYSTEM/apex ]; then
-    local apex dest loop minorx num
-    setup_mountpoint /apex
-    test -e /dev/block/loop1 && minorx=$(ls -l /dev/block/loop1 | awk '{ print $6 }') || minorx=1
-    num=0
-    for apex in $SYSTEM/apex/*; do
-      dest=/apex/$(basename $apex .apex)
-      test "$dest" = /apex/com.android.runtime.release && dest=/apex/com.android.runtime
-      mkdir -p $dest
-      case $apex in
-        *.apex)
-          unzip -qo $apex apex_payload.img -d /apex
-          mv -f /apex/apex_payload.img $dest.img
-          mount -t ext4 -o ro,noatime $dest.img $dest 2>/dev/null
-          if [ $? != 0 ]; then
-            while [ $num -lt 64 ]; do
-              loop=/dev/block/loop$num
-              (mknod $loop b 7 $((num * minorx))
-              losetup $loop $dest.img) 2>/dev/null
-              num=$((num + 1))
-              losetup $loop | grep -q $dest.img && break
-            done
-            mount -t ext4 -o ro,loop,noatime $loop $dest
-            if [ $? != 0 ]; then
-              losetup -d $loop 2>/dev/null
-            fi
-          fi
-        ;;
-        *) mount -o bind $apex $dest;;
-      esac
-    done
-    export ANDROID_RUNTIME_ROOT=/apex/com.android.runtime
-    export ANDROID_TZDATA_ROOT=/apex/com.android.tzdata
-    export BOOTCLASSPATH=/apex/com.android.runtime/javalib/core-oj.jar:/apex/com.android.runtime/javalib/core-libart.jar:/apex/com.android.runtime/javalib/okhttp.jar:/apex/com.android.runtime/javalib/bouncycastle.jar:/apex/com.android.runtime/javalib/apache-xml.jar:/system/framework/framework.jar:/system/framework/ext.jar:/system/framework/telephony-common.jar:/system/framework/voip-common.jar:/system/framework/ims-common.jar:/system/framework/android.test.base.jar:/apex/com.android.conscrypt/javalib/conscrypt.jar:/apex/com.android.media/javalib/updatable-media.jar
-  fi
-}
-
-unmount_apex() {
-  if [ -d $SYSTEM/apex ]; then
-    local dest loop
-    for dest in $(find /apex -type d -mindepth 1 -maxdepth 1); do
-      if [ -f $dest.img ]; then
-        loop=$(mount | grep $dest | cut -d" " -f1)
-      fi
-      (umount -l $dest
-      losetup -d $loop) 2>/dev/null
-    done
-    rm -rf /apex 2>/dev/null
-    unset ANDROID_RUNTIME_ROOT ANDROID_TZDATA_ROOT BOOTCLASSPATH
-  fi
-}
-
 
 ########################################
 #   Mount Partipations
 ########################################
-ui_print "- Mounting partitions"
-if ! $BOOTMODE; then
-  DYNAMIC_PARTITIONS=`getprop ro.boot.dynamic_partitions`
-  SLOT=`getprop ro.boot.slot_suffix`
-  [ ! -z "$SLOT" ] && ui_print "- Current boot slot: $SLOT"
+setenforce 0
+# osm0sis : https://github.com/osm0sis/AnyKernel3
+[ -d /postinstall/tmp ] && POSTINSTALL=/postinstall;
+[ "$AKHOME" ] || AKHOME=$POSTINSTALL/tmp/anykernel;
+[ "$ANDROID_ROOT" ] || ANDROID_ROOT=/system;
 
-  if [ -n "$(cat /etc/fstab | grep /system_root)" ]; then
-    MOUNT_POINT=/system_root
-  else
-    MOUNT_POINT=/system
-  fi
 
-  for p in "/cache" "/data" "$MOUNT_POINT" "/product" "/system_ext" "/vendor"; do
-    if [ -d "$p" ] && grep -q "$p" "/etc/fstab" && ! is_mounted "$p"; then
-      mount "$p"
-    fi
-  done
-
-  if [ "$DYNAMIC_PARTITIONS" = "true" ]; then
-    ui_print "- Dynamic partition detected"
-    for m in "/system" "/system_root" "/product" "/system_ext" "/vendor"; do
-      (umount "$m"
-      umount -l "$m") 2>/dev/null
-    done
-    mount -o ro -t auto /dev/block/mapper/system$SLOT /system_root
-    mount -o ro -t auto /dev/block/mapper/vendor$SLOT /vendor 2>/dev/null
-    mount -o ro -t auto /dev/block/mapper/product$SLOT /product 2>/dev/null
-    mount -o ro -t auto /dev/block/mapper/system_ext$SLOT /system_ext 2>/dev/null
-  else
-    mount -o ro -t auto /dev/block/bootdevice/by-name/system$SLOT $MOUNT_POINT 2>/dev/null
-  fi
-
-  if [ "$DYNAMIC_PARTITIONS" = "true" ]; then
-    for block in system vendor product system_ext; do
-      for slot in "" _a _b; do
-        blockdev --setrw /dev/block/mapper/$block$slot 2>/dev/null
-      done
-    done
-    mount -o rw,remount -t auto /dev/block/mapper/system$SLOT /system_root
-    mount -o rw,remount -t auto /dev/block/mapper/vendor$SLOT /vendor 2>/dev/null
-    mount -o rw,remount -t auto /dev/block/mapper/product$SLOT /product 2>/dev/null
-    mount -o rw,remount -t auto /dev/block/mapper/system_ext$SLOT /system_ext 2>/dev/null
-  else
-    mount -o rw,remount -t auto $MOUNT_POINT
-    mount -o rw,remount -t auto /vendor 2>/dev/null
-    mount -o rw,remount -t auto /product 2>/dev/null
-    mount -o rw,remount -t auto /system_ext 2>/dev/null
-  fi
-  
-  if is_mounted /system_root; then
-    print "- Device is system-as-root"
-    if [ -f /system_root/build.prop ]; then
-      mount -o bind /system_root /system
-      SYSTEM=/system_root
-      ui_print "- System is $SYSTEM"
+file_getprop() { $BB grep "^$2=" "$1" | $BB cut -d= -f2-; }
+find_slot() {
+  local slot=$(getprop ro.boot.slot_suffix 2>/dev/null);
+  [ "$slot" ] || slot=$($BB grep -o 'androidboot.slot_suffix=.*$' /proc/cmdline | $BB cut -d\  -f1 | $BB cut -d= -f2);
+  if [ ! "$slot" ]; then
+    slot=$(getprop ro.boot.slot 2>/dev/null);
+    [ "$slot" ] || slot=$($BB grep -o 'androidboot.slot=.*$' /proc/cmdline | $BB cut -d\  -f1 | $BB cut -d= -f2);
+    [ "$slot" ] && slot=_$slot;
+  fi;
+  [ "$slot" ] && echo "$slot";
+}
+setup_mountpoint() {
+  [ -L $1 ] && $BB mv -f $1 ${1}_link;
+  if [ ! -d $1 ]; then
+    $BB rm -f $1;
+    $BB mkdir -p $1;
+  fi;
+}
+is_mounted() { $BB mount | $BB grep -q " $1 "; }
+mount_apex() {
+  [ -d /system_root/system/apex ] || return 1;
+  local apex dest loop minorx num var;
+  setup_mountpoint /apex;
+  minorx=1;
+  [ -e /dev/block/loop1 ] && minorx=$($BB ls -l /dev/block/loop1 | $BB awk '{ print $6 }');
+  num=0;
+  for apex in /system_root/system/apex/*; do
+    dest=/apex/$($BB basename $apex .apex);
+    case $dest in
+      *.current|*.release) dest=$(echo $dest | $BB rev | $BB cut -d. -f2- | $BB rev);;
+    esac;
+    $BB mkdir -p $dest;
+    case $apex in
+      *.apex)
+        $BB unzip -qo $apex apex_payload.img -d /apex;
+        $BB mv -f /apex/apex_payload.img $dest.img;
+        $BB mount -t ext4 -o ro,noatime $dest.img $dest 2>/dev/null;
+        if [ $? != 0 ]; then
+          while [ $num -lt 64 ]; do
+            loop=/dev/block/loop$num;
+            ($BB mknod $loop b 7 $((num * minorx));
+            $BB losetup $loop $dest.img) 2>/dev/null;
+            num=$((num + 1));
+            $BB losetup $loop | $BB grep -q $dest.img && break;
+          done;
+          $BB mount -t ext4 -o ro,loop,noatime $loop $dest;
+          if [ $? != 0 ]; then
+            $BB losetup -d $loop 2>/dev/null;
+          fi;
+        fi;
+      ;;
+      *) $BB mount -o bind $apex $dest;;
+    esac;
+  done;
+  for var in $($BB grep -o 'export .* /.*' /system_root/init.environ.rc | $BB awk '{ print $2 }'); do
+    eval OLD_${var}=\$$var;
+  done;
+  $($BB grep -o 'export .* /.*' /system_root/init.environ.rc | $BB sed 's; /;=/;'); unset export;
+}
+umount_apex() {
+  [ -d /apex/com.android.runtime ] || return 1;
+  local dest loop var;
+  for var in $($BB grep -o 'export .* /.*' /system_root/init.environ.rc | $BB awk '{ print $2 }'); do
+    if [ "$(eval echo \$OLD_$var)" ]; then
+      eval $var=\$OLD_${var};
     else
-      mount -o bind /system_root/system /system
-      SYSTEM=/system_root/system
-      ui_print "- System is $SYSTEM"
-    fi
-  elif is_mounted /system; then
-    if [ -f /system/build.prop ]; then
-      SYSTEM=/system
-      ui_print "- System is $SYSTEM"
-    elif [ -f /system/system/build.prop ]; then
-      ui_print "- Device is system-as-root"
-      mkdir -p /system_root
-      mount --move /system /system_root
-      mount -o bind /system_root/system /system
-      SYSTEM=/system_root/system
-      ui_print "- System is /system/system"
-    fi
-  else
-    abort "- Failed to mounting <system>"
-  fi
-  for MOUNT6070 in /vendor /data /cache; do
-		if $is_mounted $MOUNT6070; then
-			mount -o rw,remount $MOUNT6070 || mount $MOUNT6070 || mount -o rw,remount -t auto $MOUNT6070 || mount -o rw,remount / || abort "- Abort mounting $MOUNT6070"
-		fi
-  done
-  mount_apex
+      eval unset $var;
+    fi;
+    unset OLD_${var};
+  done;
+  for dest in $($BB find /apex -type d -mindepth 1 -maxdepth 1); do
+    if [ -f $dest.img ]; then
+      loop=$($BB mount | $BB grep $dest | $BB cut -d\  -f1);
+    fi;
+    ($BB umount -l $dest;
+    $BB losetup -d $loop) 2>/dev/null;
+  done;
+  $BB rm -rf /apex 2>/dev/null;
+}
+mount_all() {
+  local byname mount slot system;
+  if ! is_mounted /cache; then
+    $BB mount /cache 2>/dev/null && UMOUNT_CACHE=1;
+  fi;
+  if ! is_mounted /data; then
+    $BB mount /data && UMOUNT_DATA=1;
+  fi;
+  (for mount in /vendor /product /system_ext /persist; do
+    $BB mount -o ro -t auto $mount;
+  done) 2>/dev/null;
+  setup_mountpoint $ANDROID_ROOT;
+  if ! is_mounted $ANDROID_ROOT; then
+    $BB mount -o ro -t auto $ANDROID_ROOT 2>/dev/null;
+  fi;
+  byname=bootdevice/by-name;
+  [ -d /dev/block/$byname ] || byname=$($BB find /dev/block/platform -type d -name by-name 2>/dev/null | $BB head -n1 | $BB cut -d/ -f4-);
+  [ -d /dev/block/mapper ] && byname=mapper;
+  [ -e /dev/block/$byname/system ] || slot=$(find_slot);
+  case $ANDROID_ROOT in
+    /system_root) setup_mountpoint /system;;
+    /system)
+      if ! is_mounted /system && ! is_mounted /system_root; then
+        setup_mountpoint /system_root;
+        $BB mount -o ro -t auto /system_root;
+      elif [ -f /system/system/build.prop ]; then
+        setup_mountpoint /system_root;
+        $BB mount --move /system /system_root;
+      fi;
+      if [ $? != 0 ]; then
+        ($BB umount /system;
+        $BB umount -l /system) 2>/dev/null;
+        $BB mount -o ro -t auto /dev/block/$byname/system$slot /system_root;
+      fi;
+    ;;
+  esac;
+  [ -f /system_root/system/build.prop ] && system=/system;
+  for mount in /vendor /product /system_ext; do
+    if ! is_mounted $mount && [ -L /system$mount -o -L /system_root$system$mount ]; then
+      setup_mountpoint $mount;
+      $BB mount -o ro -t auto /dev/block/$byname$mount$slot $mount;
+    fi;
+  done;
+  if is_mounted /system_root; then
+    mount_apex;
+    $BB mount -o bind /system_root$system /system;
+  fi;
+  if ! is_mounted /persist && [ -e /dev/block/bootdevice/by-name/persist ]; then
+    setup_mountpoint /persist;
+    $BB mount -o ro -t auto /dev/block/bootdevice/by-name/persist /persist;
+  fi;
+}
+umount_all() {
+  local mount;
+  (if [ ! -d /postinstall/tmp ]; then
+    $BB umount /system;
+    $BB umount -l /system;
+  fi) 2>/dev/null;
+  umount_apex;
+  (if [ ! -d /postinstall/tmp ]; then
+    $BB umount /system_root;
+    $BB umount -l /system_root;
+  fi;
+  umount /vendor; # busybox umount /vendor breaks recovery on some hacky devices
+  umount -l /vendor;
+  for mount in /mnt/system /mnt/vendor /product /mnt/product /system_ext /mnt/system_ext /persist; do
+    $BB umount $mount;
+    $BB umount -l $mount;
+  done;
+  if [ "$UMOUNT_DATA" ]; then
+    $BB umount /data;
+    $BB umount -l /data;
+  fi;
+  if [ "$UMOUNT_CACHE" ]; then
+    $BB umount /cache;
+    $BB umount -l /cache;
+  fi) 2>/dev/null;
+}
+setup_env() {
+  $BOOTMODE && return 1;
+  $BB mount -o bind /dev/urandom /dev/random;
+  if [ -L /etc ]; then
+    setup_mountpoint /etc;
+    $BB cp -af /etc_link/* /etc;
+    $BB sed -i 's; / ; /system_root ;' /etc/fstab;
+  fi;
+  umount_all;
+  mount_all;
+  OLD_LD_PATH=$LD_LIBRARY_PATH;
+  OLD_LD_PRE=$LD_PRELOAD;
+  OLD_LD_CFG=$LD_CONFIG_FILE;
+  unset LD_LIBRARY_PATH LD_PRELOAD LD_CONFIG_FILE;
+  if [ ! "$(getprop 2>/dev/null)" ]; then
+    getprop() {
+      local propdir propfile propval;
+      for propdir in / /system_root /system /vendor /product /system_ext /odm; do
+        for propfile in default.prop build.prop; do
+          if [ "$propval" ]; then
+            break 2;
+          else
+            propval="$(file_getprop $propdir/$propfile $1 2>/dev/null)";
+          fi;
+        done;
+      done;
+      if [ "$propval" ]; then
+        echo "$propval";
+      else
+        echo "";
+      fi;
+    }
+  elif [ ! "$(getprop ro.build.type 2>/dev/null)" ]; then
+    getprop() {
+      ($(which getprop) | $BB grep "$1" | $BB cut -d[ -f3 | $BB cut -d] -f1) 2>/dev/null;
+    }
+  fi;
+}
+restore_env() {
+  $BOOTMODE && return 1;
+  local dir;
+  unset -f getprop;
+  [ "$OLD_LD_PATH" ] && export LD_LIBRARY_PATH=$OLD_LD_PATH;
+  [ "$OLD_LD_PRE" ] && export LD_PRELOAD=$OLD_LD_PRE;
+  [ "$OLD_LD_CFG" ] && export LD_CONFIG_FILE=$OLD_LD_CFG;
+  unset OLD_LD_PATH OLD_LD_PRE OLD_LD_CFG;
+  umount_all;
+  [ -L /etc_link ] && $BB rm -rf /etc/*;
+  (for dir in /etc /apex /system_root /system /vendor /product /system_ext /persist; do
+    if [ -L "${dir}_link" ]; then
+      rmdir $dir;
+      $BB mv -f ${dir}_link $dir;
+    fi;
+  done;
+  $BB umount -l /dev/random) 2>/dev/null;
+}
+
+if $BOOTMODE; then
+	mount -o rw,remount -t auto / || mount -o rw,remount / 2>/dev/null;
 else
-	mount -o rw,remount /system || mount /system || mount -o rw,remount -t auto /system || mount -o rw,remount / || abort "- Abort mounting system"
-	mount -o rw,remount /vendor || mount /vendor || mount -o rw,remount -t auto /vendor || mount -o rw,remount / || abort "- Abort mounting vendor"
+	setup_env
 fi
-#RECOVERY ACTIONS
-OLD_LD_LIB=$LD_LIBRARY_PATH
-OLD_LD_PRE=$LD_PRELOAD
-OLD_LD_CFG=$LD_CONFIG_FILE
-unset LD_LIBRARY_PATH
-unset LD_PRELOAD
-unset LD_CONFIG_FILE
-set_progress 0.4;
-########################################
+#########################################
 #    Kopi Script
 ########################################
 	
@@ -327,13 +396,14 @@ system=/system
 fi
 
 #Extract
-kopi=/dev/tmp/kopi
+kopi=/tmp/kopi
 MODPATH=$kopi
-TMPDIR=/dev/tmp
-cdir $kopi;
+TMPDIR=/tmp
+cdir $kopi || print "failed create $kopi dir"
 cd $kopi
 print "- Extracting ZIP File"
 unzip -o "$ZIPFILE" >&2
+
 [ ! -f module.prop ] && abort "- Module.prop Not Found"
 
 #prop
@@ -491,24 +561,7 @@ fi
 #umount
 print "- Umounting partitions";
 if ! $BOOTMODE; then
-unmount_apex
-  for UN_MOUNT in /system /system_root /product /system_ext /vendor; do
-  	if [ -e $UN_MOUNT ]; then
-  		(umount $UN_MOUNT
-  		umount -l $UN_MOUNT) 2>/dev/null
-  	fi
-  done
-  
-#RECOVERY CLEANUP
-[ -z $OLD_LD_LIB ] || export LD_LIBRARY_PATH=$OLD_LD_LIB
-[ -z $OLD_LD_PRE ] || export LD_PRELOAD=$OLD_LD_PRE
-[ -z $OLD_LD_CFG ] || export LD_CONFIG_FILE=$OLD_LD_CFG
-else
-  for UN_MOUNT2 in /system /vendor; do
-    if [ -e $UN_MOUNT2 ]; then
-      umount $UN_MOUNT2
-    fi
-  done
+	restore_env
 fi
 set_progress 1.1;
 cd /;
