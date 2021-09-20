@@ -1,7 +1,7 @@
 #!/sbin/sh
 # Kopi Installer V1.5
-# Since 20-09-2020
-# Latest Update 11-06-2021
+# Since 08-05-2020
+# Latest Update 20-09-2021
 # by wahyu6070 (dont change)
 
 OUTFD=/proc/self/fd/$2;
