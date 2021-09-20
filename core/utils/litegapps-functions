@@ -121,6 +121,24 @@ printlog "| Architecture    : $ARCH"
 printlog "| Sdk             : $SDKTARGET"
 printlog "| Seamless        : $device_abpartition"
 printlog "|___________________________________"
+printlog "|          Developer Mode"
+printlog "| Boot Mode    : $BOOTMODE"
+printlog "| Type Install : $TYPEINSTALL"
+printlog "| System       : $system"
+if [ -d $system ]; then
+	touch $system/litegapps.test
+	if [ -f $system/litegapps.test ]; then
+		del $system/litegapps.test
+		printlog "| Read/Write system : true"
+	else
+		printlog "| Read/Write system : false"
+	fi
+else
+printlog "| Read/Write system : not detected"
+fi
+printlog "| Litegapps Type : $(getp litegapps_type $MODPATH/module.prop)"
+printlog "| Litegapps Compress : $(getp litegapps_apk_compress $MODPATH/module.prop)"
+printlog "|___________________________________"
 printlog " "
 }
 
@@ -187,25 +205,11 @@ litegapps_plus(){
 	fi
 
 	#arch
-	if [ $SDKTARGET -ge 29 ]; then
-		if [ -d $tmp/arch/$ARCH/system ]; then
-			[ ! -d $tmp/$ARCH/$SDKTARGET/system/product ] && cdir $tmp/$ARCH/$SDKTARGET/system/product
-			cp -af $tmp/arch/$ARCH/system/* $tmp/$ARCH/$SDKTARGET/system/product/
-		fi
-	else
-		if [ -d $tmp/arch/$ARCH ]; then
-			cp -af $tmp/arch/$ARCH/* $tmp/$ARCH/$SDKTARGET/
-		fi
+	if [ -d $tmp/arch/$ARCH ]; then
+		cp -af $tmp/arch/$ARCH/* $tmp/$ARCH/$SDKTARGET/
 	fi
 	#croos system
-	if [ $SDKTARGET -ge 29 ]; then
-		if [ -d $tmp/cross_system/system ]; then
-			[ ! -d $tmp/$ARCH/$SDKTARGET/system/product ] && cdir $tmp/$ARCH/$SDKTARGET/system/product
-			cp -af $tmp/cross_system/system/* $tmp/$ARCH/$SDKTARGET/system/product/
-		fi
-	else
-		if [ -d $tmp/cross_system ]; then
-			cp -af $tmp/cross_system/* $tmp/$ARCH/$SDKTARGET/
-		fi
+	if [ -d $tmp/cross_system ]; then
+		cp -af $tmp/cross_system/* $tmp/$ARCH/$SDKTARGET/
 	fi
 	}
