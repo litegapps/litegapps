@@ -37,7 +37,7 @@ done
 
 #functions litegapps info module.prop and build.prop
 litegapps_info
-
+print " "
 #detected build.prop
 [ -f $SYSDIR/build.prop ] || report_bug "System build.prop not found"
 
@@ -137,9 +137,6 @@ fi
 
 #using litegapps compress apk or google default apk
 
-litegapps_apk_compress
-
-
 if [ "$(getp litegapps_apk_compress $MODPATH/module.prop)" = litegapps_compress ]; then
 	sedlog "Using litegapps system compress apk"
 	#extrack tar files
@@ -230,6 +227,14 @@ while_log "- Set chmod 644 file : $setperm_file"
 chmod 644 $setperm_file
 done >> $loglive
 
+printlog "- Analyze"
+for W67 in GmsCore Phonesky GoogleServicesFramework; do
+	if [ -f $system/$W67/$W67.apk ]; then
+		sedlog " Package File Found <$system/$W67/$W67.apk>"
+	else
+		sedlog " Package File Not Found <$system/$W67/$W67.apk>"
+	fi
+done
 
 #litegapps menu
 cdir $MODPATH/system/bin
