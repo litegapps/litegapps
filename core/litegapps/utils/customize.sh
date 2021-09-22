@@ -229,10 +229,10 @@ done >> $loglive
 
 printlog "- Analyze"
 for W67 in GmsCore Phonesky GoogleServicesFramework; do
-	if [ -f $system/$W67/$W67.apk ]; then
-		sedlog " Package File Found <$system/$W67/$W67.apk>"
+	if [ -f $system/priv-app/$W67/$W67.apk ]; then
+		sedlog " Package File Found <$system/priv-app/$W67/$W67.apk>"
 	else
-		sedlog " Package File Not Found <$system/$W67/$W67.apk>"
+		sedlog " Package File Not Found <$system/priv-app/$W67/$W67.apk>"
 	fi
 done
 

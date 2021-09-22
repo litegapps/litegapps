@@ -373,6 +373,9 @@ if $BOOTMODE; then
 	mount -o rw,remount -t auto / || mount -o rw,remount / 2>/dev/null;
 else
 	setup_env
+	for W78 in /system /product /system_ext /system_root /vendor; do
+		mount -o rw,remount -t auto $W78 || mount -o rw,remount $W78
+	done
 fi
 #########################################
 #    Kopi Script

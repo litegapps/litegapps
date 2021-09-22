@@ -122,7 +122,7 @@ make_flashable_litegapps(){
 			#set time stamp
 			set_time_stamp $tmp/$WFL
 			
-			local NAME_ZIP="[$WFL]LiteGapps_${W_ARCH}_$(get_android_version $W_SDK)_V${PROP_VERSION}_${PROP_STATUS}.zip"
+			local NAME_ZIP="[$WFL]LiteGapps_${W_ARCH}_$(get_android_version $W_SDK)_v${PROP_VERSION}_${PROP_STATUS}.zip"
 			local OUT_ZIP=$out/litegapps/$W_ARCH/$W_SDK
 			printlog "- Build ZIP"
 			cd $tmp/$WFL
@@ -198,7 +198,7 @@ make_flashable_litegapps_all(){
 			#set time stamp
 			set_time_stamp $tmp/$WFL
 			
-			local NAME_ZIP="[$WFL]LiteGapps_V${PROP_VERSION}_${PROP_STATUS}.zip"
+			local NAME_ZIP="[$WFL]LiteGapps_v${PROP_VERSION}_${PROP_STATUS}.zip"
 			local OUT_ZIP=$out/litegapps/all
 			printlog "- Build ZIP"
 			cd $tmp/$WFL
