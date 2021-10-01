@@ -1,4 +1,7 @@
-#Litegapps
+# LiteGapps
+# install.sh
+# latest update 01-10-2021
+
 litegapps=/data/media/0/Android/litegapps
 log=$litegapps/log/litegapps.log
 loglive=$litegapps/log/litegapps_live.log

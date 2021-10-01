@@ -1,25 +1,14 @@
-#Litegapps
-litegapps=/data/media/0/Android/litegapps
-log=$litegapps/log/litegapps.log
-loglive=$litegapps/log/litegapps_live.log
-
-#
-#
+# LiteGapps
+# permissions.sh
+# latest update 01-10-2021
 
 if [ $TYPEINSTALL = magisk ]; then
-ls -alZR $MAGISKUP >> $loglive
-ch_con_r $MAGISKUP/system
+chcon -hR u:object_r:system_file:s0 $MAGISKUP/system
 find $MAGISKUP/system -type f | while read anjay; do
 	dir6070=$(dirname $anjay)
-	while_log "- Set ch_con file $anjay"
 	ch_con $anjay
-	while_log "- Set chmod file $anjay"
 	chmod 644 $anjay
-	while_log "- Set ch_con dir $dir6070"
 	ch_con $dir6070
-	while_log "- Set chmod file $dir6070"
 	chmod 755 $dir6070
-done >> $loglive
-ls -alZR $MAGISKUP >> $loglive
+done
 fi
-ls -alZR $system > $litegapps/log/new_system.log

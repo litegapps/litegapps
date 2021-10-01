@@ -1,7 +1,17 @@
-litegapps=/data/media/0/Android/litegapps
-log=$litegapps/log/litegapps.log
-loglive=$litegapps/log/litegapps_live.log
+# LiteGapps
+# uninstall.sh
+# latest update 01-10-2021
 
+litegapps=/data/media/0/Android/litegapps
+log=$litegapps/log/litegapps_uninstall.log
+loglive=$litegapps/log/litegapps_live_uninstall.log
+
+if [ -d $litegapps ]; then
+	del $litegapps/log
+	cdir $litegapps/log
+else
+	cdir $litegapps/log
+fi
 
 MODULEVERSION=`getp version $MODPATH/module.prop`
 MODULECODE=`getp versionCode $MODPATH/module.prop`
@@ -59,6 +69,10 @@ if [ -f $KOPIMOD/list_install_vendor ]; then
 		fi
 	done
 fi
-test [ -f $system/addon.d/27-litegapps.sh ] && del $system/addon.d/27-litegapps.sh
+
+if [ -f $system/addon.d/27-litegapps.sh ]; then
+	sedlog "- Removing addon.d <27-litegapps.sh>"
+	del $system/addon.d/27-litegapps.sh
+fi
 printlog "- Uninstalling successfully"
 printlog "- Thank you for using LiteGapps"

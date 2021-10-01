@@ -125,6 +125,12 @@ printlog "|          Developer Mode"
 printlog "| Boot Mode    : $BOOTMODE"
 printlog "| Type Install : $TYPEINSTALL"
 printlog "| System       : $system"
+if [ -d /dev/block/mapper ]; then
+	dynamic3=true
+else
+	dynamic3=false
+fi
+printlog "| Dynamic Partition : $dynamic3"
 if [ -d $system ]; then
 	touch $system/litegapps.test
 	if [ -f $system/litegapps.test ]; then
