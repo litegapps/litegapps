@@ -187,7 +187,6 @@ mount_apex() {
       *.current|*.release) dest=$(echo $dest | rev | cut -d. -f2- | rev);;
     esac;
     mkdir -p $dest;
-    print "- Mounting $dest"
     case $apex in
       *.apex)
         unzip -qo $apex apex_payload.img -d /apex;
