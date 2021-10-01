@@ -32,9 +32,7 @@ PROP_ZIP_APK_PROP_COMPRESSION=`get_config zip.apk.compression`
 PROP_ZIP_LEVEL=`get_config zip.level`
 
 case $(get_config build.status) in
-	6070) 
-		PROP_STATUS=official ;;
-	wahyu6070)
+	6070 | wahyu6070 | litegapps) 
 		PROP_STATUS=official ;;
 	*) 
 		PROP_STATUS=unofficial ;;
