@@ -1,18 +1,18 @@
 version=2.2
 version.code=22
 codename=stable
-name.builder=soekarno
-build.status=soekarno
+name.builder=wahyu6070
+build.status=wahyu6070
 set.time.stamp=true
 date.time=202007122239
-apk.compress.type=litegapps_compress
+apk.compress.type=litegapps_default
 compression=xz
-compression.level=1
-zip.level=1
+compression.level=9
+zip.level=9
 #Litegapps prop
 litegapps.build=true
 litegapps.arch=arm64
-litegapps.sdk=29
+litegapps.sdk=30
 #Litegapps++ prop
 litegapps++.build=truez
 litegapps++.type=lts

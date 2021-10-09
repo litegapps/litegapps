@@ -28,6 +28,7 @@ printlog "| By              : $MODULEAUTHOR"
 printlog "|___________________________________"
 printlog " "
 printlog " Telegram        : https://t.me/litegapps"
+printlog " "
 
 if [ -f $KOPIMOD/list_install_system ]; then
 	for i in $(cat $KOPIMOD/list_install_system); do

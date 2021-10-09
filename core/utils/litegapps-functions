@@ -47,24 +47,25 @@ abort(){
 make_log(){
 	#creating log
 	printlog "- Creating log"
-	datebug=`date '+%d•%m•%Y-%H•%M•%S'`
+	NAME_LOG=`echo "[LOG]litegapps_v$(getp version $MODPATH/module.prop).tar.gz"`
 	if [ -f $SYSDIR/build.prop ]; then
-	cp -pf $SYSDIR/build.prop $LITEGAPPS/log/sys_build.prop
+		cp -pf $SYSDIR/build.prop $LITEGAPPS/log/sys_build.prop
 	fi
 
 	if [ -f $VENDIR/build.prop ]; then
-	cp -pf $VENDIR/build.prop $LITEGAPPS/log/ven_build.prop
+		cp -pf $VENDIR/build.prop $LITEGAPPS/log/ven_build.prop
 	fi
 	
 	if [ -d $LITEGAPPS/log ]; then
-	listlog $tmp
-	listlog $MODPATH
-	listlog $LITEGAPPS
-	ls -alZR $MODPATH/system >> $loglive
-	cd $LITEGAPPS/log
-	$bin/tar -cz -f $LITEGAPPS/litegapps_log_${datebug}.tar.gz *
-	cd /
-	del $LITEGAPPS/log
+		listlog $tmp
+		listlog $MODPATH
+		listlog $LITEGAPPS
+		ls -alZR $MODPATH/system >> $loglive
+		cd $LITEGAPPS/log
+		test -f $LITEGAPPS/$NAME_LOG && del $LITEGAPPS/$NAME_LOG
+		$bin/tar -cz -f $LITEGAPPS/$NAME_LOG *
+		cd /
+		del $LITEGAPPS/log
 	fi
 }
 report_bug(){
@@ -76,7 +77,7 @@ report_bug(){
 	printlog " known error •> $1"
 	printlog "###########################"
 	printlog " Please report bug !"
-	printlog " send log : /sdcard/Android/litegapps/litegapps_log_${datebug}.tar"
+	printlog " send log : /sdcard/Android/litegapps/$NAME_LOG"
 	printlog " send in group telegram https://t.me/litegappsgroup"
 	printlog "############################"
 	printlog " "
@@ -103,6 +104,8 @@ ANDROIDROM=$(getp ro.build.display.id $SYSDIR/build.prop)
 API=`getp ro.build.version.sdk $SYSDIR/build.prop`
 device_abpartition=$(getprop ro.build.ab_update)
 [ -n "$device_abpartition" ] || device_abpartition="A only"
+[ -n "$system" ] || system="systemless"
+[ -n "$TYPEINSTALL" ] || TYPEINSTALL="magisk module"
 printlog "____________________________________"
 printlog "|"
 printlog "| Name            : $MODULENAME"
@@ -121,6 +124,9 @@ printlog "| Architecture    : $ARCH"
 printlog "| Sdk             : $SDKTARGET"
 printlog "| Seamless        : $device_abpartition"
 printlog "|___________________________________"
+if [ ! -f /sdcard/Android/litegapps/mode_developer ]; then
+return 0
+fi
 printlog "|          Developer Mode"
 printlog "| Boot Mode    : $BOOTMODE"
 printlog "| Type Install : $TYPEINSTALL"
@@ -140,7 +146,7 @@ if [ -d $system ]; then
 		printlog "| Read/Write system : false"
 	fi
 else
-printlog "| Read/Write system : not detected"
+printlog "| Read/Write system : false"
 fi
 printlog "| Litegapps Type : $(getp litegapps_type $MODPATH/module.prop)"
 printlog "| Litegapps Compress : $(getp litegapps_apk_compress $MODPATH/module.prop)"
@@ -157,7 +163,10 @@ chcon -hR u:object_r:system_file:s0 "$1" || sedlog "Failed chcon $1"
 }
 
 terminal_tips(){
-	print
+	print " "
+	print " #SaveLiteGapps"
+	print " litegapps is different from others don't copy our features !"
+	print " "
 	printlog "*Tips"
 	print "- Open Terminal"
 	print "- su"
@@ -200,7 +209,7 @@ rm_backup(){
 	
 	}
 
-
+	
 litegapps_plus(){
 	test ! -d $tmp/$ARCH/$SDKTARGET && cdir $tmp/$ARCH/$SDKTARGET
 	#sdk

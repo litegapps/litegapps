@@ -1,15 +1,15 @@
 #!/sbin/sh
 #
 # Copyright 2020 - 2021 the litegapps project
-# by wahyu6070
-# Lincense GPL2
+# Litegapps addon.d
+#
 
 . /tmp/backuptool.functions
-log=/data/media/0/Android/litegapps/27-litegapps.log
-loglive=log=/data/media/0/Android/litegapps/27-litegappslive.log
+log=/data/media/0/Android/litegapps/litegapps_addon.d.log
 base=/data/kopi/modules/litegapps
 
 test ! -d $(dirname $log) && mkdir -p $(dirname $log)
+test -f $log && rm -rf $log
 
 ps | grep zygote | grep -v grep >/dev/null && BOOTMODE=true || BOOTMODE=false
 $BOOTMODE || ps -A 2>/dev/null | grep zygote | grep -v grep >/dev/null && BOOTMODE=true
@@ -29,7 +29,6 @@ print(){
 	}
 sedlog(){
 	echo "[Processing]  $1 [$(date '+%d/%m/%Y %H:%M:%S')]" >> $log
-	echo "[Processing]  $1 [$(date '+%d/%m/%Y %H:%M:%S')]" >> $loglive
 	}
 #
 ch_con(){
@@ -51,7 +50,7 @@ vendor=/vendor
 
 case "$1" in
   backup)
-  print "Litegapps Backup"
+  print "Backuping LiteGapps"
     for i in $(cat $base/list_install_system); do
     	if [ -f $S/$i ] && [ ! -L $S/$i ] ; then
     		sedlog "  Backuping •> $S/$i"
@@ -60,7 +59,7 @@ case "$1" in
     done
   ;;
   restore)
-  print "Litegapps Restore"
+  print "Restoring LiteGapps"
     for i in $(cat $base/list_install_system); do
     		dir1=`dirname $S/$i`
     		sedlog "  Restoring •> $S/$i"
@@ -69,7 +68,11 @@ case "$1" in
     done
     ;;
   pre-backup)
-    # Stub
+    echo " " >> $log
+	echo "Litegapps Addon.d" >> $log
+	echo "Started -> $(date '+%d/%m/%Y %H:%M:%S')" >> $log
+	echo "System = $S" >> $log
+	echo " " >> $log
   ;;
   post-backup)
     # Stub
@@ -79,6 +82,10 @@ case "$1" in
     print "Litegapps addon.d"
   ;;
   post-restore)
-    # Stub
+    echo " " >> $log
+	echo "# $(date '+%d/%m/%Y %H:%M:%S')" >> $log
+	echo "###########" >> $log
+	echo "#   Done  #" >> $log
+	echo "###########" >> $log
   ;;
 esac

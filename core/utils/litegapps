@@ -4,8 +4,8 @@
 #since 08-07-2019
 #License GPL3+
 
-propversion=V0.5
-propdate=14-07-2021
+propversion=v0.6
+propdate=10-10-2021
 
 # Colors
 GREEN='\e[01;32m'
@@ -196,10 +196,11 @@ device(){
 	[ -f $i ] && print "Busybox = Installed" || print "${WHITE}Busybox = Not found $GREEN"
 	 break 
     done
-    [ -f /data/adb/magisk/magisk ] && print "Magisk = Installed" || print "magisk = Not found"
+    [ $(command -v magisk) ] && print "Magisk = Installed" || print "magisk = Not found"
     [ "$(getprop persist.vendor.camera.HAL3.enabled)" -eq 1 ] && print "Camera2api = Enable" || print "${WHITE}Camera2api = Disable $GREEN"
     [ "$(grep f2fs /vendor/etc/fstab.qcom)" ] && print "F2FS = This ROM supports F2FS" || print "${WHITE}F2FS = This ROM not supports F2FS${GREEN}"
     test -f /sys/kernel/touchpanel/dclicknode && [ "$(cat /sys/kernel/touchpanel/dclicknode)" -eq 1 ] && print "DT2W = Enable" || print "${WHITE}DT2W = Disable${GREEN}"
+    [ -d /dev/block/mapper ] && print "Dynamic Partitions = true" || "Dynamic Partitions = false"
     }
 	
 gaming1(){
@@ -650,21 +651,14 @@ meminfo(){
 	print "RAM Used = $(free -h | grep Mem | tr -s ' ' | cut -d' ' -f3)"
 	print "RAM Total = $(free -h | grep Mem | tr -s ' ' | cut -d' ' -f2)"
 	print
-	print "/data Free  = $(df -h /data | tail -n 1 | tr -s ' ' | cut -d' ' -f4)"
-	print "/data Used  = $(df -h /data | tail -n 1 | tr -s ' ' | cut -d' ' -f3)"
-	print "/data Total = $(df -h /data | tail -n 1 | tr -s ' ' | cut -d' ' -f2)"
-	print
-	print "/system Free  = $(df -h /system | tail -n 1 | tr -s ' ' | cut -d' ' -f4)"
-	print "/system Used  = $(df -h /system | tail -n 1 | tr -s ' ' | cut -d' ' -f3)"
-	print "/system Total = $(df -h /system | tail -n 1 | tr -s ' ' | cut -d' ' -f2)"
-	print
-	print "/vendor Free  = $(df -h /vendor | tail -n 1 | tr -s ' ' | cut -d' ' -f4)"
-	print "/vendor Used  = $(df -h /vendor | tail -n 1 | tr -s ' ' | cut -d' ' -f3)"
-	print "/vendor Total = $(df -h /vendor | tail -n 1 | tr -s ' ' | cut -d' ' -f2)"
-	print
-	print "/cache Free  = $(df -h /cache | tail -n 1 | tr -s ' ' | cut -d' ' -f4)"
-	print "/cache Used  = $(df -h /cache | tail -n 1 | tr -s ' ' | cut -d' ' -f3)"
-	print "/cache Total = $(df -h /cache | tail -n 1 | tr -s ' ' | cut -d' ' -f2)"
+	for W897 in /data /system /product /system_ext /vendor /cache /dev /; do
+		if [ -d $W897 ]; then
+		print "$W897 Free  = $(df -h $W897 | tail -n 1 | tr -s ' ' | cut -d' ' -f4)"
+		print "$W897 Used  = $(df -h $W897 | tail -n 1 | tr -s ' ' | cut -d' ' -f3)"
+		print "$W897 Total = $(df -h $W897 | tail -n 1 | tr -s ' ' | cut -d' ' -f2)"
+		print
+		fi
+	done
 	}
 about(){
 print "$CYAN "
@@ -719,7 +713,7 @@ done
 #▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
 while true; do
 clear
-test -f $data/battery_saver && batterystatus="${VIOLET}3.Disable Battery... ${NC}${GREEN}" || batterystatus="3.Battery Saver      "
+test -f $DATA/battery_saver && batterystatus="${VIOLET}3.Disable Battery... ${NC}${GREEN}" || batterystatus="3.Battery Saver      "
 print " "
 print "     ${YELLOW}Litegapps ${GREEN}Controller $GREEN"
 print " "
@@ -737,8 +731,8 @@ case $pilih in
 3) menu battery "Battery Saver" ;;
 4) menu testping "Test Ping" ;;
 5)
-	if [ -f /data/media/0/Android/litegapps/litegapps_controller/litegapps_menu.sh ]; then
-		. /data/media/0/Android/litegapps/litegapps_controller/litegapps_menu.sh
+	if [ -f /data/adb/litegapps_controller/litegapps_menu.sh ]; then
+		. /data/adb/litegapps_controller/litegapps_menu.sh
 	else
 		error "Please Install Litegapps Controller full version !"
 		sleep 5s

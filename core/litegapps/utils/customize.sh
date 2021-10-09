@@ -1,11 +1,11 @@
 # LiteGapps
 # customize.sh 
-# latest update 27-08-2021
+# latest update 2-10-2021
 # By wahyu6070
+
 chmod 755 $MODPATH/bin/litegapps-functions
 #litegapps functions
 . $MODPATH/bin/litegapps-functions
-#litegapps props
 #path
 if [ -f /system_root/system/build.prop ]; then
 	SYSDIR=/system_root/system 
@@ -42,6 +42,7 @@ print " "
 [ -f $SYSDIR/build.prop ] || report_bug "System build.prop not found"
 
 #mode installation
+[ -n $TYPEINSTALL ] || TYPEINSTALL=magisk_module
 case $TYPEINSTALL in
 kopi)
 	sedlog "- Type install KOPI module"
@@ -133,7 +134,7 @@ fi
 #### End defference litegapps++
 
 #cheking sdk files
-[ ! -d $tmp/$ARCH/$SDKTARGET ] && abort "Your Android Version Not Support"
+[ ! -d $tmp/$ARCH/$SDKTARGET ] && report_bug "Your Android Version Not Support"
 
 #using litegapps compress apk or google default apk
 
@@ -227,14 +228,6 @@ while_log "- Set chmod 644 file : $setperm_file"
 chmod 644 $setperm_file
 done >> $loglive
 
-printlog "- Analyze"
-for W67 in GmsCore Phonesky GoogleServicesFramework; do
-	if [ -f $system/priv-app/$W67/$W67.apk ]; then
-		sedlog " Package File Found <$system/priv-app/$W67/$W67.apk>"
-	else
-		sedlog " Package File Not Found <$system/priv-app/$W67/$W67.apk>"
-	fi
-done
 
 #litegapps menu
 cdir $MODPATH/system/bin
@@ -242,7 +235,8 @@ cp -pf $MODPATH/bin/litegapps $MODPATH/system/bin/
 chmod 755 $MODPATH/system/bin/litegapps
 
 #Litegapps post fs
-if [ -f /data/adb/magisk/magisk ]; then
+if [ $TYPEINSTALL != kopi ] && [ -d /data/adb/service.d ] && [ ! -f $LITEGAPPS/disable_post_fs ]; then
+print "- Installing litegapps post-fs"
 cp -pf $MODPATH/bin/litegapps-post-fs /data/adb/service.d/
 chmod 755 /data/adb/service.d/litegapps-post-fs
 fi

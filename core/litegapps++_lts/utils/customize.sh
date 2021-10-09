@@ -1,7 +1,8 @@
 # LiteGapps
 # customize.sh 
-# latest update 05-06-2021
+# latest update 2-10-2021
 # By wahyu6070
+
 chmod 755 $MODPATH/bin/litegapps-functions
 #litegapps functions
 . $MODPATH/bin/litegapps-functions
@@ -36,11 +37,12 @@ done
 
 #functions litegapps info module.prop and build.prop
 litegapps_info
-
+print " "
 #detected build.prop
 [ -f $SYSDIR/build.prop ] || report_bug "System build.prop not found"
 
 #mode installation
+[ -n $TYPEINSTALL ] || TYPEINSTALL=magisk_module
 case $TYPEINSTALL in
 kopi)
 	sedlog "- Type install KOPI module"
@@ -123,11 +125,72 @@ else
 fi
 
 #### Diference litegapps++
-litegapps_plus
+if [ $(getp litegapps_type $MODPATH/module.prop) = litegapps_plus ]; then
+	sedlog "LiteGapps Type : LiteGapps Plus"
+	litegapps_plus
+else
+	sedlog "LiteGapps Type : LiteGapps Reguler"
+fi
 #### End defference litegapps++
 
 #cheking sdk files
-[ ! -d $tmp/$ARCH/$SDKTARGET ] && abort "Your Android Version Not Support"
+[ ! -d $tmp/$ARCH/$SDKTARGET ] && report_bug "Your Android Version Not Support"
+
+#using litegapps compress apk or google default apk
+
+if [ "$(getp litegapps_apk_compress $MODPATH/module.prop)" = litegapps_compress ]; then
+	sedlog "Using litegapps system compress apk"
+	#extrack tar files
+	print "- Extracting tar file"
+	find $tmp/$ARCH/$SDKTARGET -name *.tar -type f 2>/dev/null | while read tarfile; do
+	tarout=`echo "$tarfile" | cut -d '.' -f -1`
+	tarin=$tarfile
+	tarout=`dirname "$(readlink -f $tarin)"`
+	while_log "- Extracting tar : $tarin"
+	$bin/tar -xf $tarin -C $tarout
+	del $tarin
+	done >> $loglive
+
+	#Building Gapps
+	datanull=/data/adb/abcdfghijk
+	cdir $datanull
+	#$datanull is fix creating ..apk
+	print "- Building Gapps"
+	find $tmp/$ARCH/$SDKTARGET -name *app -type d 2>/dev/null | while read DIRAPP; do
+		for WAHYU1 in $(ls -1 $DIRAPP); do
+			if [ -d $DIRAPP/$WAHYU1/$WAHYU1 ]; then
+				apk_zip_level=0
+				apkdir="$DIRAPP/$WAHYU1/$WAHYU1"
+				while_log "- Creating Archive Apk : $apkdir"
+				cd $apkdir
+				$bin/zip -r${apk_zip_level} $apkdir.apk *
+				del $apkdir
+				cd $datanull
+			fi
+		done
+	done >/dev/null
+	del $datanull
+
+
+	#Zipalign
+	printlog "- Zipalign"
+	find $tmp/$ARCH/$SDKTARGET -name *app -type d 2>/dev/null | while read DIRAPP2; do
+		for WAHYU2 in $(ls -1 $DIRAPP2); do
+			if [ -f $DIRAPP2/$WAHYU2/${WAHYU2}.apk ]; then
+				APK_FILE="$DIRAPP2/$WAHYU2/${WAHYU2}.apk"
+				while_log "- Zipalign <$APK_FILE>"
+				$bin/zipalign -f -p -v 4 $APK_FILE $DIRAPP2/$WAHYU2/new.apk
+				del $APK_FILE
+				mv $DIRAPP2/$WAHYU2/new.apk $APK_FILE
+			else
+				while_log "- Failed Zipalign <$DIRAPP2/$WAHYU2/${WAHYU2}.apk>"
+			fi
+		done
+	done >/dev/null
+else
+	sedlog "Using google default system compress apk"
+fi
+
 
 #copying file
 printlog "- Copying Gapps"
@@ -172,7 +235,8 @@ cp -pf $MODPATH/bin/litegapps $MODPATH/system/bin/
 chmod 755 $MODPATH/system/bin/litegapps
 
 #Litegapps post fs
-if [ -f /data/adb/magisk/magisk ]; then
+if [ $TYPEINSTALL != kopi ] && [ -d /data/adb/service.d ] && [ ! -f $LITEGAPPS/disable_post_fs ]; then
+print "- Installing litegapps post-fs"
 cp -pf $MODPATH/bin/litegapps-post-fs /data/adb/service.d/
 chmod 755 /data/adb/service.d/litegapps-post-fs
 fi
