@@ -196,7 +196,14 @@ device(){
 	[ -f $i ] && print "Busybox = Installed" || print "${WHITE}Busybox = Not found $GREEN"
 	 break 
     done
-    [ $(command -v magisk) ] && print "Magisk = Installed" || print "magisk = Not found"
+    if command -v magisk >/dev/null; then
+    	print "Magisk = Installed"
+    	print "Magisk version = $(magisk -v)"
+    	print "Magisk Version code = $(magisk -V)"
+    	print "Magisk path =$(magisk --path)"
+    else
+    	print "magisk = Not found"
+    fi
     [ "$(getprop persist.vendor.camera.HAL3.enabled)" -eq 1 ] && print "Camera2api = Enable" || print "${WHITE}Camera2api = Disable $GREEN"
     [ "$(grep f2fs /vendor/etc/fstab.qcom)" ] && print "F2FS = This ROM supports F2FS" || print "${WHITE}F2FS = This ROM not supports F2FS${GREEN}"
     test -f /sys/kernel/touchpanel/dclicknode && [ "$(cat /sys/kernel/touchpanel/dclicknode)" -eq 1 ] && print "DT2W = Enable" || print "${WHITE}DT2W = Disable${GREEN}"
