@@ -1,8 +1,8 @@
 version=2.2
 version.code=22
 codename=stable
-name.builder=wahyu6070
-build.status=wahyu6070
+name.builder=soekarno
+build.status=unofficial
 set.time.stamp=true
 date.time=202007122239
 apk.compress.type=litegapps_default
