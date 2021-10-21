@@ -1,7 +1,7 @@
 #################################################
 #litegapps functions
 #################################################
-BASE_LITEGAPPS2=$base/core/litegapps++_lts
+BASE_LITEGAPPS2=$base/core/litegapps++_microg
 copy_binary_flashable(){
 	case $(get_config compression) in
      xz)
@@ -92,13 +92,11 @@ make_flashable_litegapps_plus(){
 			#set apk level compression in customize.sh
 			#sed -i 's/'"apk_zip_level=0"'/'"apk_zip_level=$(get_config litegapps++.apk.compress)"'/g' $tmp/$WFL/customize.sh
 			#
-			local CUSTOMIZE_SH=$tmp/$WFL/costumize.sh
-			#607061 is code litegapps++
-			sed -i 's/'"$(getp litegapps.type $CUSTOMIZE_SH)"'/'"607061"'/g' $CUSTOMIZE_SH
-			sed -i 's/'"$(getp litegapps.apk.compress $CUSTOMIZE_SH)"'/'"${apk_compessed_type}"'/g' $CUSTOMIZE_SH
 			
 			local MODULE_PROP=$tmp/$WFL/module.prop
-			local MODULE_DESC="litegapps++ Microg is a google apps package that supports almost all arch and android versions while maintaining lightness, saving battery and more."
+			local MODULE_DESC="litegapps++ MicroG is a google apps package that supports almost all arch and android versions while maintaining lightness, saving battery and more."
+			sed -i 's/'"$(getp litegapps_type $MODULE_PROP)"'/'"litegapps_plus"'/g' $MODULE_PROP
+			sed -i 's/'"$(getp litegapps_apk_compress $MODULE_PROP)"'/'"${apk_compessed_type}"'/g' $MODULE_PROP
 			sed -i 's/'"$(getp name $MODULE_PROP)"'/'"LiteGapps++ MicroG $PROP_STATUS"'/g' $MODULE_PROP
 			sed -i 's/'"$(getp author $MODULE_PROP)"'/'"$PROP_BUILDER"'/g' $MODULE_PROP
 			sed -i 's/'"$(getp version $MODULE_PROP)"'/'"$PROP_VERSION"'/g' $MODULE_PROP
@@ -109,8 +107,8 @@ make_flashable_litegapps_plus(){
 			#set time stamp
 			set_time_stamp $tmp/$WFL
 			
-			local NAME_ZIP="[$WFL]LiteGapps++_MicroG_$(date +%Y%m%d)_${PROP_STATUS}.zip"
-			local OUT_ZIP=$out/litegapps++
+			local NAME_ZIP="[$WFL]LiteGapps++_MicroG_v${PROP_VERSION}_${PROP_STATUS}.zip"
+			local OUT_ZIP=$out/litegapps++_microg
 			printlog "- Build ZIP"
 			cd $tmp/$WFL
 			test ! -d $OUT_ZIP && cdir $OUT_ZIP
@@ -135,7 +133,7 @@ printlog "## Building LiteGapps++ MicroG ##"
 printlog " "
 printlog " "
 cp -af $BASE_LITEGAPPS2/gapps/* $tmp/
-if [ "$apk_compessed_type" -eq 607070 ]; then
+if [ "$apk_compessed_type" = litegapps_compress ]; then
 	lgapps_unzip
 	make_tar
 fi

@@ -69,6 +69,7 @@ if [ "$1" = clean ]; then
 	$base/core/litegapps++/gapps
 	$base/core/litegapps_pixel/gapps
 	$base/core/litegapps++_lts/gapps
+	$base/core/litegapps++_microg/gapps
 	$base/etc/extractor/input
 	$base/etc/extractor/output
 	$base/log
@@ -225,19 +226,24 @@ if [ "$1" = restore ]; then
        	exit 1
        fi
 	fi
-	for W in $(ls $base/core); do
-		if [ -d $base/core/$W ]; then
-			if [ -f $base/core/$W/restore ]; then
-				chmod 755 $base/core/$W/restore
-				. $base/core/$W/restore
+	for W45 in $(get_config config.restore | sed "s/,/ /g"); do
+		if [ -d $base/core/$W45 ]; then
+			if [ -f $base/core/$W45/restore ]; then
+				chmod 755 $base/core/$W45/restore
+				. $base/core/$W45/restore
+			else
+				printlog "! [SKIP] <$base/core/$W45/restore> Not found"
 			fi
+		else
+			printlog "! [SKIP] <$base/core/$W45> Not found"
 		fi
 	
 	done
+	
 #
 exit 0
 fi
-for W in $base/bin/arm $base/core/litegapps/gapps/arm64 $base/core/litegapps++/gapps/cross_system; do
+for W in $base/bin/arm $base/core/litegapps/gapps/arm64; do
 	if [ ! -d $W ]; then
 	printlog "bin or gapps files not found. please restore !"
 	printlog "usage : sh make restore"
@@ -253,6 +259,7 @@ $base/core/litegapps/gapps
 $base/core/litegapps++/gapps
 $base/core/litegapps++_lts/gapps
 $base/core/litegapps_pixel/gapps
+$base/core/litegapps_microg/gapps
 "
 for W in $RM_PLACEHOLDER; do
 	if [ -f $W/placeholder ]; then
@@ -264,10 +271,17 @@ done
 #Litegapps
 #################################################
 if [ $(get_config litegapps.build) = true ]; then
-printlog " "
-printlog "- Building Litegapps"
-[ ! -d $tmp ] && cdir $tmp || del $tmp && cdir $tmp
-. $base/core/litegapps/make
+	if [ "$(get_config litegapps.type)" = reguler ]; then
+		printlog " "
+		printlog "- Building Litegapps"
+		[ ! -d $tmp ] && cdir $tmp || del $tmp && cdir $tmp
+		. $base/core/litegapps/make
+		elif [ "$(get_config litegapps.type)" = pixel ]; then
+		printlog " "
+		printlog "- Building Litegapps Pixel"
+		[ ! -d $tmp ] && cdir $tmp || del $tmp && cdir $tmp
+		. $base/core/litegapps_pixel/make
+	fi
 fi
 
 
@@ -275,29 +289,23 @@ fi
 #Litegapps++
 #################################################
 if [ $(get_config litegapps++.build) = true ]; then
-	if [ "$(get_config litegapps++.type)" = lts ]; then
-		printlog " "
-		printlog "- Building Litegapps++ LTS"
-		[ ! -d $tmp ] && cdir $tmp || del $tmp && cdir $tmp
-		. $base/core/litegapps++_lts/make
-	else
+	if [ "$(get_config litegapps++.type)" = reguler ]; then
 		printlog " "
 		printlog "- Building Litegapps++"
 		[ ! -d $tmp ] && cdir $tmp || del $tmp && cdir $tmp
 		. $base/core/litegapps++/make
+	elif [ "$(get_config litegapps++.type)" = lts ]; then
+		printlog " "
+		printlog "- Building Litegapps++ LTS"
+		[ ! -d $tmp ] && cdir $tmp || del $tmp && cdir $tmp
+		. $base/core/litegapps++_lts/make
+	elif [ "$(get_config litegapps++.type)" = microg ]; then
+		printlog " "
+		printlog "- Building Litegapps++ MicroG"
+		[ ! -d $tmp ] && cdir $tmp || del $tmp && cdir $tmp
+		. $base/core/litegapps++_microg/make
 	fi
 fi
-#################################################
-#Litegapps pixel
-#################################################
-if [ $(get_config litegapps.pixel.build) = true ]; then
-printlog " "
-printlog "- Building Litegapps"
-[ ! -d $tmp ] && cdir $tmp || del $tmp && cdir $tmp
-. $base/core/litegapps_pixel/make
-fi
-[ -d $tmp ] && del $tmp
-
 #################################################
 #Done
 #################################################
