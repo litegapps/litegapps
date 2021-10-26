@@ -1,11 +1,11 @@
-BASEMOD=$base/core/litegapps++
+BASEMOD=$base/core/litegapps++_microg
 BASE_FILES=$BASEMOD/files
 
 for W in gapps files; do
 	[ ! -d $BASEMOD/$W ] && cdir $BASEMOD/$W
 done
 printlog " "
-printlog "        Litegapps++ restore"
+printlog "        Litegapps++ MicroG restore"
 printlog " "
 for WAHYU in sdk cross_system arch; do
 	if [ -f $BASE_FILES/$WAHYU.zip ]; then
@@ -22,7 +22,7 @@ for WAHYU in sdk cross_system arch; do
 		fi
 	else
 		printlog "1. Downloading : $WAHYU.zip"
-       curl -L -o $BASE_FILES/$WAHYU.zip https://sourceforge.net/projects/litegapps/files/files-server/litegapps++/$WAHYU.zip >/dev/null 2>&1
+       curl -L -o $BASE_FILES/$WAHYU.zip https://sourceforge.net/projects/litegapps/files/files-server/litegapps++_microg/$WAHYU.zip >/dev/null 2>&1
        if [  $? -eq 0 ]; then
        	printlog "     Downloading status : Successful"
        	printlog "     File size : $(du -sh $BASE_FILES/$WAHYU.zip | cut -f1)"

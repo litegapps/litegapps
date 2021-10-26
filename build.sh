@@ -88,6 +88,7 @@ if [ "$1" = clean ]; then
 		$base/core/litegapps++/files
 		$base/core/litegapps_pixel/files
 		$base/core/litegapps++_lts/files
+		$base/core/litegapps++_microg/files
 		"
 		for WAH in $LIST_FILES; do
 		print "Cleaning $WAH"
@@ -243,7 +244,7 @@ if [ "$1" = restore ]; then
 #
 exit 0
 fi
-for W in $base/bin/arm $base/core/litegapps/gapps/arm64; do
+for W in $base/bin/arm; do
 	if [ ! -d $W ]; then
 	printlog "bin or gapps files not found. please restore !"
 	printlog "usage : sh make restore"
@@ -259,7 +260,7 @@ $base/core/litegapps/gapps
 $base/core/litegapps++/gapps
 $base/core/litegapps++_lts/gapps
 $base/core/litegapps_pixel/gapps
-$base/core/litegapps_microg/gapps
+$base/core/litegapps++_microg/gapps
 "
 for W in $RM_PLACEHOLDER; do
 	if [ -f $W/placeholder ]; then

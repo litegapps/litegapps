@@ -1,7 +1,7 @@
-version=2.2
-version.code=22
+version=0.1
+version.code=1
 codename=stable
-name.builder=soekarno
+name.builder=andree
 build.status=unofficial
 set.time.stamp=true
 date.time=202007122239
@@ -9,7 +9,7 @@ apk.compress.type=litegapps_default
 compression=xz
 compression.level=9
 zip.level=9
-config.restore=litegapps,litegapps_pixel,litegapps++,litegapps++_lts,litegapps_microg
+config.restore=litegapps++_microg
 
 #Litegapps prop
 litegapps.build=trues
