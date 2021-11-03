@@ -4,5 +4,7 @@ fi
 if [ -d /data/adb/litegapps ]; then
 	rm -rf /data/adb/litegapps
 fi
+
+sleep 30s
 pm uninstall com.google.android.gms
 pm uninstall com.android.vending

@@ -1,7 +1,7 @@
 #!/sbin/sh
-# Kopi Installer V1.5
+# Kopi Installer V1.6
 # Since 08-05-2020
-# Latest Update 02-10-2021
+# Latest Update 01-11-2021
 # by wahyu6070 (dont change)
 
 OUTFD=/proc/self/fd/$2;
@@ -381,7 +381,7 @@ if $BOOTMODE; then
 else
 	setup_env
 	for W78 in /system /product /system_ext /system_root /vendor /; do
-		mount -o rw,remount -t auto $W78 2>/dev/null;
+		mount -o rw,remount -t auto $W78 2>/dev/null || print "! Failed mounting <$W78>"
 	done
 fi
 
@@ -548,6 +548,25 @@ else
 		del $kopi/system/vendor
 	fi;
 	
+	
+	#cp /system/product
+	if [ -d $kopi/system/product ] && [ "$(ls -A $kopi/system/product)" ]; then
+		cdir $kopi/product
+		cp -rdf $kopi/system/product/* $kopi/product/;
+		del $kopi/system/product
+	elif [ -d $kopi/system/product ] && [ ! "$(ls -A $kopi/system/product)" ]; then
+		del $kopi/system/product
+	fi;
+	
+	#cp /system/system_ext
+	if [ -d $kopi/system/system_ext ] && [ "$(ls -A $kopi/system/system_ext)" ]; then
+		cdir $kopi/system_ext
+		cp -rdf $kopi/system/system_ext/* $kopi/system_ext/;
+		del $kopi/system/system_ext
+	elif [ -d $kopi/system/system_ext ] && [ ! "$(ls -A $kopi/system/system_ext)" ]; then
+		del $kopi/system/systen_ext
+	fi;
+	
 	#cp /system
 	if [ -d $kopi/system ] && [ "$(ls -A $kopi/system)" ]; then
 		print "- Pushing system";
@@ -557,6 +576,18 @@ else
 	if [ -d $kopi/vendor ] && [ "$(ls -A $kopi/vendor)" ]; then
 		print "- Pushing vendor"; 
 		cp -rdf $kopi/vendor/* /vendor/;
+	fi;
+	
+	#product
+	if [ -d $kopi/product ] && [ "$(ls -A $kopi/product)" ]; then
+		print "- Pushing product"; 
+		cp -rdf $kopi/product/* /product/;
+	fi;
+	
+	#system_ext
+	if [ -d $kopi/system_ext ] && [ "$(ls -A $kopi/system_ext)" ]; then
+		print "- Pushing system_ext"; 
+		cp -rdf $kopi/system_ext/* /system_ext/;
 	fi;
 	set_progress 8.1;
 	;;

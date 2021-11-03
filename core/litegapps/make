@@ -114,7 +114,7 @@ make_flashable_litegapps(){
 			sed -i 's/'"$(getp litegapps_apk_compress $MODULE_PROP)"'/'"${apk_compessed_type}"'/g' $MODULE_PROP
 			sed -i 's/'"$(getp name $MODULE_PROP)"'/'"LiteGapps $W_ARCH $(get_android_version $W_SDK) $PROP_STATUS"'/g' $MODULE_PROP
 			sed -i 's/'"$(getp author $MODULE_PROP)"'/'"$PROP_BUILDER"'/g' $MODULE_PROP
-			sed -i 's/'"$(getp version $MODULE_PROP)"'/'"$PROP_VERSION"'/g' $MODULE_PROP
+			sed -i 's/'"$(getp version $MODULE_PROP)"'/'"v${PROP_VERSION}"'/g' $MODULE_PROP
 			sed -i 's/'"$(getp versionCode $MODULE_PROP)"'/'"$PROP_VERSIONCODE"'/g' $MODULE_PROP
 			sed -i 's/'"$(getp date $MODULE_PROP)"'/'"$(date +%d-%m-%Y)"'/g' $MODULE_PROP
 			sed -i 's/'"$(getp description $MODULE_PROP)"'/'"$MODULE_DESC"'/g' $MODULE_PROP

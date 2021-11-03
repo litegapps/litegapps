@@ -15,7 +15,7 @@ else
 	SYSDIR=/system
 fi
 VENDIR=/vendor
-tmp=/data/adb/litegapps
+tmp=$MODPATH/tmp
 LITEGAPPS=/data/media/0/Android/litegapps
 log=$LITEGAPPS/log/litegapps.log
 loglive=$LITEGAPPS/log/litegapps_live.log
@@ -211,6 +211,29 @@ listlog $tmp
 cp -af $tmp/$ARCH/$SDKTARGET/vendor/* $vendirtarget/
 fi
 
+# modules
+MODULES=$MODPATH/modules
+MODULE_TMP=$MODPATH/module_tmp
+if [ -d $MODULES ] && ! rmdir $MODULES 2>/dev/null; then
+printlog "- Modules detected"
+	for i in $(ls -1 $MODULES); do
+	sedlog "- Extract <$MODULES/$I>"
+		if [ -f $MODULES/$i ]; then
+			del $MODULE_TMP
+			cdir $MODULE_TMP
+			unzip -o $MODULES/$i -d $MODULE_TMP >/dev/null
+			if [ -f $MODULE_TMP/module-install.sh ]; then
+				chmod 755 $MODULE_TMP/module-install.sh
+				. $MODULE_TMP/module-install.sh
+			else
+				printlog "! Failed installing module <$i> skipping"
+				continue
+			fi
+			del $MODULE_TMP
+		fi
+	done
+
+fi
 
 #Permissions
 find $MODPATH/system -type d 2>/dev/null | while read setperm_dir; do
@@ -241,6 +264,7 @@ cp -pf $MODPATH/bin/litegapps-post-fs /data/adb/service.d/
 chmod 755 /data/adb/service.d/litegapps-post-fs
 fi
 
+
 #creating log
 make_log
 
@@ -248,6 +272,10 @@ make_log
 printlog "- Cleaning cache"
 for W in $tmp $files; do
 	test -d $W && del $W
+done
+
+for Y in bin modules; do
+	test -d $MODPATH/$Y && del $MODPATH/$Y
 done
 
 #terminal tips

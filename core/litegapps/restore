@@ -4,9 +4,11 @@ B_FILES=$BASEMOD/files
 [ ! -d $B_FILES ] && cdir $B_FILES
 
 LIST_ARCH="
-arm64
+arm
 "
 LIST_SDK="
+26
+27
 28
 29
 30

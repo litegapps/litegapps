@@ -1,4 +1,4 @@
-# LiteGapps
+# The LiteGapps Project
 # permissions.sh
 # latest update 01-10-2021
 

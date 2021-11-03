@@ -4,8 +4,8 @@
 #since 08-07-2019
 #License GPL3+
 
-propversion=v0.6
-propdate=10-10-2021
+propversion=v0.7
+propdate=02-11-2021
 
 # Colors
 GREEN='\e[01;32m'
@@ -82,22 +82,21 @@ com.google.android.apps.messaging
 com.google.android.play.games
 ch.deletescape.lawnchair.plah
 "
-
+LIST_GAME="
+com.mobile.legends
+com.tencent.ig
+com.supercell.clashofclans
+com.neptune.domino
+com.garena.game.codm
+com.chess
+"
 
 black_func(){
 	BLACK_LIST_GAMING_2=$DATA/black_list_gaming2
 	if [ -f $DATA/black_list_gaming2 ]; then
 		blacklist_game="$(cat $BLACK_LIST_GAMING_2)"
 	else
-		LIST_GAME_WAHYU4545="
-		com.mobile.legends
-		com.tencent.ig
-		com.supercell.clashofclans
-		com.neptune.domino
-		com.garena.game.codm
-		com.chess
-		"
-		for WAHYU2345 in $LIST_GAME_WAHYU4545; do
+		for WAHYU2345 in $LIST_GAME; do
 			echo "$WAHYU2345" >> $BLACK_LIST_GAMING_2
 		done
 		blacklist_game="$(cat $BLACK_LIST_GAMING_2)"
@@ -118,8 +117,13 @@ black_func(){
 
 #mount
 clear
-print "- Mounting System"
-mount -o rw,remount /system || mount /system || mount -o rw,remount -t auto /system || mount -o rw,remount / || abort "- Abort mounting system"
+print "- Mounting Root"
+if mount -o rw,remount / ; then
+echo
+else
+abort "- Abort mounting root"
+sleep 3s
+fi
 
 getp5(){ grep "^$1" "$2" | head -n1 | cut -d = -f 2; }
 test -f /system_root/system/build.prop && SYSDIR=/system_root/system || test -f /system/system/build.prop && SYSDIR=/system/system || SYSDIR=/system
@@ -303,6 +307,12 @@ gaming3(){
 	
 gaming(){
 	while true; do
+	if [ ! -f $DATA/black_list_gaming2 ]; then
+		for WAHYU2345 in $LIST_GAME; do
+			echo "$WAHYU2345" >> $DATA/black_list_gaming2
+		done
+	fi
+	
 	clear
 	[ -f $DATA/gaming_mode_2 ] && gaming22="${VIOLET}2.Disable Gaming Mode 2${GREEN}" || gaming22="2.Gaming Mode 2 (Not Recomended)"
 	[ -f $DATA/gaming_mode_3 ] && gaming23="${VIOLET}3.Disable Gaming Mode 3${GREEN}" || gaming23="3.Gaming Mode 3"
