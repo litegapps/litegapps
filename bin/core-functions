@@ -310,3 +310,21 @@ if [ $PROP_SET_TIME = true ] && [ $PROP_SET_DATE -eq $PROP_SET_DATE ]; then
 setime -r $input $PROP_SET_DATE
 fi
 }
+
+get_android_version(){
+	local input=$1
+	case $input in
+		21) echo 5.0 ;;
+		22) echo 5.1 ;;
+		23) echo 6.0 ;;
+		24) echo 7.0 ;;
+		25) echo 7.1 ;;
+		26) echo 8.0 ;;
+		27) echo 8.1 ;;
+		28) echo 9.0 ;;
+		29) echo 10.0 ;;
+		30) echo 11.0 ;;
+		31) echo 12.0 ;;
+		32) echo 13.0 ;;
+	 esac
+	}

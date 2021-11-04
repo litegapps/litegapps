@@ -1,6 +1,6 @@
 # LiteGapps
 # customize.sh 
-# latest update 2-10-2021
+# latest update 04-10-2021
 # By wahyu6070
 
 chmod 755 $MODPATH/bin/litegapps-functions
@@ -42,7 +42,7 @@ print " "
 [ -f $SYSDIR/build.prop ] || report_bug "System build.prop not found"
 
 #mode installation
-[ -n $TYPEINSTALL ] || TYPEINSTALL=magisk_module
+[ $TYPEINSTALL ] || TYPEINSTALL=magisk_module
 case $TYPEINSTALL in
 kopi)
 	sedlog "- Type install KOPI module"
@@ -211,20 +211,24 @@ listlog $tmp
 cp -af $tmp/$ARCH/$SDKTARGET/vendor/* $vendirtarget/
 fi
 
+
+print " TYPE INSTALL IS $TYPEINSTALL"
+# modules
 MODULES=$MODPATH/modules
 MODULE_TMP=$MODPATH/module_tmp
 if [ -d $MODULES ] && ! rmdir $MODULES 2>/dev/null; then
 printlog "- Modules detected"
 	for i in $(ls -1 $MODULES); do
-	sedlog "- extract <$MODULES/$I>"
+	sedlog "- Extract <$MODULES/$I>"
 		if [ -f $MODULES/$i ]; then
 			del $MODULE_TMP
 			cdir $MODULE_TMP
-			if unzip -o $MODULES/$i -d $MODULE_TMP/ &>2 ; then
+			unzip -o $MODULES/$i -d $MODULE_TMP >/dev/null
+			if [ -f $MODULE_TMP/module-install.sh ]; then
 				chmod 755 $MODULE_TMP/module-install.sh
 				. $MODULE_TMP/module-install.sh
 			else
-				printlog "! Failed Extracting <$i> skipping"
+				printlog "! Failed installing module <$i> skipping"
 				continue
 			fi
 			del $MODULE_TMP
@@ -232,6 +236,8 @@ printlog "- Modules detected"
 	done
 
 fi
+
+print "TYPE INSTALL : $MAGISKUP"
 
 #Permissions
 find $MODPATH/system -type d 2>/dev/null | while read setperm_dir; do

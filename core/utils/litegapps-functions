@@ -164,8 +164,7 @@ chcon -hR u:object_r:system_file:s0 "$1" || sedlog "Failed chcon $1"
 
 terminal_tips(){
 	print " "
-	print " #SaveLiteGapps"
-	print " litegapps is different from others don't copy our features !"
+	print "  Thanks for using litegapps 😉"
 	print " "
 	printlog "*Tips"
 	print "- Open Terminal"

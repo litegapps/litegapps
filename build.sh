@@ -65,40 +65,25 @@ done
 if [ "$1" = clean ]; then
 	list_fol="
 	$base/output
-	$base/core/litegapps/gapps
-	$base/core/litegapps++/gapps
-	$base/core/litegapps_pixel/gapps
-	$base/core/litegapps++_lts/gapps
-	$base/core/litegapps++_microg/gapps
 	$base/etc/extractor/input
+	$base/etc/extractor/bin
 	$base/etc/extractor/output
 	$base/log
 	"
-	if [ -f $base/files/bin.zip ] && [ $base/core/litegapps/files/arm64/30/30.zip ] && [ $base/core/litegapps++/files/sdk.zip ]; then
-		print "!!! files <bin.zip> <litegapps.zip> <litegapps++.zip> found"
+	if [ -f $base/files/bin.zip ]; then
+		print "!!! files <bin.zip> found"
 		print " do you want to removing files ?"
 		echo -n " yes/no : "
 		read filesrm
 		case $filesrm in
 		y | Y | yes | YES)
 		print "- Removing files"
-		LIST_FILES="
-		$base/files
-		$base/core/litegapps/files
-		$base/core/litegapps++/files
-		$base/core/litegapps_pixel/files
-		$base/core/litegapps++_lts/files
-		$base/core/litegapps++_microg/files
-		"
-		for WAH in $LIST_FILES; do
-		print "Cleaning $WAH"
-		del $WAH
-		cdir $WAH
-		touch $WAH/placeholder
-		done
+		del $base/files
+		cdir $base/files
+		touch $base/files/placeholder
 		;;
 		*)
-		print "Skipping removing files"
+		print "- Skipping removing files"
 		;;
 		esac
 	else
@@ -110,15 +95,29 @@ if [ "$1" = clean ]; then
 	for W in $list_fol
 	do
 	 if [ -d $W ]; then
-	 	print "Cleaning $W"
+	 	print "- Cleaning <$W>"
 	 	del $W
 	 	cdir $W
 	 	touch $W/placeholder
 	 fi
 	done
+	for i in lite core go micro pixel; do
+	if [ -f $base/core/litegapps/$i/clean.sh ]; then
+		BASED=$base/core/litegapps/$i
+		chmod 755 $base/core/litegapps/$i/clean.sh
+		. $base/core/litegapps/$i/clean.sh
+	fi
+	done
+	for i in reguler lts microg; do
+		if [ -f $base/core/litegapps++/$i/clean.sh ]; then
+			BASED=$base/core/litegapps++/$i
+			chmod 755 $base/core/litegapps++/$i/clean.sh
+			. $base/core/litegapps++/$i/clean.sh
+		fi
+	done
 	for W2 in $base/bin/arm $base/bin/x86; do
 		if [ -d $W2 ]; then
-			print "cleaning $W"
+			print "- Cleaning <$W>"
 			del $W2
 		fi
 	done
@@ -154,7 +153,7 @@ if [ "$1" = upload ]; then
 	TG=/home/frs/project/litegapps/$SC
 	printlog "- Uploading <$SC> to <$TG>"
 	scp $SC $USERNAME@web.sourceforge.net:$TG
-	[ $? ] && del $SC && rmdir $(dirname $SC) 2>/dev/null
+	[ $? -eq 0 ] && del $SC && rmdir $(dirname $SC) 2>/dev/null
 	done
 	find * -type f -name *RECOVERY* | while read INPUT_OUT; do
 	SC=$INPUT_OUT
@@ -227,16 +226,13 @@ if [ "$1" = restore ]; then
        	exit 1
        fi
 	fi
-	for W45 in $(get_config config.restore | sed "s/,/ /g"); do
-		if [ -d $base/core/$W45 ]; then
-			if [ -f $base/core/$W45/restore ]; then
-				chmod 755 $base/core/$W45/restore
-				. $base/core/$W45/restore
-			else
-				printlog "! [SKIP] <$base/core/$W45/restore> Not found"
-			fi
+	for i in $(get_config litegapps.restore | sed "s/,/ /g"); do
+		if [ -f $base/core/litegapps/$i/restore.sh ]; then
+			BASED=$base/core/litegapps/$i
+			chmod 755 $base/core/litegapps/$i/restore.sh
+			. $base/core/litegapps/$i/restore.sh
 		else
-			printlog "! [SKIP] <$base/core/$W45> Not found"
+			printlog "! [SKIP] <$base/core/litegapps/$i/restore.sh> Not found"
 		fi
 	
 	done
@@ -255,13 +251,7 @@ done
 #################################################
 #Remove placeholder file
 #################################################
-RM_PLACEHOLDER="
-$base/core/litegapps/gapps
-$base/core/litegapps++/gapps
-$base/core/litegapps++_lts/gapps
-$base/core/litegapps_pixel/gapps
-$base/core/litegapps++_microg/gapps
-"
+RM_PLACEHOLDER=`find $base -name placeholder -type f`
 for W in $RM_PLACEHOLDER; do
 	if [ -f $W/placeholder ]; then
 		printlog "- Removing file <$W/placeholder>"
@@ -272,20 +262,17 @@ done
 #Litegapps
 #################################################
 if [ $(get_config litegapps.build) = true ]; then
-	if [ "$(get_config litegapps.type)" = reguler ]; then
-		printlog " "
-		printlog "- Building Litegapps"
-		[ ! -d $tmp ] && cdir $tmp || del $tmp && cdir $tmp
-		. $base/core/litegapps/make
-		elif [ "$(get_config litegapps.type)" = pixel ]; then
-		printlog " "
-		printlog "- Building Litegapps Pixel"
-		[ ! -d $tmp ] && cdir $tmp || del $tmp && cdir $tmp
-		. $base/core/litegapps_pixel/make
-	fi
+	LIST_LITEGAPPS=`get_config litegapps.type | sed "s/,/ /g"`
+	for i in $LIST_LITEGAPPS; do
+		if [ -f $base/core/litegapps/$i/make.sh ]; then
+			BASED=$base/core/litegapps/$i
+			chmod 755 $base/core/litegapps/$i/make.sh
+			. $base/core/litegapps/$i/make.sh
+		else
+		 	ERROR "[ERROR] <$base/core/litegapps/$i/make.sh> not found"
+		fi
+	done
 fi
-
-
 #################################################
 #Litegapps++
 #################################################

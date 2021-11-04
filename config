@@ -1,24 +1,25 @@
-version=0.1
-version.code=1
+version=2.3
+version.code=23
 codename=stable
-name.builder=andree
-build.status=unofficial
+name.builder=wahyu6070
+build.status=wahyu6070
 set.time.stamp=true
 date.time=202007122239
 apk.compress.type=litegapps_default
-compression=xz
-compression.level=9
-zip.level=9
-config.restore=litegapps++_microg
+compression=br
+compression.level=1
+zip.level=1
 
 #Litegapps prop
-litegapps.build=trues
-#type = reguler,pixel
-litegapps.type=reguler
-litegapps.arch=arm64
-litegapps.sdk=31
+litegapps.build=true
+#list-restore = lite,core,go,micro,pixel
+litegapps.restore=core
+#list-type = lite,core,go,micro,pixel
+litegapps.type=core
 
 #Litegapps++ prop
-litegapps++.build=true
-#type = reguler,lts,microg
+litegapps++.build=truee
+#list-restore = reguler,lts,microg
+litegapps++.restore=microg
+#list-type = reguler,lts,microg
 litegapps++.type=microg
