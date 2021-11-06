@@ -1,24 +1,24 @@
 version=2.3
 version.code=23
 codename=stable
-name.builder=wahyu6070
-build.status=wahyu6070
+name.builder=soekarno
+build.status=unofficial
 set.time.stamp=true
 date.time=202007122239
 apk.compress.type=litegapps_default
-compression=br
-compression.level=1
-zip.level=1
+compression=xz
+compression.level=9
+zip.level=9
 
 #Litegapps prop
 litegapps.build=true
-#list-restore = lite,core,go,micro,pixel
-litegapps.restore=core
-#list-type = lite,core,go,micro,pixel
-litegapps.type=core
+#list-restore = lite,core,go,micro,pixel,bakso
+litegapps.restore=lite,core,go,micro,pixel,bakso
+#list-type = lite,core,go,micro,pixel,bakso
+litegapps.type=lite,core,go,micro,pixel,bakso
 
 #Litegapps++ prop
-litegapps++.build=truee
+litegapps++.build=true
 #list-restore = reguler,lts,microg
 litegapps++.restore=microg
 #list-type = reguler,lts,microg

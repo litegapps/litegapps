@@ -101,7 +101,7 @@ if [ "$1" = clean ]; then
 	 	touch $W/placeholder
 	 fi
 	done
-	for i in lite core go micro pixel; do
+	for i in lite bakso core go micro pixel; do
 	if [ -f $base/core/litegapps/$i/clean.sh ]; then
 		BASED=$base/core/litegapps/$i
 		chmod 755 $base/core/litegapps/$i/clean.sh
@@ -160,7 +160,7 @@ if [ "$1" = upload ]; then
 	TG=/home/frs/project/litegapps/$SC
 	printlog "- Uploading <$SC> to <$TG>"
 	scp $SC $USERNAME@web.sourceforge.net:$TG
-	[ $? ] && del $SC && rmdir $(dirname $SC) 2>/dev/null
+	[ $? -eq 0 ] && del $SC && rmdir $(dirname $SC) 2>/dev/null
 	done
 	find * -type f -name *AUTO* | while read INPUT_OUT; do
 	SC=$INPUT_OUT

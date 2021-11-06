@@ -1,7 +1,7 @@
 #!/sbin/sh
 # Kopi Installer V1.6
 # Since 08-05-2020
-# Latest Update 01-11-2021
+# Latest Update 05-11-2021
 # by wahyu6070 (dont change)
 
 OUTFD=/proc/self/fd/$2;
@@ -155,69 +155,70 @@ setenforce 0
 [ "$ANDROID_ROOT" ] || ANDROID_ROOT=/system;
 
 
-file_getprop() { grep "^$2=" "$1" | cut -d= -f2-; }
+file_getprop() {  grep "^$2=" "$1" |  cut -d= -f2-; }
 find_slot() {
   local slot=$(getprop ro.boot.slot_suffix 2>/dev/null);
-  [ "$slot" ] || slot=$(grep -o 'androidboot.slot_suffix=.*$' /proc/cmdline | cut -d\  -f1 | cut -d= -f2);
+  [ "$slot" ] || slot=$( grep -o 'androidboot.slot_suffix=.*$' /proc/cmdline |  cut -d\  -f1 |  cut -d= -f2);
   if [ ! "$slot" ]; then
     slot=$(getprop ro.boot.slot 2>/dev/null);
-    [ "$slot" ] || slot=$(grep -o 'androidboot.slot=.*$' /proc/cmdline | cut -d\  -f1 | cut -d= -f2);
+    [ "$slot" ] || slot=$( grep -o 'androidboot.slot=.*$' /proc/cmdline |  cut -d\  -f1 |  cut -d= -f2);
     [ "$slot" ] && slot=_$slot;
   fi;
   [ "$slot" ] && echo "$slot";
 }
 setup_mountpoint() {
-  [ -L $1 ] && mv -f $1 ${1}_link;
+  [ -L $1 ] &&  mv -f $1 ${1}_link;
   if [ ! -d $1 ]; then
-    rm -f $1;
-    mkdir -p $1;
+     rm -f $1;
+     mkdir -p $1;
   fi;
 }
-is_mounted() { mount | grep -q " $1 "; }
+is_mounted() {  mount |  grep -q " $1 "; }
 mount_apex() {
   [ -d /system_root/system/apex ] || return 1;
   local apex dest loop minorx num var;
   setup_mountpoint /apex;
+   mount -t tmpfs tmpfs /apex -o mode=755 &&  touch /apex/apextmp;
   minorx=1;
-  [ -e /dev/block/loop1 ] && minorx=$(ls -l /dev/block/loop1 | awk '{ print $6 }');
+  [ -e /dev/block/loop1 ] && minorx=$( ls -l /dev/block/loop1 |  awk '{ print $6 }');
   num=0;
   for apex in /system_root/system/apex/*; do
-    dest=/apex/$(basename $apex .apex);
+    dest=/apex/$( basename $apex .apex);
     case $dest in
-      *.current|*.release) dest=$(echo $dest | rev | cut -d. -f2- | rev);;
+      *.current|*.release) dest=$(echo $dest |  rev |  cut -d. -f2- |  rev);;
     esac;
-    mkdir -p $dest;
+     mkdir -p $dest;
     case $apex in
       *.apex)
-        unzip -qo $apex apex_payload.img -d /apex;
-        mv -f /apex/apex_payload.img $dest.img;
-        mount -t ext4 -o ro,noatime $dest.img $dest 2>/dev/null;
+         unzip -qo $apex apex_payload.img -d /apex;
+         mv -f /apex/apex_payload.img $dest.img;
+         mount -t ext4 -o ro,noatime $dest.img $dest 2>/dev/null;
         if [ $? != 0 ]; then
           while [ $num -lt 64 ]; do
             loop=/dev/block/loop$num;
-            (mknod $loop b 7 $((num * minorx));
-            losetup $loop $dest.img) 2>/dev/null;
+            [ -e $loop ] ||  mknod $loop b 7 $((num * minorx));
+             losetup $loop $dest.img 2>/dev/null;
             num=$((num + 1));
-            losetup $loop | grep -q $dest.img && break;
+             losetup $loop |  grep -q $dest.img && break;
           done;
-          mount -t ext4 -o ro,loop,noatime $loop $dest;
+           mount -t ext4 -o ro,loop,noatime $loop $dest;
           if [ $? != 0 ]; then
-            losetup -d $loop 2>/dev/null;
+             losetup -d $loop 2>/dev/null;
           fi;
         fi;
       ;;
-      *) mount -o bind $apex $dest;;
+      *)  mount -o bind $apex $dest;;
     esac;
   done;
-  for var in $(grep -o 'export .* /.*' /system_root/init.environ.rc | awk '{ print $2 }'); do
+  for var in $( grep -o 'export .* /.*' /system_root/init.environ.rc |  awk '{ print $2 }'); do
     eval OLD_${var}=\$$var;
   done;
-  $(grep -o 'export .* /.*' /system_root/init.environ.rc | sed 's; /;=/;'); unset export;
+  $( grep -o 'export .* /.*' /system_root/init.environ.rc |  sed 's; /;=/;'); unset export;
 }
 umount_apex() {
-  [ -d /apex/com.android.runtime ] || return 1;
+  [ -d /apex ] || return 1;
   local dest loop var;
-  for var in $(grep -o 'export .* /.*' /system_root/init.environ.rc | awk '{ print $2 }'); do
+  for var in $( grep -o 'export .* /.*' /system_root/init.environ.rc 2>/dev/null |  awk '{ print $2 }'); do
     if [ "$(eval echo \$OLD_$var)" ]; then
       eval $var=\$OLD_${var};
     else
@@ -225,29 +226,33 @@ umount_apex() {
     fi;
     unset OLD_${var};
   done;
-  for dest in $(find /apex -type d -mindepth 1 -maxdepth 1); do
-    if [ -f $dest.img ]; then
-      loop=$(mount | grep $dest | cut -d\  -f1);
-    fi;
-    (umount -l $dest;
-    losetup -d $loop) 2>/dev/null;
+  for dest in $( find /apex -type d -mindepth 1 -maxdepth 1); do
+    loop=$( mount |  grep $dest |  grep loop |  cut -d\  -f1);
+     umount -l $dest;
+    [ "$loop" ] &&  losetup -d $loop;
   done;
-  rm -rf /apex 2>/dev/null;
+  [ -f /apex/apextmp ] &&  umount /apex;
+   rm -rf /apex 2>/dev/null;
 }
 mount_all() {
+  local byname mount slot system;
   if ! is_mounted /cache; then
      mount /cache 2>/dev/null && UMOUNT_CACHE=1;
   fi;
   if ! is_mounted /data; then
      mount /data && UMOUNT_DATA=1;
   fi;
-  ( mount -o ro -t auto /vendor;
-   mount -o ro -t auto /product;
-   mount -o ro -t auto /persist) 2>/dev/null;
+  (for mount in /vendor /product /system_ext /persist; do
+     mount -o ro -t auto $mount;
+  done) 2>/dev/null;
   setup_mountpoint $ANDROID_ROOT;
   if ! is_mounted $ANDROID_ROOT; then
      mount -o ro -t auto $ANDROID_ROOT 2>/dev/null;
   fi;
+  byname=bootdevice/by-name;
+  [ -d /dev/block/$byname ] || byname=$( find /dev/block/platform -type d -name by-name 2>/dev/null |  head -n1 |  cut -d/ -f4-);
+  [ -d /dev/block/mapper ] && byname=mapper;
+  [ -e /dev/block/$byname/system ] || slot=$(find_slot);
   case $ANDROID_ROOT in
     /system_root) setup_mountpoint /system;;
     /system)
@@ -261,71 +266,67 @@ mount_all() {
       if [ $? != 0 ]; then
         ( umount /system;
          umount -l /system) 2>/dev/null;
-        if [ -d /dev/block/mapper ]; then
-          [ -e /dev/block/mapper/system ] || local slot=$(find_slot);
-           mount -o ro -t auto /dev/block/mapper/vendor$slot /vendor;
-           mount -o ro -t auto /dev/block/mapper/product$slot /product 2>/dev/null;
-           mount -o ro -t auto /dev/block/mapper/system$slot /system_root;
-           mount -o ro -t auto /dev/block/mapper/system_ext$slot /system_ext;
-        else
-          [ -e /dev/block/bootdevice/by-name/system ] || local slot=$(find_slot);
-          ( mount -o ro -t auto /dev/block/bootdevice/by-name/vendor$slot /vendor;
-           mount -o ro -t auto /dev/block/bootdevice/by-name/product$slot /product;
-           mount -o ro -t auto /dev/block/bootdevice/by-name/persist$slot /persist) 2>/dev/null;
-           mount -o ro -t auto /dev/block/bootdevice/by-name/system$slot /system_root;
-        fi;
+         mount -o ro -t auto /dev/block/$byname/system$slot /system_root;
       fi;
     ;;
   esac;
-  if [ -d /dev/block/mapper ]; then
-    for block in system vendor product system_ext; do
-      for slot in "" _a _b; do
-        blockdev --setrw /dev/block/mapper/$block$slot 2>/dev/null
-      done
-    done
-  fi
+  [ -f /system_root/system/build.prop ] && system=/system;
+  for mount in /vendor /product /system_ext; do
+    if ! is_mounted $mount && [ -L /system$mount -o -L /system_root$system$mount ]; then
+      setup_mountpoint $mount;
+       mount -o ro -t auto /dev/block/$byname$mount$slot $mount;
+    fi;
+  done;
   if is_mounted /system_root; then
     mount_apex;
-    #if [ -f /system_root/build.prop ]; then
-       #mount -o bind /system_root /system;
-    #else
-       #mount -o bind /system_root/system /system;
-    #fi;
+     #mount -o bind /system_root$system /system;
   fi;
+  if ! is_mounted /persist && [ -e /dev/block/bootdevice/by-name/persist ]; then
+    setup_mountpoint /persist;
+     mount -o ro -t auto /dev/block/bootdevice/by-name/persist /persist;
+  fi;
+  
+  #if [ -d /dev/block/mapper ]; then
+    #for block in system vendor product system_ext; do
+      #for slot in "" _a _b; do
+        #blockdev --setrw /dev/block/mapper/$block$slot 2>/dev/null
+      #done
+    #done
+  #fi
 }
 umount_all() {
   local mount;
   (if [ ! -d /postinstall/tmp ]; then
-    umount /system;
-    umount -l /system;
+     umount /system;
+     umount -l /system;
   fi) 2>/dev/null;
   umount_apex;
   (if [ ! -d /postinstall/tmp ]; then
-    umount /system_root;
-    umount -l /system_root;
+     umount /system_root;
+     umount -l /system_root;
   fi;
   umount /vendor; # busybox umount /vendor breaks recovery on some hacky devices
   umount -l /vendor;
   for mount in /mnt/system /mnt/vendor /product /mnt/product /system_ext /mnt/system_ext /persist; do
-    umount $mount;
-    umount -l $mount;
+     umount $mount;
+     umount -l $mount;
   done;
   if [ "$UMOUNT_DATA" ]; then
-    umount /data;
-    umount -l /data;
+     umount /data;
+     umount -l /data;
   fi;
   if [ "$UMOUNT_CACHE" ]; then
-    umount /cache;
-    umount -l /cache;
+     umount /cache;
+     umount -l /cache;
   fi) 2>/dev/null;
 }
 setup_env() {
   $BOOTMODE && return 1;
-  mount -o bind /dev/urandom /dev/random;
+   mount -o bind /dev/urandom /dev/random;
   if [ -L /etc ]; then
     setup_mountpoint /etc;
-    cp -af /etc_link/* /etc;
-    sed -i 's; / ; /system_root ;' /etc/fstab;
+     cp -af /etc_link/* /etc;
+     sed -i 's; / ; /system_root ;' /etc/fstab;
   fi;
   umount_all;
   mount_all;
@@ -353,7 +354,7 @@ setup_env() {
     }
   elif [ ! "$(getprop ro.build.type 2>/dev/null)" ]; then
     getprop() {
-      ($(which getprop) | grep "$1" | cut -d[ -f3 | cut -d] -f1) 2>/dev/null;
+      ($(which getprop) |  grep "$1" |  cut -d[ -f3 |  cut -d] -f1) 2>/dev/null;
     }
   fi;
 }
@@ -366,22 +367,24 @@ restore_env() {
   [ "$OLD_LD_CFG" ] && export LD_CONFIG_FILE=$OLD_LD_CFG;
   unset OLD_LD_PATH OLD_LD_PRE OLD_LD_CFG;
   umount_all;
-  [ -L /etc_link ] && rm -rf /etc/*;
+  [ -L /etc_link ] &&  rm -rf /etc/*;
   (for dir in /etc /apex /system_root /system /vendor /product /system_ext /persist; do
     if [ -L "${dir}_link" ]; then
       rmdir $dir;
-      mv -f ${dir}_link $dir;
+       mv -f ${dir}_link $dir;
     fi;
   done;
-  umount -l /dev/random) 2>/dev/null;
+   umount -l /dev/random) 2>/dev/null;
 }
-
+  
 if $BOOTMODE; then
 	mount -o rw,remount -t auto / || mount -o rw,remount / 2>/dev/null;
 else
 	setup_env
-	for W78 in /system /product /system_ext /system_root /vendor /; do
-		mount -o rw,remount -t auto $W78 2>/dev/null || print "! Failed mounting <$W78>"
+	for W78 in /system /product /system_ext /system_root /vendor; do
+		if is_mounted $W78; then
+			mount -o rw,remount -t auto $W78 2>/dev/null || print "! Failed mounting R/W <$W78>"
+		fi
 	done
 fi
 
@@ -397,19 +400,45 @@ show_progress 1.34 0;
 
 #system dir
 if [ -f /system/system/build.prop ]; then
-system=/system/system
+	SYSTEM=/system/system
 elif [ -f /system_root/system/build.prop ]; then
-system=/system_root/system
+	SYSTEM=/system_root/system
 elif [ -f /system_root/build.prop ]; then
-system=/system_root
+	SYSTEM=/system_root
 else
-system=/system
+	SYSTEM=/system
+fi
+
+#vendor dir
+VENDOR=/vendor
+
+#product dir
+if [ ! -L $SYSTEM/product ]; then
+	PRODUCT=$SYSTEM/product
+else
+	PRODUCT=/product
+fi
+
+# /system_ext dir (android 11+)
+if [ ! -L $SYSTEM/system_ext ]; then
+	SYSTEM_EXT=$SYSTEM/system_ext
+else
+	SYSTEM_EXT=/system_ext
 fi
 
 #Extract
-kopi=/dev/tmp/kopi
-MODPATH=$kopi
-TMPDIR=/dev/tmp
+touch /data/kopi-test
+if [ $? -eq 0 ]; then
+	del /data/kopi-test
+	kopi=/data/tmp/kopi
+	MODPATH=$kopi
+	TMPDIR=/data/tmp
+else
+	kopi=/dev/tmp/kopi
+	MODPATH=$kopi
+	TMPDIR=/dev/tmp
+fi
+
 cdir $kopi || abort "! Failed create $kopi dir"
 cd $kopi
 print "- Extracting ZIP File"
@@ -418,7 +447,7 @@ unzip -o "$ZIPFILE" >&2
 [ ! -f module.prop ] && abort "- Module.prop Not Found"
 
 #prop
-prop=$system/build.prop
+prop=$SYSTEM/build.prop
 API=`getp ro.build.version.sdk $prop`
 ABI=`getp ro.product.cpu.abi $prop | cut -c-3`
 ABI2=`getp ro.product.cpu.abi2 $prop | cut -c-3`
@@ -452,6 +481,7 @@ fi
 
 #Type install
 if [ $(getp typeinstall $MODULE) = kopi ]; then TYPEINSTALL=kopi
+elif [ -f /sdcard/force_kopi ]; then TYPEINSTALL=kopi
 elif [ $(getp typeinstall $MODULE) = magisk ]; then TYPEINSTALL=magisk
 elif [ $(getp typeinstall $MODULE) = false ]; then TYPEINSTALL=false
 else
@@ -524,70 +554,48 @@ else
 	;;
 	kopi)
 	print "- Type Kopi Module"
+	
+	for MV_DIR in vendor product system_ext; do
+		if [ -d $kopi/system/$MV_DIR ] && [ "$(ls -A $kopi/system/$MV_DIR)" ]; then
+			test ! -d $kopi/$MV_DIR && cdir $kopi/$MV_DIR
+			cp -rdf $kopi/system/$MV_DIR/* $kopi/$MV_DIR/
+			del del $kopi/system/$MV_DIR
+		elif [ -d $kopi/system/$MV_DIR ] && [ ! "$(ls -A $kopi/system/$MV_DIR)" ]; then
+			del $kopi/system/$MV_DIR
+		fi
+	done
+	
 	#Creating list file or dir installed log
-	if [ -d $MODPATH/system ] && [ "$(ls -A $MODPATH/system)" ]; then
-		cd $MODPATH/system
-		for make_perm_sys in $(find *); do
-			echo "$make_perm_sys" >> $KOPIMOD/list_install_system
-		done
-	fi
-
-	if [ -d $MODPATH/vendor ] && [ "$(ls -A $MODPATH/vendor)" ]; then
-		cd $MODPATH/vendor
-		for make_perm_ven in $(find *); do
-			echo "$make_perm_ven" >> $KOPIMOD/list_install_vendor
-		done
-	fi
+	for MAKE_LIST in system vendor product system_ext; do
+		if [ -d $MODPATH/$MAKE_LIST ] && [ "$(ls -A $MODPATH/$MAKE_LIST)" ]; then
+			cd $MODPATH/$MAKE_LIST
+			for MAKE_LIST_FILE in $(find *); do
+				echo "$MAKE_LIST_FILE" >> $KOPIMOD/list_install_$MAKE_LIST
+			done
+		fi
+	done
 	
-	#cp /system/vendor
-	if [ -d $kopi/system/vendor ] && [ "$(ls -A $kopi/system/vendor)" ]; then
-		cdir $kopi/vendor
-		cp -rdf $kopi/system/vendor/* $kopi/vendor/;
-		del $kopi/system/vendor
-	elif [ -d $kopi/system/vendor ] && [ ! "$(ls -A $kopi/system/vendor)" ]; then
-		del $kopi/system/vendor
-	fi;
-	
-	
-	#cp /system/product
-	if [ -d $kopi/system/product ] && [ "$(ls -A $kopi/system/product)" ]; then
-		cdir $kopi/product
-		cp -rdf $kopi/system/product/* $kopi/product/;
-		del $kopi/system/product
-	elif [ -d $kopi/system/product ] && [ ! "$(ls -A $kopi/system/product)" ]; then
-		del $kopi/system/product
-	fi;
-	
-	#cp /system/system_ext
-	if [ -d $kopi/system/system_ext ] && [ "$(ls -A $kopi/system/system_ext)" ]; then
-		cdir $kopi/system_ext
-		cp -rdf $kopi/system/system_ext/* $kopi/system_ext/;
-		del $kopi/system/system_ext
-	elif [ -d $kopi/system/system_ext ] && [ ! "$(ls -A $kopi/system/system_ext)" ]; then
-		del $kopi/system/systen_ext
-	fi;
-	
-	#cp /system
-	if [ -d $kopi/system ] && [ "$(ls -A $kopi/system)" ]; then
+	#cp system
+	if [ -d $kopi/system ] && ! rmdir $kopi/system 2>/dev/null; then
 		print "- Pushing system";
-		cp -rdf $kopi/system/* $system/;
+		cp -rdf $kopi/system/* $SYSTEM/;
 	fi;
 	#cp vendor
-	if [ -d $kopi/vendor ] && [ "$(ls -A $kopi/vendor)" ]; then
-		print "- Pushing vendor"; 
-		cp -rdf $kopi/vendor/* /vendor/;
+	if [ -d $kopi/vendor ] && ! rmdir $kopi/vendor 2>/dev/null; then
+		print "- Pushing vendor";
+		cp -rdf $kopi/vendor/* $VENDOR/;
 	fi;
 	
-	#product
-	if [ -d $kopi/product ] && [ "$(ls -A $kopi/product)" ]; then
-		print "- Pushing product"; 
-		cp -rdf $kopi/product/* /product/;
+	#cp product
+	if [ -d $kopi/product ] && ! rmdir $kopi/product 2>/dev/null; then
+		print "- Pushing product";
+		cp -rdf $kopi/product/* $PRODUCT/;
 	fi;
 	
-	#system_ext
-	if [ -d $kopi/system_ext ] && [ "$(ls -A $kopi/system_ext)" ]; then
-		print "- Pushing system_ext"; 
-		cp -rdf $kopi/system_ext/* /system_ext/;
+	#cp system_ext
+	if [ -d $kopi/system_ext ] && ! rmdir $kopi/system_ext 2>/dev/null; then
+		print "- Pushing system_ext";
+		cp -rdf $kopi/system_ext/* $SYSTEM_EXT/;
 	fi;
 	set_progress 8.1;
 	;;

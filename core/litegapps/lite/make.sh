@@ -99,13 +99,13 @@ make_flashable_litegapps(){
 		done
 		# add modules files
 		test ! -d $tmp/$WFL/modules && cdir $tmp/$WFL/modules
-		if [ -d $BASED/modules/$W_ARCH/$W_SDK ]; then
-			cp -af $BASED/modules/$W_ARCH/$W_SDK/* $tmp/$WFL/modules/
-		else
-			printlog "[ERROR] <$BASED/modules/$W_ARCH/$W_SDK> not found"
-			sleep 3s
-			continue
-		fi
+		#if [ -d $BASED/modules/$W_ARCH/$W_SDK ]; then
+			#cp -af $BASED/modules/$W_ARCH/$W_SDK/* $tmp/$WFL/modules/
+		#else
+			#printlog "[ERROR] <$BASED/modules/$W_ARCH/$W_SDK> not found"
+			#sleep 3s
+			#continue
+		#fi
 			
 			local MODULE_PROP=$tmp/$WFL/module.prop
 			local MODULE_DESC="litegapps is a google apps package that supports almost all arch and android versions while maintaining lightness, saving battery and more."
@@ -148,8 +148,8 @@ for W_ARCH in $CONFIG_ARCH; do
 	BIN_ARCH=$W_ARCH
 	for W_SDK in $CONFIG_SDK; do
 		clear
-		sedlog "Building LiteGapps Core"
-		printmid "Building LiteGapps Core"
+		sedlog "Building LiteGapps Lite"
+		printmid "Building LiteGapps Lite"
 		printlog " "
 		printlog "Architecture=$W_ARCH"
 		printlog "SDK=$W_SDK"

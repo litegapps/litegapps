@@ -108,10 +108,10 @@ make_flashable_litegapps(){
 		fi
 			
 			local MODULE_PROP=$tmp/$WFL/module.prop
-			local MODULE_DESC="LiteGapps Pixel is a custom gapps which provides complete package from google."
+			local MODULE_DESC="LiteGapps Bakso is a typical food from Indonesia in the form of a ball"
 			sed -i 's/'"$(getp litegapps_type $MODULE_PROP)"'/'"litegapps_regular"'/g' $MODULE_PROP
 			sed -i 's/'"$(getp litegapps_apk_compress $MODULE_PROP)"'/'"${apk_compessed_type}"'/g' $MODULE_PROP
-			sed -i 's/'"$(getp name $MODULE_PROP)"'/'"LiteGapps Pixel $W_ARCH $(get_android_version $W_SDK) $PROP_STATUS"'/g' $MODULE_PROP
+			sed -i 's/'"$(getp name $MODULE_PROP)"'/'"LiteGapps Bakso $W_ARCH $(get_android_version $W_SDK) $PROP_STATUS"'/g' $MODULE_PROP
 			sed -i 's/'"$(getp author $MODULE_PROP)"'/'"$PROP_BUILDER"'/g' $MODULE_PROP
 			sed -i 's/'"$(getp version $MODULE_PROP)"'/'"v${PROP_VERSION}"'/g' $MODULE_PROP
 			sed -i 's/'"$(getp versionCode $MODULE_PROP)"'/'"$PROP_VERSIONCODE"'/g' $MODULE_PROP
@@ -121,8 +121,8 @@ make_flashable_litegapps(){
 			#set time stamp
 			set_time_stamp $tmp/$WFL
 			
-			local NAME_ZIP="[$WFL]LiteGapps_Pixel_${W_ARCH}_$(get_android_version $W_SDK)_v${PROP_VERSION}_${PROP_STATUS}.zip"
-			local OUT_ZIP=$out/litegapps/$W_ARCH/$W_SDK/pixel
+			local NAME_ZIP="[$WFL]LiteGapps_Bakso_${W_ARCH}_$(get_android_version $W_SDK)_v${PROP_VERSION}_${PROP_STATUS}.zip"
+			local OUT_ZIP=$out/litegapps/$W_ARCH/$W_SDK/bakso
 			printlog "- Build ZIP"
 			cd $tmp/$WFL
 			test ! -d $OUT_ZIP && cdir $OUT_ZIP
@@ -148,8 +148,8 @@ for W_ARCH in $CONFIG_ARCH; do
 	BIN_ARCH=$W_ARCH
 	for W_SDK in $CONFIG_SDK; do
 		clear
-		sedlog "Building LiteGapps Pixel"
-		printmid "Building LiteGapps Pixel"
+		sedlog "Building LiteGapps Bakso"
+		printmid "Building LiteGapps Bakso"
 		printlog " "
 		printlog "Architecture=$W_ARCH"
 		printlog "SDK=$W_SDK"

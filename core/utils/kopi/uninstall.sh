@@ -60,65 +60,107 @@ esac
 MODULES=$MODPATH/modules
 MODULE_TMP=$MODPATH/module_tmp
 if [ -d $MODULES ] && ! rmdir $MODULES 2>/dev/null; then
-printlog "- Modules detected"
-	for i in $(ls -1 $MODULES); do
-	sedlog "- extract <$MODULES/$I>"
-		if [ -f $MODULES/$i ]; then
+	printlog "- Modules detected"
+	for LIST_MODULES in $(find $MODULES -type f); do
+	sedlog "- Extracting <$LIST_MODULES>"
+		if [ -f $LIST_MODULES ]; then
 			del $MODULE_TMP
 			cdir $MODULE_TMP
-			if unzip -o $MODULES/$i -d $MODULE_TMP/ &>2 ; then
+			unzip -o $LIST_MODULES -d $MODULE_TMP >/dev/null
+			if [ -f $MODULE_TMP/module-uninstall.sh ]; then
 				chmod 755 $MODULE_TMP/module-uninstall.sh
 				. $MODULE_TMP/module-uninstall.sh
 			else
-				printlog "! Failed Extracting <$i> skipping"
+				printlog "! Failed installing module <$(basename $LIST_MODULES)> skipping"
 				continue
 			fi
 			del $MODULE_TMP
 		fi
 	done
-
 fi
+
 
 if [ -f $KOPIMOD/list_install_system ]; then
 	for i in $(cat $KOPIMOD/list_install_system); do
-		sedlog "- Deleteting $system/$i"
-		if [ -f $system/$i ] && [ $i != vendor ]; then
-			del $system/$i
+		sedlog "- Deleteting <$SYSTEM/$i>"
+		if [ -f $SYSTEM/$i ]; then
+			del $SYSTEM/$i
 			if [ $? = 0 ]; then
-				sedlog "- Removing File <$system/$i> [OK]"
+				sedlog "- Removing File <$SYSTEM/$i> [OK]"
 			else
-				sedlog "- Removing File <$system/$i> [ERROR]"
+				sedlog "- Removing File <$SYSTEM/$i> [ERROR]"
 			fi
-			rmdir $(dirname $system/$i) 2>/dev/null
+			rmdir $(dirname $SYSTEM/$i) 2>/dev/null
 			if [ $? = 0 ]; then
-				sedlog "- Removing Dir <$(dirname $system/$i)> [OK]"
+				sedlog "- Removing Dir <$(dirname $SYSTEM/$i)> [OK]"
 			else
-				sedlog "- Removing Dir <$(dirname $system/$i)> [ERROR]"
+				sedlog "- Removing Dir <$(dirname $SYSTEM/$i)> [ERROR]"
 			fi
 		fi
 	done
 fi
+
 
 if [ -f $KOPIMOD/list_install_vendor ]; then
-
 	for i in $(cat $KOPIMOD/list_install_vendor); do
-		sedlog "- Deleteting /vendor/$i"
-		if [ -f vendor/$i ]; then
-			del $vendor/$i
+		sedlog "- Deleteting <$VENDOR/$i>"
+		if [ -f $VENDOR/$i ]; then
+			del $VENDOR/$i
 			if [ $? = 0 ]; then
-				sedlog "- Removing File <$vendor/$i> [OK]"
+				sedlog "- Removing File <$VENDOR/$i> [OK]"
 			else
-				sedlog "- Removing File <$vendor/$i> [ERROR]"
+				sedlog "- Removing File <$VENDOR/$i> [ERROR]"
 			fi
-			rmdir $(dirname $vendor/$i) 2>/dev/null
+			rmdir $(dirname $VENDOR/$i) 2>/dev/null
 			if [ $? = 0 ]; then
-				sedlog "- Removing Dir <$(dirname $vendor/$i)> [OK]"
+				sedlog "- Removing Dir <$(dirname $VENDOR/$i)> [OK]"
 			else
-				sedlog "- Removing Dir <$(dirname $vendor/$i)> [ERROR]"
+				sedlog "- Removing Dir <$(dirname $VENDOR/$i)> [ERROR]"
 			fi
 		fi
 	done
 fi
+
+if [ -f $KOPIMOD/list_install_product ]; then
+	for i in $(cat $KOPIMOD/list_install_product); do
+		sedlog "- Deleteting <$PRODUCT/$i>"
+		if [ -f $PRODUCT/$i ]; then
+			del $PRODUCT/$i
+			if [ $? = 0 ]; then
+				sedlog "- Removing File <$PRODUCT/$i> [OK]"
+			else
+				sedlog "- Removing File <$PRODUCT/$i> [ERROR]"
+			fi
+			rmdir $(dirname $PRODUCT/$i) 2>/dev/null
+			if [ $? = 0 ]; then
+				sedlog "- Removing Dir <$(dirname $PRODUCT/$i)> [OK]"
+			else
+				sedlog "- Removing Dir <$(dirname $PRODUCT/$i)> [ERROR]"
+			fi
+		fi
+	done
+fi
+
+if [ -f $KOPIMOD/list_install_system_ext ]; then
+	for i in $(cat $KOPIMOD/list_install_system_ext); do
+		sedlog "- Deleteting <$SYSTEM_EXT/$i>"
+		if [ -f $SYSTEM_EXT/$i ]; then
+			del $SYSTEM_EXT/$i
+			if [ $? = 0 ]; then
+				sedlog "- Removing File <$SYSTEM_EXT/$i> [OK]"
+			else
+				sedlog "- Removing File <$SYSTEM_EXT/$i> [ERROR]"
+			fi
+			rmdir $(dirname $SYSTEM_EXT/$i) 2>/dev/null
+			if [ $? = 0 ]; then
+				sedlog "- Removing Dir <$(dirname $SYSTEM_EXT/$i)> [OK]"
+			else
+				sedlog "- Removing Dir <$(dirname $SYSTEM_EXT/$i)> [ERROR]"
+			fi
+		fi
+	done
+fi
+
 
 if [ -f $system/addon.d/27-litegapps.sh ]; then
 	sedlog "- Removing addon.d <27-litegapps.sh>"

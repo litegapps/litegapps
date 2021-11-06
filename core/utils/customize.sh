@@ -79,6 +79,8 @@ elif [ -f $files/files.tar.gz ]; then
 	format_file=gzip
 elif [ -f $files/files.tar.zst ]; then
 	format_file=zstd
+elif [ -f $files/files.tar.zip ]; then
+	format_file=zip
 else
 	report_bug "File Gapps not found or format not support"
 	listlog $files
@@ -109,6 +111,9 @@ brotli)
 zstd)
 	$bin/zstd -df --rm $files/files.tar.zst || report_bug "Failed extract <files.tar.zst>"
 	;;
+zip)
+	unzip -o $files/files.tar.zip -d $files >/dev/null || report_bug "Failed extract <files.tar.zip>"
+;;
 *)
 	report_bug "File format not support"
 	listlog $files ;;
@@ -211,33 +216,28 @@ listlog $tmp
 cp -af $tmp/$ARCH/$SDKTARGET/vendor/* $vendirtarget/
 fi
 
-
-print " TYPE INSTALL IS $TYPEINSTALL"
 # modules
 MODULES=$MODPATH/modules
 MODULE_TMP=$MODPATH/module_tmp
 if [ -d $MODULES ] && ! rmdir $MODULES 2>/dev/null; then
-printlog "- Modules detected"
-	for i in $(ls -1 $MODULES); do
-	sedlog "- Extract <$MODULES/$I>"
-		if [ -f $MODULES/$i ]; then
+	printlog "- Modules detected"
+	for LIST_MODULES in $(find $MODULES -type f); do
+	sedlog "- Extracting <$LIST_MODULES>"
+		if [ -f $LIST_MODULES ]; then
 			del $MODULE_TMP
 			cdir $MODULE_TMP
-			unzip -o $MODULES/$i -d $MODULE_TMP >/dev/null
+			unzip -o $LIST_MODULES -d $MODULE_TMP >/dev/null
 			if [ -f $MODULE_TMP/module-install.sh ]; then
 				chmod 755 $MODULE_TMP/module-install.sh
 				. $MODULE_TMP/module-install.sh
 			else
-				printlog "! Failed installing module <$i> skipping"
+				printlog "! Failed installing module <$(basename $LIST_MODULES)> skipping"
 				continue
 			fi
 			del $MODULE_TMP
 		fi
 	done
-
 fi
-
-print "TYPE INSTALL : $MAGISKUP"
 
 #Permissions
 find $MODPATH/system -type d 2>/dev/null | while read setperm_dir; do
@@ -274,7 +274,7 @@ make_log
 
 
 printlog "- Cleaning cache"
-for W in $tmp $files; do
+for W in $tmp $files $MODPATH/modules; do
 	test -d $W && del $W
 done
 
