@@ -217,6 +217,8 @@ cp -af $tmp/$ARCH/$SDKTARGET/vendor/* $vendirtarget/
 fi
 
 # modules
+SDK=$SDKTARGET
+ARCH=$ARCH
 MODULES=$MODPATH/modules
 MODULE_TMP=$MODPATH/module_tmp
 if [ -d $MODULES ] && ! rmdir $MODULES 2>/dev/null; then
@@ -263,24 +265,58 @@ chmod 755 $MODPATH/system/bin/litegapps
 
 #Litegapps post fs
 if [ $TYPEINSTALL != kopi ] && [ -d /data/adb/service.d ] && [ ! -f $LITEGAPPS/disable_post_fs ]; then
-print "- Installing litegapps post-fs"
-cp -pf $MODPATH/bin/litegapps-post-fs /data/adb/service.d/
-chmod 755 /data/adb/service.d/litegapps-post-fs
+	print "- Installing litegapps post-fs"
+	cp -pf $MODPATH/bin/litegapps-post-fs /data/adb/service.d/
+	chmod 755 /data/adb/service.d/litegapps-post-fs
 fi
-
-
-#creating log
-make_log
-
 
 printlog "- Cleaning cache"
 for W in $tmp $files $MODPATH/modules; do
 	test -d $W && del $W
 done
 
-for Y in bin modules; do
-	test -d $MODPATH/$Y && del $MODPATH/$Y
-done
+
+# cheking memory partition
+# $STSTEM $PRODUCT $SYSTEM_EXT is variable in kopi installer
+if [ $TYPEINSTALL = kopi ]; then
+	printlog "- Checking Memory"
+	if [ -d $MODPATH/system/product ] && [ "$(ls -A $MODPATH/system/product)" ]; then
+		MEM_INSTALL=`du -sk $MODPATH/system/product | cut -f1`
+		MEM_PARTITION=`df $PRODUCT | tail -n 1 | tr -s ' ' | cut -d' ' -f3`
+		if [ $MEM_PARTITION -eq $MEM_PARTITION ] && [ $MEM_PARTITION -gt $MEM_INSTALL ]; then
+			sedlog " memory partition /product"
+			sedlog " memory install = $MEM_INSTALL"
+			sedlog " memory free partition /product : $MEM_PARTITION "
+			sedlog " free space is [OK]"
+		else
+			printlog "! memory partition /product"
+			printlog "! memory install = $MEM_INSTALL"
+			printlog "! memory free partition /product : $MEM_PARTITION "
+			printlog "! free space is [ERROR] full memory"
+			report_bug "Insufficient /product partition"
+		fi
+	fi
+	if [ -d $MODPATH/system/system_ext ] && [ "$(ls -A $MODPATH/system/system_ext)" ]; then
+		MEM_INSTALL=`du -sk $MODPATH/system/system_ext | cut -f1`
+		MEM_PARTITION=`df $SYSTEM_EXT | tail -n 1 | tr -s ' ' | cut -d' ' -f3`
+		if [ $MEM_PARTITION -eq $MEM_PARTITION ] && [ $MEM_PARTITION -gt $MEM_INSTALL ]; then
+			sedlog " memory partition /system_ext"
+			sedlog " memory install = $MEM_INSTALL"
+			sedlog " memory free partition /system_ext : $MEM_PARTITION "
+			sedlog " free space is [OK]"
+		else
+			printlog "! memory partition /system_ext"
+			printlog "! memory install = $MEM_INSTALL"
+			printlog "! memory free partition /system_ext : $MEM_PARTITION "
+			printlog "! free space is [ERROR] full memory"
+			report_bug "Insufficient /system_ext partition"
+		fi
+		
+	fi
+fi
+
+#creating log
+make_log
 
 #terminal tips
 terminal_tips

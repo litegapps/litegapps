@@ -1,8 +1,7 @@
 #!/sbin/sh
-#
-# Copyright 2020 - 2021 the litegapps project
-# Litegapps addon.d
-#
+# Copyright 2020 - 2021 The Litegapps Project
+# Litegapps addon.d (running in rom installer)
+# by wahyu6070
 
 . /tmp/backuptool.functions
 log=/data/media/0/Android/litegapps/litegapps_addon.d.log
@@ -37,35 +36,85 @@ chcon -h u:object_r:system_file:s0 "$1" || sedlog "Failed chcon $1"
 
 
 if [ -f /system/system/build.prop ]; then
-system=/system/system
+SYSTEM=/system/system
 elif [ -f /system_root/system/build.prop ]; then
-system=/system_root/system
+SYSTEM=/system_root/system
 elif [ -f /system_root/build.prop ]; then
-system=/system_root
+SYSTEM=/system_root
 else
-system=/system
+SYSTEM=/system
 fi
-vendor=/vendor
 
+if [ ! -L $SYSTEM/product ]; then
+PRODUCT=$SYSTEM/product
+else
+PRODUCT=/product
+fi
+
+if [ ! -L $SYSTEM/system_ext ]; then
+SYSTEM_EXT=$SYSTEM/system_ext
+else
+SYSTEM_EXT=/system_ext
+fi
+
+[ ! -d $base ] && return 0
+
+# S = is variable in backup/restore script in rom flashable
 
 case "$1" in
   backup)
-  print "Backuping LiteGapps"
-    for i in $(cat $base/list_install_system); do
-    	if [ -f $S/$i ] && [ ! -L $S/$i ] ; then
-    		sedlog "  Backuping •> $S/$i"
-    		backup_file $S/$i
-    	fi
-    done
+  	print "Backuping LiteGapps"
+  	if [ -f $base/list_install_system ]; then
+  		for A in $(cat $base/list_install_system); do
+  			if [ -f $S/$A ] && [ ! -L $S/$A ] ; then
+  				sedlog "  Backuping •> $S/$A"
+  				backup_file $S/$A
+  			fi
+    	  done
+ 	 fi
+ 	 if [ -f $base/list_install_product ]; then
+ 	 	for B in $(cat $base/list_install_product); do
+ 	 		if [ -f $PRODUCT/$B ] && [ ! -L $PRODUCT/$B ] ; then
+ 	 			sedlog "  Backuping •> $PRODUCT/$B"
+ 	 			backup_file $PRODUCT/$B
+    		  fi
+    	  done
+  	fi
+  	if [ -f $base/list_install_system_ext ]; then
+  		for C in $(cat $base/list_install_system_ext); do
+  			if [ -f $SYSTEM_EXT/$C ] && [ ! -L $SYSTEM_EXT/$C ] ; then
+  				sedlog "  Backuping •> $SYSTEM_EXT/$C"
+  				backup_file $SYSTEM_EXT/$C
+    		  fi
+    	  done
+	  fi  
   ;;
   restore)
-  print "Restoring LiteGapps"
-    for i in $(cat $base/list_install_system); do
-    		dir1=`dirname $S/$i`
-    		sedlog "  Restoring •> $S/$i"
-    		restore_file $S/$i
-    		ch_con $dir1
-    done
+  	print "Restoring LiteGapps"
+  	if [ -f $base/list_install_system ]; then
+  		for A in $(cat $base/list_install_system); do
+  			dir1=`dirname $S/$A`
+  			sedlog "  Restoring •> $S/$A"
+  			restore_file $S/$A
+  			ch_con $dir1
+    	  done
+  	fi
+  	if [ -f $base/list_install_product ]; then
+  		for B in $(cat $base/list_install_product); do
+  			dir1=`dirname $PRODUCT/$B`
+  			sedlog "  Restoring •> $PRODUCT/$B"
+  			restore_file $PRODUCT/$B
+  			ch_con $dir1
+    	  done
+  	fi
+  	if [ -f $base/list_install_system_ext ]; then
+  		for C in $(cat $base/list_install_system_ext); do
+  			dir1=`dirname $SYSTEM_EXT/$C`
+  			sedlog "  Restoring •> $SYSTEM_EXT/$C"
+  			restore_file $SYSTEM_EXT/$C
+  			ch_con $dir1
+    	  done
+  	fi
     ;;
   pre-backup)
     echo " " >> $log
