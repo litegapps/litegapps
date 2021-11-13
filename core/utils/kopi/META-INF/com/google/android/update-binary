@@ -1,7 +1,7 @@
 #!/sbin/sh
-# Kopi Installer V1.6
+# Kopi Installer V1.7
 # Since 08-05-2020
-# Latest Update 05-11-2021
+# Latest Update 10-11-2021
 # by wahyu6070 (dont change)
 
 OUTFD=/proc/self/fd/$2;
@@ -412,7 +412,7 @@ fi
 #vendor dir
 VENDOR=/vendor
 
-#product dir
+# /product dir (android 10+)
 if [ ! -L $SYSTEM/product ]; then
 	PRODUCT=$SYSTEM/product
 else
@@ -427,9 +427,11 @@ else
 fi
 
 #Extract
-touch /data/kopi-test
+cdir /data/kopi_test
+touch /data/kopi_test/kopi_test_file
 if [ $? -eq 0 ]; then
-	del /data/kopi-test
+	del /data/kopi_test/kopi_test_file
+	del /data/kopi_test
 	kopi=/data/tmp/kopi
 	MODPATH=$kopi
 	TMPDIR=/data/tmp
@@ -482,6 +484,7 @@ fi
 #Type install
 if [ $(getp typeinstall $MODULE) = kopi ]; then TYPEINSTALL=kopi
 elif [ -f /sdcard/force_kopi ]; then TYPEINSTALL=kopi
+elif [ -f /dev/force_kopi ]; then TYPEINSTALL=kopi
 elif [ $(getp typeinstall $MODULE) = magisk ]; then TYPEINSTALL=magisk
 elif [ $(getp typeinstall $MODULE) = false ]; then TYPEINSTALL=false
 else
