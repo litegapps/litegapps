@@ -123,7 +123,7 @@ for D_ARCH in $LIST_ARCH; do
 				test ! -d $MODULES_FILES/$D_ARCH/$D_SDK && cdir $MODULES_FILES/$D_ARCH/$D_SDK
 				test -f $MODULES_FILES/$D_ARCH/$D_SDK/$L_MODULES.zip && del $MODULES_FILES/$D_ARCH/$D_SDK/$L_MODULES.zip
        		 #download
-       		 curl -L -o $MODULES_FILES/$D_ARCH/$D_SDK/$L_MODULES.zip https://sourceforge.net/projects/litegapps/files/addon/$D_ARCH/$D_SDK/core/$L_MODULES.zip/download >/dev/null 2>&1
+       		 curl -L -o $MODULES_FILES/$D_ARCH/$D_SDK/$L_MODULES.zip https://gitlab.com/litegapps/litegapps-server/-/raw/main/litegapps/$D_ARCH/$D_SDK/$D_SDK.zip >/dev/null 2>&1
        		 if [  $? -eq 0 ]; then
        		 	printlog "     Downloading status : Successful"
        		 	printlog "     File size : $(du -sh $MODULES_FILES/$D_ARCH/$D_SDK/$L_MODULES.zip | cut -f1)"

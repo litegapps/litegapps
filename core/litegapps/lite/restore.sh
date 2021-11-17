@@ -58,7 +58,7 @@ for D_ARCH in $LIST_ARCH; do
        else
        	cdir $GAPPS_FILES/$D_ARCH/$D_SDK 
        fi
-       curl -L -o $GAPPS_FILES/$D_ARCH/$D_SDK/$D_SDK.zip https://sourceforge.net/projects/litegapps/files/files-server/litegapps/$D_ARCH/$D_SDK/$D_SDK.zip/download >/dev/null 2>&1
+       curl -L -o $GAPPS_FILES/$D_ARCH/$D_SDK/$D_SDK.zip https://gitlab.com/litegapps/litegapps-server/-/raw/main/litegapps/$D_ARCH/$D_SDK/$D_SDK.zip >/dev/null 2>&1
        if [  $? -eq 0 ]; then
        	printlog "     Downloading status : Successful"
        	printlog "     File size : $(du -sh $GAPPS_FILES/$D_ARCH/$D_SDK/$D_SDK.zip | cut -f1)"

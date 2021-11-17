@@ -181,8 +181,8 @@ terminal_tips(){
 litegapps_plus(){
 	test ! -d $tmp/$ARCH/$SDKTARGET && cdir $tmp/$ARCH/$SDKTARGET
 	#sdk
-	if [ -d $tmp/sdk/$SDKTARGET ]; then
-	cp -a $tmp/sdk/$SDKTARGET/* $tmp/$ARCH/$SDKTARGET/
+	if [ -d $tmp/sdk/$ARCH/$SDKTARGET ]; then
+	cp -a $tmp/sdk/$ARCH/$SDKTARGET/* $tmp/$ARCH/$SDKTARGET/
 	else
 	report_bug "Your Android Version Not Support"
 	fi

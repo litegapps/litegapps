@@ -115,7 +115,14 @@ if [ "$1" = clean ]; then
 			. $base/core/litegapps++/$i/clean.sh
 		fi
 	done
-	for W2 in $base/bin/arm $base/bin/x86; do
+	
+	LIST_BIN="
+	$base/bin/arm
+	$base/bin/arm64
+	$base/bin/x86
+	$base/bin/x86_64
+	"
+	for W2 in $LIST_BIN; do
 		if [ -d $W2 ]; then
 			print "- Cleaning <$W>"
 			del $W2
@@ -153,7 +160,10 @@ if [ "$1" = upload ]; then
 	TG=/home/frs/project/litegapps/$SC
 	printlog "- Uploading <$SC> to <$TG>"
 	scp $SC $USERNAME@web.sourceforge.net:$TG
-	[ $? -eq 0 ] && del $SC && rmdir $(dirname $SC) 2>/dev/null
+	if [ $? -eq 0 ]; then
+		del $SC
+		rmdir $(dirname $SC) 2>/dev/null
+	fi
 	done
 	find * -type f -name *RECOVERY* | while read INPUT_OUT; do
 	SC=$INPUT_OUT
@@ -204,7 +214,7 @@ if [ "$1" = restore ]; then
 		fi
 	else
 		printlog "1. Downloading : bin.zip"
-       curl -L -o $base/files/bin.zip https://sourceforge.net/projects/litegapps/files/files-server/bin/bin.zip >/dev/null 2>&1
+       curl -L -o $base/files/bin.zip https://gitlab.com/litegapps/litegapps-server/-/raw/main/bin/bin.zip >/dev/null 2>&1
        if [  $? -eq 0 ]; then
        	printlog "     Downloading status : Successful"
        	printlog "     File size : $(du -sh $base/files/bin.zip | cut -f1)"
@@ -226,16 +236,28 @@ if [ "$1" = restore ]; then
        	exit 1
        fi
 	fi
-	for i in $(get_config litegapps.restore | sed "s/,/ /g"); do
-		if [ -f $base/core/litegapps/$i/restore.sh ]; then
-			BASED=$base/core/litegapps/$i
-			chmod 755 $base/core/litegapps/$i/restore.sh
-			. $base/core/litegapps/$i/restore.sh
-		else
-			printlog "! [SKIP] <$base/core/litegapps/$i/restore.sh> Not found"
-		fi
-	
-	done
+	if [ $(get_config litegapps.build) = true ]; then
+		for i in $(get_config litegapps.restore | sed "s/,/ /g"); do
+			if [ -f $base/core/litegapps/$i/restore.sh ]; then
+				BASED=$base/core/litegapps/$i
+				chmod 755 $base/core/litegapps/$i/restore.sh
+				. $base/core/litegapps/$i/restore.sh
+			else
+				printlog "! [SKIP] <$base/core/litegapps/$i/restore.sh> Not found"
+			fi
+		done
+	fi
+	if [ $(get_config litegapps++.build) = true ]; then
+		for i in $(get_config litegapps++.restore | sed "s/,/ /g"); do
+			if [ -f $base/core/litegapps++/$i/restore.sh ]; then
+				BASED=$base/core/litegapps++/$i
+				chmod 755 $base/core/litegapps++/$i/restore.sh
+				. $base/core/litegapps++/$i/restore.sh
+			else
+				printlog "! [SKIP] <$base/core/litegapps++/$i/restore.sh> Not found"
+			fi
+		done
+	fi
 	
 #
 exit 0
@@ -251,13 +273,14 @@ done
 #################################################
 #Remove placeholder file
 #################################################
-RM_PLACEHOLDER=`find $base -name placeholder -type f`
+RM_PLACEHOLDER=`find $base -name place_holder -type f`
 for W in $RM_PLACEHOLDER; do
-	if [ -f $W/placeholder ]; then
-		printlog "- Removing file <$W/placeholder>"
-		del $W/placeholder
+	if [ -f $W ]; then
+		printlog "- Removing file <$W>"
+		del $W
 	fi
 done
+
 #################################################
 #Litegapps
 #################################################
@@ -277,22 +300,18 @@ fi
 #Litegapps++
 #################################################
 if [ $(get_config litegapps++.build) = true ]; then
-	if [ "$(get_config litegapps++.type)" = reguler ]; then
-		printlog " "
-		printlog "- Building Litegapps++"
-		[ ! -d $tmp ] && cdir $tmp || del $tmp && cdir $tmp
-		. $base/core/litegapps++/make
-	elif [ "$(get_config litegapps++.type)" = lts ]; then
-		printlog " "
-		printlog "- Building Litegapps++ LTS"
-		[ ! -d $tmp ] && cdir $tmp || del $tmp && cdir $tmp
-		. $base/core/litegapps++_lts/make
-	elif [ "$(get_config litegapps++.type)" = microg ]; then
-		printlog " "
-		printlog "- Building Litegapps++ MicroG"
-		[ ! -d $tmp ] && cdir $tmp || del $tmp && cdir $tmp
-		. $base/core/litegapps++_microg/make
-	fi
+	LIST_LITEGAPPS_PLUS=`get_config litegapps++.type | sed "s/,/ /g"`
+	for w in $LIST_LITEGAPPS_PLUS; do
+		if [ -f $base/core/litegapps++/$w/make.sh ]; then
+			if [ -f $base/core/litegapps++/$w/make.sh ]; then
+			BASED=$base/core/litegapps++/$w
+			chmod 755 $base/core/litegapps++/$w/make.sh
+			. $base/core/litegapps++/$w/make.sh
+			fi
+		else
+			ERROR "[ERROR] <$base/core/litegapps++/$w/make.sh> not found"
+		fi
+	done
 fi
 #################################################
 #Done

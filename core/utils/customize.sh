@@ -97,7 +97,7 @@ done
 printlog "- Extracting Gapps"
 case $format_file in
 xz)
-	$bin/xz -d $files/files.tar.xz || report_bug "Failed extract <files.tar.gz>"
+	$bin/xz -d $files/files.tar.xz || report_bug "Failed extract <files.tar.xz>"
 ;;
 7za)
 	$bin/7za e -y $files/files.tar.7z >/dev/null || report_bug "Failed extract <files.tar.7z>"
