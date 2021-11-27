@@ -9,17 +9,18 @@ apk.compress.type=litegapps_default
 compression=xz
 compression.level=9
 zip.level=9
+zip.signer=true
 
 #Litegapps prop
-litegapps.build=truex
+litegapps.build=true
 #list-restore = lite,core,go,micro,pixel,bakso
 litegapps.restore=false
 #list-type = lite,core,go,micro,pixel,bakso
-litegapps.type=lite,core,go,micro,pixel,bakso
+litegapps.type=lite
 
 #Litegapps++ prop
-litegapps++.build=true
+litegapps++.build=trues
 #list-restore = reguler,lts,microg
-litegapps++.restore=lts
+litegapps++.restore=lite
 #list-type = reguler,lts,microg
-litegapps++.type=lts
+litegapps++.type=microg

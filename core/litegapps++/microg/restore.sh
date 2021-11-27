@@ -11,7 +11,7 @@ for i in $GAPPS $GAPPS_FILES $MODULES $MODULES_FILES; do
 	[ ! -d $i ] && cdir $i
 done
 printlog " "
-printlog "        Litegapps++ Reguler restore"
+printlog "        Litegapps++ MicroG restore"
 printlog " "
 for WAHYU in sdk cross_system arch; do
 	if [ -f $GAPPS_FILES/$WAHYU.zip ]; then

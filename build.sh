@@ -9,12 +9,20 @@ chmod -R 755 $base/bin
 bash_color
 #
 case $(uname -m) in
-*x86*) ARCH32=x86 ;;
-*) ARCH32=arm ;;
+aarch32 | armv7l) ARCH=arm
+;;
+aarch64 | armv8l) ARCH=arm64
+;;
+i386 | i486 |i586 | i686) ARCH=x86
+;;
+*x86_64*) ARCH=x86_64
+;;
+*) ERROR "Architecure not support <$(uname -m)>"
+;;
 esac
 
 tmp=$base/tmp
-bin=$base/bin/$ARCH32
+bin=$base/bin/$ARCH
 log=$base/log/make.log
 loglive=$base/log/make_live.log
 out=$base/output
@@ -29,7 +37,6 @@ PROP_SET_DATE=`get_config date.time`
 PROP_COMPRESSION=`get_config compression`
 PROP_COMPRESSION_LEVEL=`get_config compression.level`
 PROP_ZIP_APK_PROP_COMPRESSION=`get_config zip.apk.compression`
-PROP_ZIP_LEVEL=`get_config zip.level`
 
 case $(get_config build.status) in
 	6070 | wahyu6070 | litegapps) 
@@ -50,10 +57,6 @@ apk_compessed_type=litegapps_default
 ;;
 esac
 
-case $(get_config zip.level) in
-	0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9) ziplevel=$(get_config zip.level) ;;
-	*) ziplevel=1 ;;
-esac
 #process tmp
 for P_TMP in $base/log $tmp; do
 	[ -d $P_TMP ] && del $P_TMP && cdir $P_TMP || cdir $P_TMP

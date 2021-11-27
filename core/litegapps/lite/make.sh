@@ -6,54 +6,11 @@ CONFIG=$BASED/config
 read_config(){
 	getp "$1" $CONFIG
 	}
-copy_binary_flashable(){
-	case $(get_config compression) in
-     xz)
-       local flashable_bin_32=xz
-     ;;
-      br | brotli)
-       local flashable_bin_32=brotli
-     ;;
-     zip)
-     	local flashable_bin_32=zip
-     ;;
-     7z | 7za | 7zip | 7zr | p7zip)
-     	local flashable_bin_32=7za
-     ;;
-     zstd | zst)
-     	local flashable_bin_32=zstd
-     ;;
-     gz | gzip | gunzip)
-     	local flashable_bin_32=gz
-     ;;
-     esac
-	local input_arch=$1
-	case $input_arch in
-		arm | arm64)
-			local ARCHINPUT=arm
-			for W in zipalign tar zip $flashable_bin_32; do
-				if [ -f $base/bin/$ARCHINPUT/$W ]; then
-				cdir $tmp/$WFL/bin/$ARCHINPUT
-				cp -pf $base/bin/$ARCHINPUT/$W $tmp/$WFL/bin/$ARCHINPUT/
-				else
-					ERROR "Binary <$base/bin/$ARCHINPUT/$W> not found"
-				fi
-			
-			done
-		
-		;;
-		x86 | x86_64)
-		echo
-		
-		;;
-	esac
-}
-
 make_flashable_litegapps(){
 	for WFL in MAGISK RECOVERY AUTO; do
 		printlog "- Build flashable [$WFL]"
 		cdir $tmp/$WFL
-		copy_binary_flashable $BIN_ARCH
+		copy_binary_flashable $BIN_ARCH $tmp/$WFL/bin/$BIN_ARCH
 			# copy core/utils/magisk or kopi installer
 			for W in 27-litegapps.sh litegapps-functions litegapps-post-fs litegapps; do
 				if [ -f $base/core/utils/$W ]; then
@@ -122,18 +79,8 @@ make_flashable_litegapps(){
 			set_time_stamp $tmp/$WFL
 			
 			local NAME_ZIP="[$WFL]LiteGapps_${W_ARCH}_$(get_android_version $W_SDK)_v${PROP_VERSION}_${PROP_STATUS}.zip"
-			local OUT_ZIP=$out/litegapps/$W_ARCH/$W_SDK/lite
-			printlog "- Build ZIP"
-			cd $tmp/$WFL
-			test ! -d $OUT_ZIP && cdir $OUT_ZIP
-			test -f $OUT_ZIP/$NAME_ZIP && del $OUT_ZIP/$NAME_ZIP
-			$bin/zip -r${PROP_ZIP_LEVEL} $OUT_ZIP/$NAME_ZIP . >/dev/null
-			printlog " Name   : $NAME_ZIP"
-			printlog " Level  : $PROP_ZIP_LEVEL"
-			printlog " Size   : $(du -sh $OUT_ZIP/$NAME_ZIP | cut -f1)"
-			printlog " Sha256 : $($bin/busybox sha256sum $OUT_ZIP/$NAME_ZIP | cut -d' ' -f1)"
-			printlog "- Done "
-			printlog " "
+			local OUT_ZIP=$out/litegapps/$W_ARCH/$W_SDK/lite/$NAME_ZIP
+			make_zip $tmp/$WFL $OUT_ZIP
 	done
 	}
 

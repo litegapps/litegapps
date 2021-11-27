@@ -166,7 +166,6 @@ get_config() {
 
 ERROR(){
 	printlog "[ERROR] <$1>"
-	sleep 5s
 	exit 1
 	}
 lgapps_unzip(){
@@ -310,7 +309,78 @@ if [ $PROP_SET_TIME = true ] && [ $PROP_SET_DATE -eq $PROP_SET_DATE ]; then
 setime -r $input $PROP_SET_DATE
 fi
 }
-
+make_zip(){
+	local INPUT="$1"
+	local OUTPUT="$2"
+	local ZIP_LEVEL=`get_config zip.level`
+	case $ZIP_LEVEL in
+	0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9) ZIP_LEVEL=$ZIP_LEVEL ;;
+	*) ZIP_LEVEL=1 ;;
+	esac
+	#checking binary
+	if [ $(command -v zip) ]; then
+		local ZIP=`command -v zip`
+	elif [ -f $bin/zip ]; then
+		local ZIP=$bin/zip
+	else
+		ERROR "Zip executable not found"
+	fi
+	cd $INPUT
+	test ! -d $(dirname $OUTPUT) && cdir $(dirname $OUTPUT)
+	test -f $OUTPUT && del $OUTPUT
+	#
+	printlog "- Build Zip"
+	$ZIP -r${ZIP_LEVEL} $OUTPUT . >/dev/null
+	
+	if [ $(get_config zip.signer) = "true" ]; then
+		#cheking java
+		if [ "$(command -v java)" ];then
+			printlog "- Zip signer"
+			printlog "- Using java <$(command -v java)>"
+			java -jar $base/bin/zipsigner.jar $OUTPUT ${OUTPUT}_signed
+			if [ $? -eq 0 ]; then
+				del $OUTPUT
+				mv ${OUTPUT}_signed $OUTPUT
+			else
+				ERROR "Zip signer <$OUTPUT>"
+			fi
+		else
+			ERROR "Java not installed"
+		fi
+	
+	fi
+	printlog " "
+	printlog " Exec   : $ZIP"
+	printlog " Name   : $(basename $OUTPUT)"
+	printlog " Level  : $ZIP_LEVEL"
+	printlog " Size   : $(du -sh $OUTPUT | cut -f1)"
+	printlog " Output : $OUTPUT"
+	printlog "- Done "
+	printlog " "
+	}
+copy_binary_flashable(){
+	local INPUT_ARCH=$1
+	local CP_OUT=$2
+	case $(get_config compression) in
+     xz)
+       local flashable_bin=xz
+     ;;
+      br | brotli)
+       local flashable_bin=brotli
+     ;;
+     *) local flashable_bin=brotli
+     ;;
+     esac
+	local input_arch=$1
+	for W94 in zipalign tar zip $flashable_bin; do
+		if [ -f $base/bin/$INPUT_ARCH/$W94 ]; then
+			cdir $CP_OUT
+			cp -pf $base/bin/$INPUT_ARCH/$W94 $CP_OUT/
+		else
+			ERROR "Binary <$base/bin/$INPUT_ARCH/$W94> not found"
+		fi
+	done
+}
 get_android_version(){
 	local input=$1
 	case $input in
