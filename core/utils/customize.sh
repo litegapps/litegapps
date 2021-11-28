@@ -20,8 +20,12 @@ LITEGAPPS=/data/media/0/Android/litegapps
 log=$LITEGAPPS/log/litegapps.log
 loglive=$LITEGAPPS/log/litegapps_live.log
 files=$MODPATH/files
-SDKTARGET=$(getp ro.build.version.sdk $SYSDIR/build.prop)
 
+#detected build.prop
+[ ! -f $SYSDIR/build.prop ] && report_bug "System build.prop not found"
+
+
+SDKTARGET=$(getp ro.build.version.sdk $SYSDIR/build.prop)
 findarch=$(getp ro.product.cpu.abi $SYSDIR/build.prop | cut -d '-' -f -1)
 case $findarch in
 arm64) ARCH=arm64 ;;
@@ -38,9 +42,6 @@ done
 #functions litegapps info module.prop and build.prop
 litegapps_info
 print " "
-#detected build.prop
-[ -f $SYSDIR/build.prop ] || report_bug "System build.prop not found"
-
 #mode installation
 [ $TYPEINSTALL ] || TYPEINSTALL=magisk_module
 case $TYPEINSTALL in
@@ -55,16 +56,8 @@ magisk)
 ;;
 esac
 
-#arch bin detected
-case $(uname -m) in
-*x86*)
-arch32=x86
-;;
-*)
-arch32=arm 
-;;
-esac
-bin=$MODPATH/bin/$arch32
+#bin
+bin=$MODPATH/bin/$ARCH
 
 chmod -R 755 $bin
 
@@ -164,7 +157,7 @@ if [ "$(getp litegapps_apk_compress $MODPATH/module.prop)" = litegapps_compress 
 	find $tmp/$ARCH/$SDKTARGET -name *app -type d 2>/dev/null | while read DIRAPP; do
 		for WAHYU1 in $(ls -1 $DIRAPP); do
 			if [ -d $DIRAPP/$WAHYU1/$WAHYU1 ]; then
-				apk_zip_level=0
+				apk_zip_level="$(getp litegapps_apk_compress_level $MODPATH/module.prop)"
 				apkdir="$DIRAPP/$WAHYU1/$WAHYU1"
 				while_log "- Creating Archive Apk : $apkdir"
 				cd $apkdir

@@ -12,10 +12,10 @@ for i in $GAPPS $GAPPS_FILES $MODULES $MODULES_FILES; do
 done
 LIST_ARCH=`read_config restore.arch | sed "s/,/ /g"`
 LIST_SDK=`read_config restore.sdk | sed "s/,/ /g"`
-
+NAME=`read_config name`
 
 printlog " "
-printlog "        Litegapps Restore Core"
+printlog "        Restore $NAME"
 printlog " "
 
 

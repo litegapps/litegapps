@@ -148,10 +148,6 @@ ch_con(){
 chcon -h u:object_r:system_file:s0 "$1" || sedlog "Failed chcon $1"
 }
 
-tarex(){
-	tar -xf "$1" -C "$2" || sedlog "Failed Extract tar $1 to $2"
-	}
-	
 	
 abort(){
 	print " " | tee -a $log | tee -a $loglive
@@ -168,8 +164,20 @@ ERROR(){
 	printlog "[ERROR] <$1>"
 	exit 1
 	}
+BIN_TEST(){
+	local INPUT=$1
+	if [ "$(command -v $INPUT)" ]; then
+		print "$(command -v $INPUT)"
+	elif [ -f $bin/$INPUT ]; then
+		print "$bin/$INPUT"
+	else
+		abort "Executable binary nor found <$INPUT>"
+	fi
+	}
 lgapps_unzip(){
 	printlog "- Unzip"
+	local UNZIP=`BIN_TEST unzip`
+	printlog "- Using executable <$UNZIP>"
 	find $tmp -name *app -type d | while read DIRAPP; do
 	for WAHYU1 in $(ls -1 $DIRAPP); do
 		if [ -d $DIRAPP/$WAHYU1 ]; then
@@ -177,7 +185,7 @@ lgapps_unzip(){
 				sedlog "Unzipping <<$DIRAPP/${WAHYU1}/${WAHYU1}.apk>>"
 				sedlog "To <<$DIRAPP/${WAHYU1}/${WAHYU1}>>"
 				test ! -d $DIRAPP/${WAHYU1}/${WAHYU1} && cdir $DIRAPP/${WAHYU1}/${WAHYU1}
-				$bin/unzip -o $DIRAPP/${WAHYU1}/${WAHYU1}.apk -d $DIRAPP/${WAHYU1}/${WAHYU1} >/dev/null
+				$UNZIP -o $DIRAPP/${WAHYU1}/${WAHYU1}.apk -d $DIRAPP/${WAHYU1}/${WAHYU1} >/dev/null
 				if [ -f $DIRAPP/${WAHYU1}/${WAHYU1}.apk ]; then
 					sedlog "- Deleting $DIRAPP/${WAHYU1}/${WAHYU1}.apk"
 					del $DIRAPP/${WAHYU1}/${WAHYU1}.apk
@@ -188,44 +196,36 @@ lgapps_unzip(){
 	done
 	done
 	}
+
 make_tar(){
-	print "- Make tar files"
+	print "- Make tar apk"
+	local TAR=`BIN_TEST tar`
+	printlog "- Using executable <$TAR>"
 	find $tmp -type d | while read folname; do
 	local DIR_INPUT=`basename $folname`
-	case "$DIR_INPUT" in
-	system)
-	for i1 in $(ls -1 $folname); do
-    	if [ -d $folname/$i1 ]; then
-      	 for i2 in $(ls -1 $folname/$i1); do
-             	cd $folname/$i1
-             	sedlog "- Creating .tar $folname/$i1/$i2"
-             	tar -cf $i2.tar $i2
-            	 del $i2
-             	cd /
-       	done
+	for G7 in system product system_ext vendor; do
+		if [ $DIR_INPUT = $G7 ]; then
+			for i1 in $(ls -1 $folname); do
+				if [ -d $folname/$i1 ]; then
+					for i2 in $(ls -1 $folname/$i1); do
+						cd $folname/$i1
+						sedlog "- Creating .tar $folname/$i1/$i2"
+						$TAR -cf $i2.tar $i2
+						del $i2
+						cd /
+        			done
+        		fi
+        	done
     	fi
 	done
-	;;
-	vendor)
-	for b1 in $(ls -1 $folname); do
-   	 if [ -d $folname/$b1 ]; then
-       	for b2 in $(ls -1 $folname/$b1); do
-             	cd $folname/$b1
-           	  sedlog "- Creating .tar $folname/$b1/$b2"
-           	  tar -cf $b2.tar $b2
-            	 del $b2
-            	 cd /
-       	done
-    	fi
-	done 
-	;;
-	esac
 	done
 }
 make_tar_arch(){
 	printlog "- Make files.tar"
 	cd $tmp
-	$bin/tar -cf "files.tar" *
+	local TAR=`BIN_TEST tar`
+	printlog "- Using executable <$TAR>"
+	$TAR -cf "files.tar" *
 	cd /
 	for RM_LIST_TMP in $(ls -1 $tmp); do
 		if [ -d $tmp/$RM_LIST_TMP ]; then
@@ -236,78 +236,44 @@ make_tar_arch(){
 }
 make_archive(){
 	compression=$(get_config compression)
-lvlcom=$(get_config compression.level)
-printlog "- Building archive : $compression"
-printlog "- Level Compression : $lvlcom"
-cd $tmp
-for archi in $(ls -1 $tmp); do
-   case $compression in
-     xz)
-       if [ $lvlcom -lt 10 ]; then
-        $bin/xz -${lvlcom}e $tmp/$archi
-        del $archi
-       else
-       abort "xz level 1-9"
-       fi
-     ;;
+	lvlcom=$(get_config compression.level)
+	printlog "- Building archive : $compression"
+	printlog "- Level Compression : $lvlcom"
+	cd $tmp
+	for archi in $(ls -1 $tmp); do
+		case $compression in
+		xz)
+		if [ $lvlcom -lt 10 ]; then
+       	local XZ=`BIN_TEST xz`
+       	printlog "- Using executable <$XZ>"
+       	$XZ -${lvlcom}e $tmp/$archi
+       	del $archi
+        else
+        	abort "xz level 1-9"
+        fi
+        ;;
       br | brotli)
-       if [ $lvlcom -lt 10 ]; then
-        $bin/brotli -${lvlcom}j $archi
-        del $archi
+        if [ $lvlcom -lt 10 ]; then
+        	local BROTLI=`BIN_TEST brotli`
+        	printlog "- Using executable <$BROTLI>"
+        	$BROTLI -${lvlcom}j $archi
+        	del $archi
        else
-       abort "brotli level 1-9"
+       	 abort "brotli level 1-9"
        fi
-     ;;
-     zip)
-     if [ $lvlcom -lt 10 ]; then
-        $bin/zip -r${lvlcom} $archi.zip $archi >> $loglive
-        del $archi
-       else
-       abort "zip level 1-9"
-       fi
-     ;;
-     7z | 7za | 7zip | 7zr | p7zip)
-     if [ $lvlcom -lt 10 ]; then
-        $bin/7za a -t7z -m0=lzma -mx=$lvlcom -mfb=64 -md=32m -ms=on $archi.7z $archi >> $loglive
-        del $archi
-       else
-       abort "7zip level 1-9"
-       fi
-     ;;
-     zstd | zst)
-     if [ $lvlcom -lt 20 ]; then
-        $bin/zstd --rm -$lvlcom $archi >> $loglive
-       else
-       abort "Zstd level 1-19"
-       fi
-     ;;
-     gz | gzip | gunzip)
-     if [ $lvlcom -lt 10 ]; then
-        $bin/gzip -$lvlcom $archi
-       else
-       abort "gzip level 1-9"
-       fi
-     ;;
+       ;;
      *)
-       printlog "!!! Format $compression Not support"
-       sleep 4s
-       exit 1
-      ;;
+       ERROR "Format $compression Not support"
+       ;;
      esac
 done
-	
-#make md5sum
-for W in $(ls -1 $tmp); do
-	if [ -f $tmp/$W ]; then
-		$bin/busybox md5sum -b $tmp/$W | cut -d ' ' -f1 > $tmp/$W.md5
-	fi
-done
+
 }
 set_time_stamp(){
-local input=$1
-if [ $PROP_SET_TIME = true ] && [ $PROP_SET_DATE -eq $PROP_SET_DATE ]; then
-setime -r $input $PROP_SET_DATE
-fi
+	local input=$1
+	if [ $PROP_SET_TIME = true ] && [ $PROP_SET_DATE -eq $PROP_SET_DATE ]; then
+		setime -r $input $PROP_SET_DATE
+	fi
 }
 make_zip(){
 	local INPUT="$1"
@@ -398,3 +364,11 @@ get_android_version(){
 		32) echo 13.0 ;;
 	 esac
 	}
+	
+SED(){
+	local INPUT=$1
+	local OUTPUT=$2
+	local FILE=$3
+	sed -i 's/'"${INPUT}"'/'"${OUTPUT}"'/g' $FILE
+	}
+	

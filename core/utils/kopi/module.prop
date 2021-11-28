@@ -10,3 +10,4 @@ description=Litegapps is a mini version of GAPPS with a small size, this will ma
 typeinstall=auto
 litegapps_type=litegapps_reguler
 litegapps_apk_compress=litegapps_compress
+litegapps_apk_compress_level=8288282

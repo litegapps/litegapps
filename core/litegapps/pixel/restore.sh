@@ -12,10 +12,10 @@ for i in $GAPPS $GAPPS_FILES $MODULES $MODULES_FILES; do
 done
 LIST_ARCH=`read_config restore.arch | sed "s/,/ /g"`
 LIST_SDK=`read_config restore.sdk | sed "s/,/ /g"`
-
+NAME=`read_config name`
 
 printlog " "
-printlog "        Litegapps Restore Core"
+printlog "        Restore $NAME"
 printlog " "
 
 
@@ -88,7 +88,20 @@ done
 
 
 LIST_CORE="
-
+AndroidAuto
+AndroidMigrate
+CarrierServices
+CarrierSetup
+Common
+ConfigUpdater
+GoogleBackupTransport
+GoogleContactsSyncAdapter
+GoogleExtShared
+GoogleFeedback
+GoogleOneTimeInitializer
+GooglePartnerSetup
+GoogleRestore
+SetupWizard
 "
 
 NUM_6070=0
@@ -110,7 +123,7 @@ for D_ARCH in $LIST_ARCH; do
 				test ! -d $MODULES_FILES/$D_ARCH/$D_SDK && cdir $MODULES_FILES/$D_ARCH/$D_SDK
 				test -f $MODULES_FILES/$D_ARCH/$D_SDK/$L_MODULES.zip && del $MODULES_FILES/$D_ARCH/$D_SDK/$L_MODULES.zip
        		 #download
-       		 curl -L -o $MODULES_FILES/$D_ARCH/$D_SDK/$L_MODULES.zip https://sourceforge.net/projects/litegapps/files/addon/$D_ARCH/$D_SDK/core/$L_MODULES.zip/download >/dev/null 2>&1
+       		 curl -L -o $MODULES_FILES/$D_ARCH/$D_SDK/$L_MODULES.zip https://gitlab.com/litegapps/litegapps-server/-/raw/main/litegapps/$D_ARCH/$D_SDK/$D_SDK.zip >/dev/null 2>&1
        		 if [  $? -eq 0 ]; then
        		 	printlog "     Downloading status : Successful"
        		 	printlog "     File size : $(du -sh $MODULES_FILES/$D_ARCH/$D_SDK/$L_MODULES.zip | cut -f1)"
@@ -130,7 +143,27 @@ done
 
 
 LIST_GAPPS="
-
+Chrome
+Files
+Gmail
+GoogleAssistant
+GoogleCalculator
+GoogleCalendar
+GoogleContacts
+GoogleDialer
+LatinIMEGoogle
+LocationHistory
+MarkupGoogle
+Messaging
+PixelLauncher
+PlayGames
+SoundPicker
+Talkback
+Turbo
+Velvet
+WallpaperPicker
+Wellbeing
+Youtube
 "
 
 NUM_6070=0
@@ -152,7 +185,7 @@ for D_ARCH in $LIST_ARCH; do
 				test ! -d $MODULES_FILES/$D_ARCH/$D_SDK && cdir $MODULES_FILES/$D_ARCH/$D_SDK
 				test -f $MODULES_FILES/$D_ARCH/$D_SDK/$L_MODULES.zip && del $MODULES_FILES/$D_ARCH/$D_SDK/$L_MODULES.zip
        		 #download
-       		 curl -L -o $MODULES_FILES/$D_ARCH/$D_SDK/$L_MODULES.zip https://gitlab.com/litegapps/litegapps-server/-/raw/main/litegapps/$D_ARCH/$D_SDK/$D_SDK.zip >/dev/null 2>&1
+       		 curl -L -o $MODULES_FILES/$D_ARCH/$D_SDK/$L_MODULES.zip https://sourceforge.net/projects/litegapps/files/addon/$D_ARCH/$D_SDK/gapps/$L_MODULES.zip/download >/dev/null 2>&1
        		 if [  $? -eq 0 ]; then
        		 	printlog "     Downloading status : Successful"
        		 	printlog "     File size : $(du -sh $MODULES_FILES/$D_ARCH/$D_SDK/$L_MODULES.zip | cut -f1)"

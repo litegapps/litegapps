@@ -21,11 +21,11 @@ i386 | i486 |i586 | i686) ARCH=x86
 ;;
 esac
 
-tmp=$base/tmp
-bin=$base/bin/$ARCH
-log=$base/log/make.log
-loglive=$base/log/make_live.log
-out=$base/output
+export tmp=$base/tmp
+export bin=$base/bin/$ARCH
+export log=$base/log/make.log
+export loglive=$base/log/make_live.log
+export out=$base/output
 
 
 PROP_VERSION=`get_config version`
@@ -54,6 +54,15 @@ apk_compessed_type=litegapps_default
 ;;
 *)
 apk_compessed_type=litegapps_default
+;;
+esac
+
+case "$(get_config litegapps_apk_compress_level)" in
+0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9)
+litegapps_apk_compress_level=`get_config litegapps_apk_compress_level`
+;;
+*)
+litegapps_apk_compress_level=0
 ;;
 esac
 
@@ -124,9 +133,10 @@ if [ "$1" = clean ]; then
 	$base/bin/arm64
 	$base/bin/x86
 	$base/bin/x86_64
+	$base/bin/zipsigner.jar
 	"
 	for W2 in $LIST_BIN; do
-		if [ -d $W2 ]; then
+		if [ -d $W2 ] || [ -f $W2 ]; then
 			print "- Cleaning <$W>"
 			del $W2
 		fi
@@ -217,7 +227,7 @@ if [ "$1" = restore ]; then
 		fi
 	else
 		printlog "1. Downloading : bin.zip"
-       curl -L -o $base/files/bin.zip https://gitlab.com/litegapps/litegapps-server/-/raw/main/bin/bin.zip >/dev/null 2>&1
+       curl -L -o $base/files/bin.zip https://gitlab.com/litegapps/litegapps-server-bin/-/raw/main/bin.zip?inline=false >/dev/null 2>&1
        if [  $? -eq 0 ]; then
        	printlog "     Downloading status : Successful"
        	printlog "     File size : $(du -sh $base/files/bin.zip | cut -f1)"

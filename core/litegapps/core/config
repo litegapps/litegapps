@@ -1,4 +1,8 @@
-sdk=30
+sdk=31
 arch=arm64
-restore.sdk=30
+restore.sdk=31
 restore.arch=arm64
+name=LiteGapps Core
+dir_name=core
+modules=true
+desc=LiteGapps Core is a custom gapps which provides the necessary packages for gapps.
