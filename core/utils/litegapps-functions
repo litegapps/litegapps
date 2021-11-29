@@ -154,7 +154,22 @@ fi
 printlog "| Litegapps Type : $(getp litegapps_type $MODPATH/module.prop)"
 printlog "| Litegapps Compress : $(getp litegapps_apk_compress $MODPATH/module.prop)"
 printlog "|___________________________________"
-printlog " "
+printlog "             Memory Info"
+for W897 in /data /system /product /system_ext /vendor /dev; do
+		if [ -d $W897 ]; then
+		local FILESYSTEM=`df -h $W897 | tail -n 1 | tr -s ' ' | cut -d' ' -f1`
+		print " Partition  = $W897"
+		print " Filesystem = $FILESYSTEM"
+		print " Mounted on = $(df -h $W897 | tail -n 1 | tr -s ' ' | cut -d' ' -f6)"
+		print " Free       = $(df -h $W897 | tail -n 1 | tr -s ' ' | cut -d' ' -f4)"
+		print " Usage      = $(df -h $W897 | tail -n 1 | tr -s ' ' | cut -d' ' -f3)"
+		print " Total      = $(df -h $W897 | tail -n 1 | tr -s ' ' | cut -d' ' -f2)"
+		print " Used %     = $(df -h $W897 | tail -n 1 | tr -s ' ' | cut -d' ' -f5)"
+		print " Type       = $(mount | grep $FILESYSTEM | tail -n 1 | tr -s ' ' | cut -d' ' -f5)"
+		print "____________________________________________"
+		print
+		fi
+done
 }
 
 ch_con(){
