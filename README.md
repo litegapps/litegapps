@@ -37,7 +37,7 @@ git clone https://github.com/wahyu6070/litegapps
  
 #LITEGAPPS++ PROPS
  
-``litegapps++.build=false`` build litegapls++ true/false
+``litegapps++.build=false`` build litegapps++ true/false
 
 
 ### compression benchmark
