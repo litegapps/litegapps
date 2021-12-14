@@ -89,6 +89,8 @@ elif [ -f $files/files.tar.zst ]; then
 	format_file=zstd
 elif [ -f $files/files.tar.zip ]; then
 	format_file=zip
+elif [ -f $files/files.tar.lz ]; then
+	format_file=lzip
 else
 	report_bug "File Gapps not found or format not support"
 	listlog $files
@@ -121,6 +123,9 @@ zstd)
 	;;
 zip)
 	unzip -o $files/files.tar.zip -d $files >/dev/null || report_bug "Failed extract <files.tar.zip>"
+;;
+lzip) 
+$bin/busybox lzip -d $files/files.tar.lz >/dev/null || report_bug "Failed extract <files.tar.lz>"
 ;;
 *)
 	report_bug "File format not support"

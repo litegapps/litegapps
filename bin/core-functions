@@ -334,6 +334,8 @@ copy_binary_flashable(){
       br | brotli)
        local flashable_bin=brotli
      ;;
+     lz | lzip)
+     	local flashable_bin=busybox
      *) local flashable_bin=brotli
      ;;
      esac
