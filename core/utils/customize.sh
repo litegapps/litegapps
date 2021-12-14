@@ -14,7 +14,22 @@ elif [ -f /system/system/build.prop ]; then
 else
 	SYSDIR=/system
 fi
+# /product dir (android 10+)
+if [ ! -L $SYSDIR/product ]; then
+	PRODUCT=$SYSDIR/product
+else
+	PRODUCT=/product
+fi
+
+# /system_ext dir (android 11+)
+if [ ! -L $SYSDIR/system_ext ]; then
+	SYSTEM_EXT=$SYSDIR/system_ext
+else
+	SYSTEM_EXT=/system_ext
+fi
+
 VENDIR=/vendor
+
 tmp=$MODPATH/tmp
 LITEGAPPS=/data/media/0/Android/litegapps
 log=$LITEGAPPS/log/litegapps.log
@@ -308,8 +323,22 @@ if [ $TYPEINSTALL = kopi ]; then
 	fi
 fi
 
+#check partition ro/rw
+partition_check
+
+ls -alZR $MODPATH/system > $LITEGAPPS/log/system_modpath
+for T in $SYSDIR $PRODUCT $SYSTEM_EXT; do
+	if [ -d $T ] && [ "$(ls -A $T)" ]; then
+		ls -alZR $T > $LITEGAPPS/log/$(basename ${T}).old
+	else
+		sedlog "! <$T> not found"
+	fi
+
+done
+
+if [ $TYPEINSTALL = magisk ] || [ $TYPEINSTALL = magisk_module ]; then
 #creating log
 make_log
-
+fi
 #terminal tips
 terminal_tips
