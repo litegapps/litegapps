@@ -47,19 +47,20 @@ abort(){
 	
 make_log(){
 	#creating log
-	printlog "- Creating log"
 	NAME_LOG=`echo "[LOG]litegapps_$(getp version $MODPATH/module.prop).tar.gz"`
-	if [ -f $SYSDIR/build.prop ]; then
-		cp -pf $SYSDIR/build.prop $LITEGAPPS/log/sys_build.prop
+	if [ $DEV_MODE = OFF ]; then
+		printlog "- Make log"
 	else
-		echo "! System is not detected <$SYSDIR/build.prop>" >> $LITEGAPPS/log/sys_build.prop
+		printlog "- Make log to <$LITEGAPPS/$NAME_LOG>"
 	fi
-
-	if [ -f $VENDIR/build.prop ]; then
-		cp -pf $VENDIR/build.prop $LITEGAPPS/log/ven_build.prop
-	else
-		echo "! Vendor is not detected <$VENDIR/build.prop>" >> $LITEGAPPS/log/ven_build.prop
-	fi
+	for BLOG in $SYSTEM $PRODUCT $SYSTEM_EXT $VENDOR; do
+		local BASENAME=`basename $BLOG`
+		if [ -f $BLOG/build.prop ]; then
+			cp -pf $BLOG/build.prop $LITEGAPPS/log/${BASENAME}_build.prop
+		else
+			echo "! /${BASENAME} is not detected <$BLOG/build.prop>" >> $LITEGAPPS/log/${BASENAME}_build.prop
+		fi
+	done
 	
 	if [ -d $LITEGAPPS/log ]; then
 		listlog $tmp
@@ -74,15 +75,15 @@ make_log(){
 }
 report_bug(){
 	printlog " "
-	printlog "###########################"
-	printlog "# installation failed !!! #"
-	printlog "###########################"
+	printlog "___________________________"
+	printlog "| installation failed !!! |"
+	printlog "|_________________________|"
 	printlog " known error •> $1"
-	printlog "###########################"
+	printlog "___________________________"
 	printlog " Please report bug !"
 	printlog " send log : /sdcard/Android/litegapps/$NAME_LOG"
 	printlog " send in group telegram https://t.me/litegappsgroup"
-	printlog "############################"
+	printlog "____________________________"
 	printlog " "
 	make_log
 	del $MODPATH
@@ -99,11 +100,11 @@ MODULENAME=`getp name $MODPATH/module.prop`
 MODULEANDROID=`getp android $MODPATH/module.prop`
 MODULEDATE=`getp date $MODPATH/module.prop`
 MODULEAUTHOR=`getp author $MODPATH/module.prop`
-ANDROIDVERSION=$(getp ro.build.version.release $SYSDIR/build.prop)
-ANDROIDMODEL=$(getp ro.product.vendor.model $VENDIR/build.prop)
-ANDROIDDEVICE=$(getp ro.product.vendor.device $VENDIR/build.prop)
-ANDROIDROM=$(getp ro.build.display.id $SYSDIR/build.prop)
-API=`getp ro.build.version.sdk $SYSDIR/build.prop`
+ANDROIDVERSION=$(getp ro.build.version.release $SYSTEM/build.prop)
+ANDROIDMODEL=$(getp ro.product.vendor.model $VENDOR/build.prop)
+ANDROIDDEVICE=$(getp ro.product.vendor.device $VENDOR/build.prop)
+ANDROIDROM=$(getp ro.build.display.id $SYSTEM/build.prop)
+API=`getp ro.build.version.sdk $SYSTEM/build.prop`
 device_abpartition=$(getprop ro.build.ab_update)
 [ -n "$device_abpartition" ] || device_abpartition="A only"
 [ -n "$system" ] || system="systemless"
@@ -126,23 +127,23 @@ printlog "| Architecture    : $ARCH"
 printlog "| Sdk             : $SDKTARGET"
 printlog "| Seamless        : $device_abpartition"
 printlog "|___________________________________"
-if [ ! -f /sdcard/Android/litegapps/mode_developer ]; then
+if [ $DEV_MODE = OFF ]; then
 return 0
 fi
 printlog "|          Developer Mode"
 printlog "| Boot Mode    : $BOOTMODE"
 printlog "| Type Install : $TYPEINSTALL"
-printlog "| System       : $system"
+printlog "| System       : $SYSTEM"
 if [ -d /dev/block/mapper ]; then
 	dynamic3=true
 else
 	dynamic3=false
 fi
 printlog "| Dynamic Partition : $dynamic3"
-if [ -d $system ]; then
-	touch $system/litegapps.test
-	if [ -f $system/litegapps.test ]; then
-		del $system/litegapps.test
+if [ -d $SYSTEM ]; then
+	touch $SYSTEM/litegapps.test
+	if [ -f $SYSTEM/litegapps.test ]; then
+		del $SYSTEM/litegapps.test
 		printlog "| Read/Write system : true"
 	else
 		printlog "| Read/Write system : false"
@@ -181,7 +182,7 @@ chcon -hR u:object_r:system_file:s0 "$1" || sedlog "Failed chcon $1"
 
 terminal_tips(){
 	print " "
-	print "  Thanks for using litegapps 😉"
+	print "  Thanks for using litegapps 😁"
 	print " "
 	printlog "*Tips"
 	print "- Open Terminal"
