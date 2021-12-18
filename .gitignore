@@ -5,6 +5,8 @@
 *.tar
 *.br
 *.gz
+*.png
+*.jpg
 busybox
 bash
 xz
