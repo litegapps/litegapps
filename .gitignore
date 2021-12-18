@@ -1,0 +1,16 @@
+*.log
+*.jar
+*.zip
+*.apk
+*.tar
+*.br
+*.gz
+busybox
+bash
+xz
+brotli
+curl
+zipalign
+zip
+tar
+unzip
