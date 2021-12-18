@@ -1,6 +1,6 @@
 # LiteGapps
 # customize.sh 
-# latest update 04-10-2021
+# latest update 18-12-2021
 # By wahyu6070
 
 chmod 755 $MODPATH/bin/litegapps-functions
@@ -8,27 +8,27 @@ chmod 755 $MODPATH/bin/litegapps-functions
 . $MODPATH/bin/litegapps-functions
 #path
 if [ -f /system_root/system/build.prop ]; then
-	SYSDIR=/system_root/system 
+	SYSTEM=/system_root/system 
 elif [ -f /system/system/build.prop ]; then
-	SYSDIR=/system/system
+	SYSTEM=/system/system
 else
-	SYSDIR=/system
+	SYSTEM=/system
 fi
 # /product dir (android 10+)
-if [ ! -L $SYSDIR/product ]; then
-	PRODUCT=$SYSDIR/product
+if [ ! -L $SYSTEM/product ]; then
+	PRODUCT=$SYSTEM/product
 else
 	PRODUCT=/product
 fi
 
 # /system_ext dir (android 11+)
-if [ ! -L $SYSDIR/system_ext ]; then
-	SYSTEM_EXT=$SYSDIR/system_ext
+if [ ! -L $SYSTEM/system_ext ]; then
+	SYSTEM_EXT=$SYSTEM/system_ext
 else
 	SYSTEM_EXT=/system_ext
 fi
 
-VENDIR=/vendor
+VENDOR=/vendor
 
 tmp=$MODPATH/tmp
 LITEGAPPS=/data/media/0/Android/litegapps
@@ -37,11 +37,16 @@ loglive=$LITEGAPPS/log/litegapps_live.log
 files=$MODPATH/files
 
 #detected build.prop
-[ ! -f $SYSDIR/build.prop ] && report_bug "System build.prop not found"
+[ ! -f $SYSTEM/build.prop ] && report_bug "System build.prop not found"
+#developer mode
+if [ -f /sdcard/Android/litegapps/mode_developer ]; then
+	DEV_MODE=ON
+else
+	DEV_MODE=OFF
+fi
 
-
-SDKTARGET=$(getp ro.build.version.sdk $SYSDIR/build.prop)
-findarch=$(getp ro.product.cpu.abi $SYSDIR/build.prop | cut -d '-' -f -1)
+SDKTARGET=$(getp ro.build.version.sdk $SYSTEM/build.prop)
+findarch=$(getp ro.product.cpu.abi $SYSTEM/build.prop | cut -d '-' -f -1)
 case $findarch in
 arm64) ARCH=arm64 ;;
 armeabi) ARCH=arm ;;
@@ -89,8 +94,6 @@ elif [ -f $files/files.tar.zst ]; then
 	format_file=zstd
 elif [ -f $files/files.tar.zip ]; then
 	format_file=zip
-elif [ -f $files/files.tar.lz ]; then
-	format_file=lzip
 else
 	report_bug "File Gapps not found or format not support"
 	listlog $files
@@ -123,9 +126,6 @@ zstd)
 	;;
 zip)
 	unzip -o $files/files.tar.zip -d $files >/dev/null || report_bug "Failed extract <files.tar.zip>"
-;;
-lzip) 
-$bin/busybox lzip -d $files/files.tar.lz >/dev/null || report_bug "Failed extract <files.tar.lz>"
 ;;
 *)
 	report_bug "File format not support"
@@ -256,18 +256,18 @@ fi
 
 #Permissions
 find $MODPATH/system -type d 2>/dev/null | while read setperm_dir; do
-while_log "- Set chcon dir : $setperm_dir"
-ch_con $setperm_dir
-while_log "- Set chmod 755 dir : $setperm_dir"
-chmod 755 $setperm_dir
+	while_log "- Set chcon dir : $setperm_dir"
+	ch_con $setperm_dir
+	while_log "- Set chmod 755 dir : $setperm_dir"
+	chmod 755 $setperm_dir
 done >> $loglive
 
 printlog "- Set Permissions"
 find $MODPATH/system -type f 2>/dev/null | while read setperm_file; do
-while_log "- Set chcon file : $setperm_file"
-ch_con $setperm_file
-while_log "- Set chmod 644 file : $setperm_file"
-chmod 644 $setperm_file
+	while_log "- Set chcon file : $setperm_file"
+	ch_con $setperm_file
+	while_log "- Set chmod 644 file : $setperm_file"
+	chmod 644 $setperm_file
 done >> $loglive
 
 
@@ -332,7 +332,7 @@ fi
 partition_check
 
 ls -alZR $MODPATH/system > $LITEGAPPS/log/system_modpath
-for T in $SYSDIR $PRODUCT $SYSTEM_EXT; do
+for T in $SYSTEM $PRODUCT $SYSTEM_EXT; do
 	if [ -d $T ] && [ "$(ls -A $T)" ]; then
 		ls -alZR $T > $LITEGAPPS/log/$(basename ${T}).old
 	else
