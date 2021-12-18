@@ -3,12 +3,17 @@
 this is a tool for building litegapps
 
 # Cloning
-git clone https://github.com/wahyu6070/litegapps
+### https
+``git clone --depth 1 https://github.com/wahyu6070/litegapps``
+### ssh
+``git clone --depth 1 git@github.com:litegapps/litegapps.git``
+
+
 # Configure
 
-``version=2.1`` version litegapps
+``version=2.4`` version litegapps
  
-``version.code=21`` version code litegapps
+``version.code=24`` version code litegapps
  
 ``codename=Stable`` Codename status build``
  
@@ -29,7 +34,7 @@ git clone https://github.com/wahyu6070/litegapps
 ``zip.level=1 level compressions`` ``1 - 9``
  
 ``zip.signer=false`` zip signer ``true/false``
-# 1-9
+ 
 ``litegapps_apk_compress_level=5`` level compressions apk in zip/customize.sh ``1 - 9``
  
 #Litegapps prop
@@ -40,11 +45,11 @@ git clone https://github.com/wahyu6070/litegapps
 ``litegapps.type=lite`` list-type = lite,core,go,micro,pixel,nano,basic
  
 #Litegapps++ prop
-litegapps++.build=true
-#list-restore = reguler,lts,microg
-``litegapps++.restore=reguler`` 
-#list-type = reguler,lts,microg
-litegapps++.type=microg
+``litegapps++.build=true`` true/false
+ 
+``litegapps++.restore=reguler`` list-restore = ``reguler,lts,microg``
+ 
+``litegapps++.type=microg`` list-type = ``reguler,lts,microg``
  
 
 ### compression benchmark
