@@ -6,8 +6,8 @@
 #if you copy some code here please permission to the owner
 #
 
-propversion=v0.7
-propdate=14-11-2021
+propversion=v0.8
+propdate=11-12-2021
 
 # Colors
 GREEN='\e[01;32m'
@@ -101,17 +101,21 @@ org.lineageos.snap
 com.android.vending
 com.google.android.calculator
 com.google.android.calendar
+com.duckduckgo.mobile.android
+com.google.android.apps.cameralite
 "
 
 blacklist_term="
 com.termux
 com.termoneplus
+jackpal.androidterm
 "
 blacklist_system="
 com.google.android.inputmethod.latin
 com.google.android.gms
 "
 blacklist_apps="
+com.google.android.inputmethod.latin
 com.mixplorer
 com.google.android.apps.messaging
 com.google.android.play.games
@@ -125,6 +129,20 @@ com.supercell.clashofclans
 com.neptune.domino
 com.garena.game.codm
 com.chess
+com.pubg.newstate
+com.dts.freefireth
+com.dts.freefiremax
+com.miHoYo.GenshinImpact
+com.play.rosea
+com.tencent.iglite
+com.supercell.clashroyale
+com.kompasproductions.summertimesaga
+com.vng.pubgmobile
+com.epicgames.fortnite
+com.activision.callofduty.shooter
+com.ea.gp.apexlegendsmobilefps
+com.netease.chiji
+com.netease.lztgglobal
 "
 black_func_1(){
 	local BLACK_LIST_GAMING_1=$DATA/black_list_gaming1
@@ -159,16 +177,7 @@ black_func_2(){
 #Litegapps
 #▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
 #▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
-
-#mount
-clear
-print "- Mounting Root"
-if mount -o rw,remount / ; then
-echo
-else
-abort "- Abort mounting root"
-sleep 3s
-fi
+export PATH=/sbin:/sbin/su:/su/bin:/su/xbin:/system/bin:/system/xbin:/data/adb/litegapps_controller/xbin:/data/data/com.termux/files/usr/bin
 
 getp5(){ grep "^$1" "$2" | head -n1 | cut -d = -f 2; }
 test -f /system_root/system/build.prop && SYSDIR=/system_root/system || test -f /system/system/build.prop && SYSDIR=/system/system || SYSDIR=/system
@@ -753,12 +762,11 @@ addon(){
 	print "1. Fake Battery Set"
 	print "2. Led Calerful"
 	print "3. Disable Led"
-	print "4. Set brightness"
-	print "5. Boot Unpacker"
-	print "6. Set all permissions apk installed"
-	print "7. Enable All Apps"
-	print "8. Clean Cache Game"
-	print "9. Exit"
+	print "4. Boot Unpacker"
+	print "5. Set all permissions apk installed"
+	print "6. Enable All Apps"
+	print "7. Clean Cache Game"
+	print "8. Exit"
 	print " "
 	echo -n "Select Menu : "
 	read addons
@@ -779,24 +787,9 @@ addon(){
 		print "- Done"
 		sleep 2s
 	;;
-	4)
-		bigmax=$(cat /sys/class/leds/wled/max_brightness)
-		print
-		echo -n "- Set brightness 0 - $bigmax : "
-		read bigset
-		if [ $bigset -eq $bigset ]; then
-			echo "$bigset" > /sys/class/leds/wled/brightness
-			print "- Set $brightness"
-			sleep 2s
-		else
-			print
-			print "- $bigset Is Not number"
-			sleep 2s
-		fi
+	4) addon_boot_unpacker
 	;;
-	5) addon_boot_unpacker
-	;;
-	6)
+	5)
 		print_title "Set All Permissions APK Installed"
 		for b in $(pm list packages -3); do
 			package=`getp1 $b`
@@ -821,12 +814,12 @@ addon(){
 		done
 		end_menu
 	;;
-	7) addon_enable_all_apps
+	6) addon_enable_all_apps
 	;;
-	8)
+	7)
 	addon_ccg
 	;;
-	9) break ;;
+	8) break ;;
 	*)
 		error "Invalid selection"; sleep 2s ;;
 	esac
@@ -1057,7 +1050,7 @@ while true; do
 clear
 test -f $DATA/battery_saver && batterystatus="${VIOLET}3.Disable Battery... ${NC}${GREEN}" || batterystatus="3.Battery Saver      "
 print " "
-print "                   ${CYAN}Lite${BLUE}G${RED}a${YELLOW}p${BLUE}p${GREEN}s ${YELLOW}Controller${GREEN}"
+print "                   ${YELLOW}LiteGapps ${WHITE}Controller${GREEN}"
 print " "
 print " "
 print "1.Boost              ${YELLOW}5.Litegapps Menu${GREEN}      9.Tweaks"
