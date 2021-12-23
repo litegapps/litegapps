@@ -80,6 +80,7 @@ make_flashable_litegapps(){
 		SED "$(getp litegapps_apk_compress $MODULE_PROP)" "${apk_compessed_type}" $MODULE_PROP
 		SED "$(getp litegapps_apk_compress_level $MODULE_PROP)" "$litegapps_apk_compress_level" $MODULE_PROP
 		SED "$(getp name $MODULE_PROP)" "$NAME $W_ARCH $(get_android_version $W_SDK) $PROP_STATUS" $MODULE_PROP
+		SED "$(getp id $MODULE_PROP)" "litegapps" $MODULE_PROP
 		SED "$(getp author $MODULE_PROP)" "$PROP_BUILDER" $MODULE_PROP
 		SED "$(getp version $MODULE_PROP)" "v${PROP_VERSION}" $MODULE_PROP
 		SED "$(getp versionCode $MODULE_PROP)" "$PROP_VERSIONCODE" $MODULE_PROP

@@ -87,118 +87,46 @@ for D_ARCH in $LIST_ARCH; do
 done
 
 
-LIST_CORE="
-AndroidAuto
-AndroidMigrate
-CarrierServices
-CarrierSetup
-Common
-ConfigUpdater
-GoogleBackupTransport
-GoogleContactsSyncAdapter
-GoogleExtShared
-GoogleFeedback
-GoogleOneTimeInitializer
-GooglePartnerSetup
-GoogleRestore
-SetupWizard
-"
-
 NUM_6070=0
 for D_ARCH in $LIST_ARCH; do
 	for D_SDK in $LIST_SDK; do
-		for L_MODULES in $LIST_CORE; do
-			if [ -f $MODULES/$D_ARCH/$D_SDK/$L_MODULES.zip ]; then
-				test ! -d $MODULES/$D_ARCH/$D_SDK && cdir $MODULES/$D_ARCH/$D_SDK
-				test -f $MODULES/$D_ARCH/$D_SDK/$L_MODULES.zip && del $MODULES/$D_ARCH/$D_SDK/$L_MODULES.zip
-				NUM_6070=$((NUM_6070 +1 ))
-				printlog "${NUM_6070}. Available •> <$MODULES_FILES/$D_ARCH/$D_SDK/$L_MODULES.zip>"
-				printlog "     Moving : $D_ARCH/$D_SDK/$L_MODULES.zip"
-				cp -pf $MODULES_FILES/$D_ARCH/$D_SDK/$L_MODULES.zip $MODULES/$D_ARCH/$D_SDK
-				printlog " "
-			else
-				NUM_6070=$((NUM_6070 +1 ))
-				printlog "${NUM_6070}. Downloading : $D_ARCH/$D_SDK/$L_MODULES.zip"
-				test ! -d $MODULES/$D_ARCH/$D_SDK && cdir $MODULES/$D_ARCH/$D_SDK
-				test ! -d $MODULES_FILES/$D_ARCH/$D_SDK && cdir $MODULES_FILES/$D_ARCH/$D_SDK
-				test -f $MODULES_FILES/$D_ARCH/$D_SDK/$L_MODULES.zip && del $MODULES_FILES/$D_ARCH/$D_SDK/$L_MODULES.zip
-       		 #download
-       		 curl -L -o $MODULES_FILES/$D_ARCH/$D_SDK/$L_MODULES.zip https://gitlab.com/litegapps/litegapps-server/-/raw/main/litegapps/$D_ARCH/$D_SDK/$D_SDK.zip >/dev/null 2>&1
-       		 if [  $? -eq 0 ]; then
-       		 	printlog "     Downloading status : Successful"
-       		 	printlog "     File size : $(du -sh $MODULES_FILES/$D_ARCH/$D_SDK/$L_MODULES.zip | cut -f1)"
-       	     else
-       	     	printlog "     Downloading status : Failed"
-       	     	printlog "     ! PLEASE CEK YOUR INTERNET CONNECTION AND RESTORE AGAIN"
-       	     	del $MODULES_FILES/$D_ARCH/$D_SDK/$L_MODULES.zip
-       	     	exit 1
-       		 fi
-       		 printlog "     Moving : $D_ARCH/$D_SDK/$L_MODULES.zip"
-       		 cp -pf $MODULES_FILES/$D_ARCH/$D_SDK/$L_MODULES.zip $MODULES/$D_ARCH/$D_SDK
-			 fi
-		
+		for L_RESTORE in $(ls -1 $BASED/$D_ARCH/$D_SDK); do
+			if [ -f $BASED/$D_ARCH/$D_SDK/$L_RESTORE ]; then
+			F_RESTORE=$BASED/$D_ARCH/$D_SDK/$L_RESTORE
+				for L_MODULES in $(cat $F_RESTORE); do
+					if [ -f $MODULES/$D_ARCH/$D_SDK/$L_RESTORE/$L_MODULES.zip ]; then
+						
+						test ! -d $MODULES/$D_ARCH/$D_SDK/$L_RESTORE && cdir $MODULES/$D_ARCH/$D_SDK/$L_RESTORE
+						test -f $MODULES/$D_ARCH/$D_SDK/$L_RESTORE/$L_MODULES.zip && del $MODULES/$D_ARCH/$D_SDK/$L_RESTORE/$L_MODULES.zip
+						NUM_6070=$((NUM_6070 +1 ))
+						printlog "${NUM_6070}. Available •> <$MODULES_FILES/$D_ARCH/$D_SDK/$L_RESTORE/$L_MODULES.zip>"
+						printlog "     Moving : $D_ARCH/$D_SDK/$L_RESTORE/$L_MODULES.zip"
+						cp -pf $MODULES_FILES/$D_ARCH/$D_SDK/$L_RESTORE/$L_MODULES.zip $MODULES/$D_ARCH/$D_SDK/$L_RESTORE
+						printlog " "
+					else
+						NUM_6070=$((NUM_6070 +1 ))
+						printlog "${NUM_6070}. Downloading : $D_ARCH/$D_SDK/$L_RESTORE/$L_MODULES.zip"
+						test ! -d $MODULES/$D_ARCH/$D_SDK/$L_RESTORE && cdir $D_ARCH/$D_SDK/$L_RESTORE
+						test ! -d $MODULES_FILES/$D_ARCH/$D_SDK/$L_RESTORE && cdir $MODULES_FILES/$D_ARCH/$D_SDK/$L_RESTORE
+						test -f $MODULES_FILES/$D_ARCH/$D_SDK/$L_RESTORE/$L_MODULES.zip && del $MODULES_FILES/$D_ARCH/$D_SDK/$L_RESTORE/$L_MODULES.zip
+       		 		#download
+       		 		SERVER=https://sourceforge.net/projects/litegapps/files/addon/
+       		 		curl -L -o $MODULES_FILES/$D_ARCH/$D_SDK/$L_RESTORE/$L_MODULES.zip $SERVER/$D_ARCH/$D_SDK/$L_RESTORE/$D_SDK.zip >/dev/null 2>&1
+       		 		if [  $? -eq 0 ]; then
+       		 			printlog "     Downloading status : Successful"
+       		 			printlog "     File size : $(du -sh $MODULES_FILES/$D_ARCH/$D_SDK/$L_RESTORE/$L_MODULES.zip | cut -f1)"
+       	     		else
+       	     			printlog "     Downloading status : Failed"
+       	     			printlog "     ! PLEASE CEK YOUR INTERNET CONNECTION AND RESTORE AGAIN"
+       	     			del $MODULES_FILES/$D_ARCH/$D_SDK/$L_RESTORE/$L_MODULES.zip
+       	     			exit 1
+       		 		fi
+       		 		printlog "     Moving : $D_ARCH/$D_SDK/$L_RESTORE/$L_MODULES.zip"
+       		 		cp -pf $MODULES_FILES/$D_ARCH/$D_SDK/$L_RESTORE/$L_MODULES.zip $MODULES/$D_ARCH/$D_SDK/$L_RESTORE
+			 		fi
+				done
+			fi
 		done
 	done
 done
 
-
-LIST_GAPPS="
-Chrome
-Files
-Gmail
-GoogleAssistant
-GoogleCalculator
-GoogleCalendar
-GoogleContacts
-GoogleDialer
-LatinIMEGoogle
-LocationHistory
-MarkupGoogle
-Messaging
-PixelLauncher
-PlayGames
-SoundPicker
-Talkback
-Turbo
-Velvet
-WallpaperPicker
-Wellbeing
-Youtube
-"
-
-NUM_6070=0
-for D_ARCH in $LIST_ARCH; do
-	for D_SDK in $LIST_SDK; do
-		for L_MODULES in $LIST_GAPPS; do
-			if [ -f $MODULES/$D_ARCH/$D_SDK/$L_MODULES.zip ]; then
-				test ! -d $MODULES/$D_ARCH/$D_SDK && cdir $MODULES/$D_ARCH/$D_SDK
-				test -f $MODULES/$D_ARCH/$D_SDK/$L_MODULES.zip && del $MODULES/$D_ARCH/$D_SDK/$L_MODULES.zip
-				NUM_6070=$((NUM_6070 +1 ))
-				printlog "${NUM_6070}. Available •> <$MODULES_FILES/$D_ARCH/$D_SDK/$L_MODULES.zip>"
-				printlog "     Moving : $D_ARCH/$D_SDK/$L_MODULES.zip"
-				cp -pf $MODULES_FILES/$D_ARCH/$D_SDK/$L_MODULES.zip $MODULES/$D_ARCH/$D_SDK
-				printlog " "
-			else
-				NUM_6070=$((NUM_6070 +1 ))
-				printlog "${NUM_6070}. Downloading : $D_ARCH/$D_SDK/$L_MODULES.zip"
-				test ! -d $MODULES/$D_ARCH/$D_SDK && cdir $MODULES/$D_ARCH/$D_SDK
-				test ! -d $MODULES_FILES/$D_ARCH/$D_SDK && cdir $MODULES_FILES/$D_ARCH/$D_SDK
-				test -f $MODULES_FILES/$D_ARCH/$D_SDK/$L_MODULES.zip && del $MODULES_FILES/$D_ARCH/$D_SDK/$L_MODULES.zip
-       		 #download
-       		 curl -L -o $MODULES_FILES/$D_ARCH/$D_SDK/$L_MODULES.zip https://sourceforge.net/projects/litegapps/files/addon/$D_ARCH/$D_SDK/gapps/$L_MODULES.zip/download >/dev/null 2>&1
-       		 if [  $? -eq 0 ]; then
-       		 	printlog "     Downloading status : Successful"
-       		 	printlog "     File size : $(du -sh $MODULES_FILES/$D_ARCH/$D_SDK/$L_MODULES.zip | cut -f1)"
-       	     else
-       	     	printlog "     Downloading status : Failed"
-       	     	printlog "     ! PLEASE CEK YOUR INTERNET CONNECTION AND RESTORE AGAIN"
-       	     	del $MODULES_FILES/$D_ARCH/$D_SDK/$L_MODULES.zip
-       	     	exit 1
-       		 fi
-       		 printlog "     Moving : $D_ARCH/$D_SDK/$L_MODULES.zip"
-       		 cp -pf $MODULES_FILES/$D_ARCH/$D_SDK/$L_MODULES.zip $MODULES/$D_ARCH/$D_SDK
-			 fi
-		
-		done
-	done
-done

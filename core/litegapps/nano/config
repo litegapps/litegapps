@@ -5,4 +5,4 @@ restore.arch=arm64
 name=LiteGapps Nano
 dir_name=nano
 modules=true
-desc=litegapps is a google apps package that supports almost all arch and android versions while maintaining lightness, saving battery and more.
+desc=LiteGapps Nano is a google apps package that supports almost all arch and android versions while maintaining lightness, saving battery and more.

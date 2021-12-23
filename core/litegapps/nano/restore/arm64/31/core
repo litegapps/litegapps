@@ -1,0 +1,12 @@
+CarrierServices
+CarrierSetup
+Common
+ConfigUpdater
+GoogleBackupTransport
+GoogleCalendarSyncAdapter
+GoogleContactsSyncAdapter
+GoogleExtShared
+GoogleOneTimeInitializer
+GooglePartnerSetup
+GoogleRestore
+SetupWizard
