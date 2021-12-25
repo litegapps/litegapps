@@ -53,7 +53,7 @@ this is a tool for building litegapps
  
 
 ### compression benchmark
-![Benchmark](https://github.com/wahyu6070/Cloud/raw/main/project/litegapps/images/compres_lvl.jpg")
+![Benchmark](https://github.com/wahyu6070/Cloud/raw/main/project/litegapps/images/compres_lvl.jpg)
 # building
 ``sh make restore`` Restoring files bin,gapps files
  
