@@ -1,5 +1,6 @@
 # Litegapps Functions        
-# Copyright (C) 2020 - 2021 The Litegapps Project By wahyu6070
+# Copyright (C) 2020 - 2021 The Litegapps Project
+# By wahyu6070
 #
 print(){ ui_print "$1"; }
 del (){ rm -rf "$@"; }

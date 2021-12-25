@@ -6,23 +6,15 @@
 chmod 755 $MODPATH/bin/litegapps-functions
 #litegapps functions
 . $MODPATH/bin/litegapps-functions
-#path
-if [ -f /system_root/system/build.prop ]; then
-	SYSDIR=/system_root/system 
-elif [ -f /system/system/build.prop ]; then
-	SYSDIR=/system/system
-else
-	SYSDIR=/system
-fi
-VENDIR=/vendor
+
 tmp=$MODPATH/tmp
 LITEGAPPS=/data/media/0/Android/litegapps
 log=$LITEGAPPS/log/litegapps_uninstall.log
 loglive=$LITEGAPPS/log/litegapps_live_uninstall.log
 files=$MODPATH/files
-SDKTARGET=$(getp ro.build.version.sdk $SYSDIR/build.prop)
+SDKTARGET=$(getp ro.build.version.sdk $SYSTEM/build.prop)
 
-findarch=$(getp ro.product.cpu.abi $SYSDIR/build.prop | cut -d '-' -f -1)
+findarch=$(getp ro.product.cpu.abi $SYSTEM/build.prop | cut -d '-' -f -1)
 case $findarch in
 arm64) ARCH=arm64 ;;
 armeabi) ARCH=arm ;;
@@ -39,10 +31,10 @@ done
 litegapps_info
 print " "
 #detected build.prop
-[ -f $SYSDIR/build.prop ] || report_bug "System build.prop not found"
+[ -f $SYSTEM/build.prop ] || report_bug "System build.prop not found"
 
 #mode installation
-[ -n $TYPEINSTALL ] || TYPEINSTALL=magisk_module
+[ -n "$TYPEINSTALL" ] || TYPEINSTALL=magisk_module
 case $TYPEINSTALL in
 kopi)
 	sedlog "- Type install KOPI module"
