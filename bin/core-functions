@@ -203,6 +203,7 @@ make_tar(){
 	printlog "- Using executable <$TAR>"
 	find $tmp -type d | while read folname; do
 	local DIR_INPUT=`basename $folname`
+	local G7
 	for G7 in system product system_ext vendor; do
 		if [ $DIR_INPUT = $G7 ]; then
 			for i1 in $(ls -1 $folname); do
