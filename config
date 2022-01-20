@@ -9,7 +9,7 @@ date.time=202007122239
 #litegapps_compress or litegapps_default
 apk.compress.type=litegapps_default
 #xz or brotli
-compression=xz
+compression=xz 
 #1-9
 compression.level=9
 #1-9
