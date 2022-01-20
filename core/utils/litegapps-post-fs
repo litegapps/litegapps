@@ -6,7 +6,7 @@
 sleep 25s
 litegapps_post_fs_version=1.0
 litegapps_post_fs_code=1
-log=/sdcard/Android/LiteGapps/LiteGapps_post-fs.log
+log=/sdcard/Android/litegapps/LiteGapps_post-fs.log
 rm -f $log
 mkdir -p $(dirname $log)
 
@@ -14,7 +14,6 @@ echo " " >> $log
 echo "Litegapps Post Fs" >> $log
 echo "Version=$litegapps_post_fs_version" >> $log
 echo "VersionCode=$litegapps_post_fs_code=1" >> $log
-echo "By wahyu6070" >> $log
 echo "Started -> $(date '+%d/%m/%Y %H:%M:%S')" >> $log
 echo " " >> $log
 
