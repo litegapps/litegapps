@@ -1,5 +1,5 @@
-version=2.4
-version.code=24
+version=2.5
+version.code=25
 codename=stable
 name.builder=soekarno
 #unofficial or official
@@ -7,7 +7,7 @@ build.status=unofficial
 set.time.stamp=true
 date.time=202007122239
 #litegapps_compress or litegapps_default
-apk.compress.type=litegapps_compress
+apk.compress.type=litegapps_default
 #xz or brotli
 compression=xz
 #1-9
@@ -15,7 +15,7 @@ compression.level=9
 #1-9
 zip.level=9
 # true/false
-zip.signer=true
+zip.signer=false
 # 1-9
 litegapps_apk_compress_level=5
 
@@ -27,7 +27,7 @@ litegapps.restore=lite
 litegapps.type=lite
 
 #Litegapps++ prop
-litegapps++.build=trues
+litegapps++.build=false
 #list-restore = reguler,lts,microg
 litegapps++.restore=lite
 #list-type = reguler,lts,microg
