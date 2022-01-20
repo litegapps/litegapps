@@ -1,6 +1,6 @@
 # LiteGapps
 # customize.sh 
-# latest update 18-12-2021
+# latest update 19-01-2021
 # By wahyu6070
 
 chmod 755 $MODPATH/bin/litegapps-functions
@@ -38,6 +38,7 @@ files=$MODPATH/files
 
 #detected build.prop
 [ ! -f $SYSTEM/build.prop ] && report_bug "System build.prop not found"
+
 #developer mode
 if [ -f /sdcard/Android/litegapps/mode_developer ]; then
 	DEV_MODE=ON
@@ -55,13 +56,6 @@ x86_64) ARCH=x86_64 ;;
 *) report_bug " <$findarch> Your Architecture Not Support" ;;
 esac
 
-for CCACHE in $LITEGAPPS/log $tmp; do
-	test -d $CCACHE && del $CCACHE && cdir $CCACHE || cdir $CCACHE
-done
-
-#functions litegapps info module.prop and build.prop
-litegapps_info
-print " "
 #mode installation
 [ $TYPEINSTALL ] || TYPEINSTALL=magisk_module
 case $TYPEINSTALL in
@@ -75,6 +69,29 @@ magisk)
 	sedlog "- Type install MAGISK module"
 ;;
 esac
+
+# Test /data rw partition
+case $TYPEINSTALL in
+magisk | magisk_module)
+	DIR_TEST=/data/adb/test8989
+	cdir $DIR_TEST
+	touch $DIR_TEST/io
+	if [ -f $DIR_TEST/io ]; then
+		del $DIR_TEST
+	else
+		report_bug "/data partition is encrypt or read only"
+	fi
+;;
+esac
+
+for CCACHE in $LITEGAPPS/log $tmp; do
+	test -d $CCACHE && del $CCACHE && cdir $CCACHE || cdir $CCACHE
+done
+
+#functions litegapps info module.prop and build.prop
+litegapps_info
+print " "
+
 
 #bin
 bin=$MODPATH/bin/$ARCH
@@ -153,62 +170,59 @@ fi
 
 #cheking sdk files
 [ ! -d $tmp/$ARCH/$SDKTARGET ] && report_bug "Your Android Version Not Support"
-
 #using litegapps compress apk or google default apk
 
 if [ "$(getp litegapps_apk_compress $MODPATH/module.prop)" = litegapps_compress ]; then
 	sedlog "Using litegapps system compress apk"
 	#extrack tar files
 	print "- Extracting tar file"
-	find $tmp/$ARCH/$SDKTARGET -name *.tar -type f 2>/dev/null | while read tarfile; do
-	tarout=`echo "$tarfile" | cut -d '.' -f -1`
-	tarin=$tarfile
-	tarout=`dirname "$(readlink -f $tarin)"`
-	while_log "- Extracting tar : $tarin"
-	$bin/tar -xf $tarin -C $tarout
-	del $tarin
-	done >> $loglive
-
+	for tarfile in $(find $tmp/$ARCH/$SDKTARGET -name *.tar -type f); do
+		tarout=`echo "$tarfile" | cut -d '.' -f -1`
+		tarin=$tarfile
+		tarout=`dirname "$(readlink -f $tarin)"`
+		sedlog "- Extracting tar : $tarin"
+		$bin/tar -xf $tarin -C $tarout
+		del $tarin
+	done
+	
 	#Building Gapps
-	datanull=/data/adb/abcdfghijk
-	cdir $datanull
-	#$datanull is fix creating ..apk
 	print "- Building Gapps"
-	find $tmp/$ARCH/$SDKTARGET -name *app -type d 2>/dev/null | while read DIRAPP; do
+	for DIRAPP in $(find $tmp/$ARCH/$SDKTARGET -name *app -type d); do
 		for WAHYU1 in $(ls -1 $DIRAPP); do
 			if [ -d $DIRAPP/$WAHYU1/$WAHYU1 ]; then
 				apk_zip_level="$(getp litegapps_apk_compress_level $MODPATH/module.prop)"
 				apkdir="$DIRAPP/$WAHYU1/$WAHYU1"
-				while_log "- Creating Archive Apk : $apkdir"
+				sedlog "- Creating Archive Apk : $apkdir"
 				cd $apkdir
-				$bin/zip -r${apk_zip_level} $apkdir.apk *
+				$bin/zip -r${apk_zip_level} ${apkdir}.apk * > /dev/null 2>&1
+				[ $? -eq 0 ] || report_bug "failed make apk <${apkdir}.apk>"
 				del $apkdir
-				cd $datanull
+			else
+				sedlog "! Directory apk not found <$DIRAPP/$WAHYU1/$WAHYU1>"
 			fi
 		done
-	done >/dev/null
-	del $datanull
-
-
+	done
+	
 	#Zipalign
 	printlog "- Zipalign"
-	find $tmp/$ARCH/$SDKTARGET -name *app -type d 2>/dev/null | while read DIRAPP2; do
+	for DIRAPP2 in $(find $tmp/$ARCH/$SDKTARGET -name *app -type d); do
 		for WAHYU2 in $(ls -1 $DIRAPP2); do
 			if [ -f $DIRAPP2/$WAHYU2/${WAHYU2}.apk ]; then
 				APK_FILE="$DIRAPP2/$WAHYU2/${WAHYU2}.apk"
-				while_log "- Zipalign <$APK_FILE>"
-				$bin/zipalign -f -p -v 4 $APK_FILE $DIRAPP2/$WAHYU2/new.apk
+				sedlog "- Zipalign <$APK_FILE>"
+				$bin/zipalign -f -p -v 4 $APK_FILE $DIRAPP2/$WAHYU2/new.apk > /dev/null 2>&1
+				[ $? -eq 0 ] || report_bug "failed zipalign <$APK_FILE>"
 				del $APK_FILE
 				mv $DIRAPP2/$WAHYU2/new.apk $APK_FILE
 			else
-				while_log "- Failed Zipalign <$DIRAPP2/$WAHYU2/${WAHYU2}.apk>"
+				sedlog "! Failed Zipalign <$DIRAPP2/$WAHYU2/${WAHYU2}.apk> dir not found"
 			fi
 		done
-	done >/dev/null
+	done
+	
 else
 	sedlog "Using google default system compress apk"
 fi
-
 
 #copying file
 printlog "- Copying Gapps"
@@ -241,7 +255,7 @@ if [ -d $MODULES ] && ! rmdir $MODULES 2>/dev/null; then
 		if [ -f $LIST_MODULES ]; then
 			del $MODULE_TMP
 			cdir $MODULE_TMP
-			unzip -o $LIST_MODULES -d $MODULE_TMP >/dev/null
+			unzip -o $LIST_MODULES -d $MODULE_TMP >/dev/null 2>&1 
 			if [ -f $MODULE_TMP/module-install.sh ]; then
 				chmod 755 $MODULE_TMP/module-install.sh
 				. $MODULE_TMP/module-install.sh
@@ -284,8 +298,15 @@ if [ $TYPEINSTALL != kopi ] && [ -d /data/adb/service.d ] && [ ! -f $LITEGAPPS/d
 fi
 
 printlog "- Cleaning cache"
-for W in $tmp $files $MODPATH/modules; do
-	test -d $W && del $W
+LIST_CACHE="
+$tmp
+$files
+$MODPATH/modules
+$MODPATH/bin
+"
+for W in $tmp $files ; do
+	sedlog "- removing cache $W"
+	del $W
 done
 
 
