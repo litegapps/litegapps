@@ -1,7 +1,7 @@
 #!/sbin/sh
-# Kopi Installer V1.7
+# Kopi Installer V1.8
 # Since 08-05-2020
-# Latest Update 10-11-2021
+# Latest Update 21-01-2022
 # by wahyu6070 (dont change)
 
 OUTFD=/proc/self/fd/$2;
@@ -432,16 +432,22 @@ touch /data/kopi_test/kopi_test_file
 if [ $? -eq 0 ]; then
 	del /data/kopi_test/kopi_test_file
 	del /data/kopi_test
-	kopi=/data/tmp/kopi
-	MODPATH=$kopi
-	TMPDIR=/data/tmp
+	export TMPDIR=/data/tmp
 else
-	kopi=/dev/tmp/kopi
-	MODPATH=$kopi
-	TMPDIR=/dev/tmp
+	export TMPDIR=/dev/tmp
 fi
 
-cdir $kopi || abort "! Failed create $kopi dir"
+#variable
+export kopi=$TMPDIR/kopi
+export MODPATH=$kopi
+
+if [ -d $kopi ]; then
+	del $kopi
+	cdir $kopi || abort "- failed make dir $kopi"
+else
+	cdir $kopi || abort "- failed make dir $kopi"
+fi
+
 cd $kopi
 print "- Extracting ZIP File"
 unzip -o "$ZIPFILE" >&2
@@ -462,17 +468,17 @@ if [ "$ABI2" = "x86" ]; then ARCH=x86; ARCH32=x86; fi;
 if [ "$ABILONG" = "arm64-v8a" ]; then ARCH=arm64; ARCH32=arm; IS64BIT=true; fi;
 if [ "$ABILONG" = "x86_64" ]; then ARCH=x64; ARCH32=x86; IS64BIT=true; fi;
 
-MODULE=./module.prop
-ID=`getp id $MODULE`
-NAME=`getp name $MODULE`
-VERSION=`getp version $MODULE`
-VERSIONCODE=`getp versioncode $MODULE`
-DEVICE=`getp device $MODULE`
-DATE=`getp date $MODULE`
-AUTHOR=`getp author $MODULE`
-KOPIMOD=/data/kopi/modules/"$ID"
-MAGISKMOD=/data/adb/modules/$ID
-MAGISKUP="/data/adb/modules_update/$ID"
+export MODULE=./module.prop
+export ID=`getp id $MODULE`
+export NAME=`getp name $MODULE`
+export VERSION=`getp version $MODULE`
+export VERSIONCODE=`getp versioncode $MODULE`
+export DEVICE=`getp device $MODULE`
+export DATE=`getp date $MODULE`
+export AUTHOR=`getp author $MODULE`
+export KOPIMOD=/data/kopi/modules/"$ID"
+export MAGISKMOD=/data/adb/modules/$ID
+export MAGISKUP="/data/adb/modules_update/$ID"
 set_progress 0.5;
 
 #req
@@ -505,6 +511,12 @@ if [ -f $KOPIMOD/uninstall.sh ] && [ $(cat $KOPIMOD/typeinstall) = kopi ] && [ $
 	uninstallmode=true
 else
 # Installing
+	if [ -d $KOPIMOD ]; then
+		del $KOPIMOD
+		cdir $KOPIMOD
+	else
+		cdir $KOPIMOD
+	fi
 	cdir $KOPIMOD
 	[ -f uninstall.sh ] && cp -pf uninstall.sh $KOPIMOD && chmod 775 $KOPIMOD/uninstall.sh;
 	echo "$TYPEINSTALL" > $KOPIMOD/typeinstall
