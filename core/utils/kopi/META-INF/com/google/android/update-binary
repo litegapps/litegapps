@@ -438,6 +438,7 @@ else
 fi
 
 #variable
+TMPDIR6070=$TMPDIR
 export kopi=$TMPDIR/kopi
 export MODPATH=$kopi
 
@@ -636,7 +637,7 @@ if ! $BOOTMODE; then
 fi
 set_progress 1.1;
 cd /;
-del $TMPDIR
+del $TMPDIR6070
 print "- Done";
 set_progress 0.3;
 exit 0;
