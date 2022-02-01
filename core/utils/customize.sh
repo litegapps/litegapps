@@ -269,6 +269,7 @@ if [ -d $MODULES ] && ! rmdir $MODULES 2>/dev/null; then
 				. $MODULE_TMP/module-install.sh
 			else
 				printlog "! Failed installing module <$(basename $LIST_MODULES)> skipping"
+				continue
 			fi
 			del $MODULE_TMP
 		fi
