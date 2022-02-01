@@ -258,7 +258,6 @@ MODULES=$MODPATH/modules
 MODULE_TMP=$MODPATH/module_tmp
 if [ -d $MODULES ] && ! rmdir $MODULES 2>/dev/null; then
 	printlog "- Modules detected"
-	test ! -d $MODULE_TMP && cdir $MODULE_TMP
 	for LIST_MODULES in $(find $MODULES -type f); do
 	sedlog "- Extracting <$LIST_MODULES>"
 		if [ -f $LIST_MODULES ]; then
