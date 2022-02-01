@@ -48,7 +48,7 @@ abort(){
 	
 make_log(){
 	#creating log
-	NAME_LOG=`echo "[LOG]litegapps_$(getp version $MODPATH/module.prop).tar.gz"`
+	NAME_LOG=`echo "[LOG]litegapps_$(getp version $MODPATH/module.prop).zip"`
 	if [ $DEV_MODE = OFF ]; then
 		printlog "- Make log"
 	else
@@ -69,7 +69,7 @@ make_log(){
 		listlog $LITEGAPPS
 		cd $LITEGAPPS/log
 		test -f $LITEGAPPS/$NAME_LOG && del $LITEGAPPS/$NAME_LOG
-		$bin/tar -cz -f $LITEGAPPS/$NAME_LOG *
+		$bin/zip -r9 $LITEGAPPS/$NAME_LOG * >/dev/null 2>&1
 		cd /
 		del $LITEGAPPS/log
 	fi
@@ -81,16 +81,41 @@ report_bug(){
 	printlog "|_________________________|"
 	printlog " known error •> $1"
 	printlog "___________________________"
+	make_log
 	printlog " Please report bug !"
 	printlog " send log : /sdcard/Android/litegapps/$NAME_LOG"
 	printlog " send in group telegram https://t.me/litegappsgroup"
 	printlog "____________________________"
 	printlog " "
-	make_log
 	del $MODPATH
+	[ $TYPEINSTALL = "kopi" ] && del $KOPIMOD
 	exit 1
 }
 
+GET_PROP(){
+	local LIST_PROP="
+	$SYSTEM/build.prop
+	$VENDOR/build.prop
+	$PRODUCT/build.prop
+	$SYSTEM_EXT/build.prop
+	"
+	local HJ VARPROP
+	for HJ in $LIST_PROP; do
+		if [ -f $HJ ] && grep -q "$1" "$HJ" 2>/dev/null; then
+			VARPROP=`grep "^$1" "$HJ" | head -n1 | cut -d = -f 2`
+			break
+		fi
+	done
+	
+	if [ "$VARPROP" ]; then
+		echo "$VARPROP"
+	elif [ "$(getprop $1)" ]; then
+		getprop $1
+	else
+		return 1
+	fi
+	
+	}
 litegapps_info(){
 	device_abpartition=$(getprop ro.build.ab_update)
 	[ -n "$device_abpartition" ] || device_abpartition="A only"
@@ -101,11 +126,6 @@ MODULENAME=`getp name $MODPATH/module.prop`
 MODULEANDROID=`getp android $MODPATH/module.prop`
 MODULEDATE=`getp date $MODPATH/module.prop`
 MODULEAUTHOR=`getp author $MODPATH/module.prop`
-ANDROIDVERSION=$(getp ro.build.version.release $SYSTEM/build.prop)
-ANDROIDMODEL=$(getp ro.product.vendor.model $VENDOR/build.prop)
-ANDROIDDEVICE=$(getp ro.product.vendor.device $VENDOR/build.prop)
-ANDROIDROM=$(getp ro.build.display.id $SYSTEM/build.prop)
-API=`getp ro.build.version.sdk $SYSTEM/build.prop`
 device_abpartition=$(getprop ro.build.ab_update)
 [ -n "$device_abpartition" ] || device_abpartition="A only"
 [ -n "$system" ] || system="systemless"
@@ -116,24 +136,49 @@ printlog "| Name            : $MODULENAME"
 printlog "| Version         : $MODULEVERSION"
 printlog "| Build date      : $MODULEDATE"
 printlog "| By              : $MODULEAUTHOR"
+case $TYPEINSTALL in
+magisk | magisk_module)
+printlog "| Mode            : systemless"
+;;
+*)
+printlog "| Mode            : non systemless"
+;;
+esac
 printlog "|___________________________________"
 printlog "|"
 printlog "| Telegram        : https://t.me/litegapps"
 printlog "|___________________________________"
 printlog "|              Device Info"
-printlog "| Name Rom        : $ANDROIDROM"
-printlog "| Device          : $ANDROIDMODEL ($ANDROIDDEVICE)"
-printlog "| Android Version : $ANDROIDVERSION"
+printlog "| Name Rom        : $(GET_PROP ro.build.display.id)"
+if [ "$(GET_PROP ro.product.vendor.model)" ]; then
+printlog "| Device          : $(GET_PROP ro.product.vendor.model)"
+elif [ "$(GET_PROP ro.product.model)" ]; then
+printlog "| Device          : $(GET_PROP ro.product.model)"
+else
+printlog "| Device          : null"
+fi
+
+if [ "$(GET_PROP ro.product.vendor.device)" ]; then
+printlog "| Codename        : $(GET_PROP ro.product.vendor.device)"
+elif [ "$(GET_PROP ro.product.device)" ]; then
+printlog "| Codename        : $(GET_PROP ro.product.device)"
+else
+printlog "| Codename        : null"
+fi
+printlog "| Android Version : $(GET_PROP ro.build.version.release)"
 printlog "| Architecture    : $ARCH"
-printlog "| Sdk             : $SDKTARGET"
+printlog "| Sdk             : $(GET_PROP ro.build.version.sdk)"
+printlog "| Density         : $(GET_PROP ro.sf.lcd_density)"
 printlog "| Seamless        : $device_abpartition"
 printlog "|___________________________________"
-if [ $DEV_MODE = OFF ]; then
-return 0
+if [ $DEV_MODE = ON ]; then
+	#skip if
+	unset
+else
+	return 0
 fi
 printlog "|          Developer Mode"
 printlog "| Boot Mode    : $BOOTMODE"
-printlog "| Type Install : $TYPEINSTALL"
 printlog "| System       : $SYSTEM"
 if [ -d /dev/block/mapper ]; then
 	dynamic3=true

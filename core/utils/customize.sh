@@ -1,6 +1,6 @@
 # LiteGapps
 # customize.sh 
-# latest update 19-01-2021
+# latest update 01-02-2021
 # By wahyu6070
 
 chmod 755 $MODPATH/bin/litegapps-functions
@@ -14,6 +14,13 @@ elif [ -f /system/system/build.prop ]; then
 else
 	SYSTEM=/system
 fi
+
+if [ ! -L $SYSTEM/vendor ]; then
+	VENDOR=$SYSTEM/vendor
+else
+	VENDOR=/vendor
+fi
+
 # /product dir (android 10+)
 if [ ! -L $SYSTEM/product ]; then
 	PRODUCT=$SYSTEM/product
@@ -28,7 +35,8 @@ else
 	SYSTEM_EXT=/system_ext
 fi
 
-VENDOR=/vendor
+
+
 
 tmp=$MODPATH/tmp
 LITEGAPPS=/data/media/0/Android/litegapps
@@ -232,15 +240,15 @@ cdir $sysdirtarget
 #cdir $vendirtarget
 
 if [ -d $tmp/$ARCH/$SDKTARGET/system ]; then
-sedlog "- Copying system"
-listlog $tmp
-cp -af $tmp/$ARCH/$SDKTARGET/system/* $sysdirtarget/
+	sedlog "- Copying system"
+	listlog $tmp
+	cp -af $tmp/$ARCH/$SDKTARGET/system/* $sysdirtarget/
 fi
 
 if [ -d $tmp/$ARCH/$SDKTARGET/vendor ]; then
-sedlog "- Copying vendor"
-listlog $tmp
-cp -af $tmp/$ARCH/$SDKTARGET/vendor/* $vendirtarget/
+	sedlog "- Copying vendor"
+	listlog $tmp
+	cp -af $tmp/$ARCH/$SDKTARGET/vendor/* $vendirtarget/
 fi
 
 # modules
@@ -250,18 +258,18 @@ MODULES=$MODPATH/modules
 MODULE_TMP=$MODPATH/module_tmp
 if [ -d $MODULES ] && ! rmdir $MODULES 2>/dev/null; then
 	printlog "- Modules detected"
+	test ! -d $MODULE_TMP && cdir $MODULE_TMP
 	for LIST_MODULES in $(find $MODULES -type f); do
 	sedlog "- Extracting <$LIST_MODULES>"
 		if [ -f $LIST_MODULES ]; then
 			del $MODULE_TMP
 			cdir $MODULE_TMP
-			unzip -o $LIST_MODULES -d $MODULE_TMP >/dev/null 2>&1 
+			unzip -o $LIST_MODULES -d $MODULE_TMP >&2
 			if [ -f $MODULE_TMP/module-install.sh ]; then
 				chmod 755 $MODULE_TMP/module-install.sh
 				. $MODULE_TMP/module-install.sh
 			else
 				printlog "! Failed installing module <$(basename $LIST_MODULES)> skipping"
-				continue
 			fi
 			del $MODULE_TMP
 		fi
@@ -302,9 +310,8 @@ LIST_CACHE="
 $tmp
 $files
 $MODPATH/modules
-$MODPATH/bin
 "
-for W in $tmp $files ; do
+for W in $LIST_CACHE ; do
 	sedlog "- removing cache $W"
 	del $W
 done
@@ -314,39 +321,74 @@ done
 # $STSTEM $PRODUCT $SYSTEM_EXT is variable in kopi installer
 if [ $TYPEINSTALL = kopi ]; then
 	printlog "- Checking Memory"
-	if [ -d $MODPATH/system/product ] && [ "$(ls -A $MODPATH/system/product)" ]; then
-		MEM_INSTALL=`du -sk $MODPATH/system/product | cut -f1`
-		MEM_PARTITION=`df $PRODUCT | tail -n 1 | tr -s ' ' | cut -d' ' -f3`
+	if [ -d $MODPATH/system ] && [ ! -d $MODPATH/system/product ] && [ ! -d $MODPATH/system/system_ext ] && [ "$(ls -A $MODPATH/system)" ]; then
+		MEM_INSTALL=`du -sk $MODPATH/system | cut -f1`
+		MEM_PARTITION=`df -k $SYSTEM | tail -n 1 | tr -s ' ' | cut -d' ' -f3`
 		if [ $MEM_PARTITION -eq $MEM_PARTITION ] && [ $MEM_PARTITION -gt $MEM_INSTALL ]; then
-			sedlog " memory partition /product"
-			sedlog " memory install = $MEM_INSTALL"
-			sedlog " memory free partition /product : $MEM_PARTITION "
+			sedlog " memory partition $SYSTEM"
+			sedlog " memory install = $MEM_INSTALL kb"
+			sedlog " memory free partition $SYSTEM : $MEM_PARTITION kb"
 			sedlog " free space is [OK]"
 		else
-			printlog "! memory partition /product"
-			printlog "! memory install = $MEM_INSTALL"
-			printlog "! memory free partition /product : $MEM_PARTITION "
+			printlog "! memory partition $SYSTEM"
+			printlog "! memory install = $MEM_INSTALL kb"
+			printlog "! memory free partition $SYSTEM : $MEM_PARTITION kb"
 			printlog "! free space is [ERROR] full memory"
-			report_bug "Insufficient /product partition"
+			report_bug "$SYSTEM partition memory is full"
+		fi
+	fi
+	if [ -d $MODPATH/system/product ] && [ "$(ls -A $MODPATH/system/product)" ]; then
+		MEM_INSTALL=`du -sk $MODPATH/system/product | cut -f1`
+		MEM_PARTITION=`df -k $PRODUCT | tail -n 1 | tr -s ' ' | cut -d' ' -f3`
+		if [ $MEM_PARTITION -eq $MEM_PARTITION ] && [ $MEM_PARTITION -gt $MEM_INSTALL ]; then
+			sedlog " memory partition $PRODUCT"
+			sedlog " memory install = $MEM_INSTALL kb"
+			sedlog " memory free partition $PRODUCT : $MEM_PARTITION kb"
+			sedlog " free space is [OK]"
+		else
+			printlog "! memory partition $PRODUCT"
+			printlog "! memory install = $MEM_INSTALL kb"
+			printlog "! memory free partition $PRODUCT : $MEM_PARTITION kb"
+			printlog "! free space is [ERROR] full memory"
+			report_bug "$PRODUCT partition memory is full"
 		fi
 	fi
 	if [ -d $MODPATH/system/system_ext ] && [ "$(ls -A $MODPATH/system/system_ext)" ]; then
 		MEM_INSTALL=`du -sk $MODPATH/system/system_ext | cut -f1`
-		MEM_PARTITION=`df $SYSTEM_EXT | tail -n 1 | tr -s ' ' | cut -d' ' -f3`
+		MEM_PARTITION=`df -k $SYSTEM_EXT | tail -n 1 | tr -s ' ' | cut -d' ' -f3`
 		if [ $MEM_PARTITION -eq $MEM_PARTITION ] && [ $MEM_PARTITION -gt $MEM_INSTALL ]; then
-			sedlog " memory partition /system_ext"
-			sedlog " memory install = $MEM_INSTALL"
-			sedlog " memory free partition /system_ext : $MEM_PARTITION "
+			sedlog " memory partition $SYSTEM_EXT"
+			sedlog " memory install = $MEM_INSTALL kb"
+			sedlog " memory free partition $SYSTEM_EXT : $MEM_PARTITION kb"
 			sedlog " free space is [OK]"
 		else
-			printlog "! memory partition /system_ext"
-			printlog "! memory install = $MEM_INSTALL"
-			printlog "! memory free partition /system_ext : $MEM_PARTITION "
+			printlog "! memory partition $SYSTEM_EXT"
+			printlog "! memory install = $MEM_INSTALL kb"
+			printlog "! memory free partition $SYSTEM_EXT : $MEM_PARTITION kb"
 			printlog "! free space is [ERROR] full memory"
-			report_bug "Insufficient /system_ext partition"
+			report_bug "$SYSTEM_EXT partition memory is full"
 		fi
 		
 	fi
+else
+	if [ -d $MODPATH/system ] && [ "$(ls -A $MODPATH/system)" ]; then
+		MEM_INSTALL=`du -sk $MODPATH/system | cut -f1`
+		MEM_PARTITION=`df -k /data | tail -n 1 | tr -s ' ' | cut -d' ' -f3`
+		if [ $MEM_PARTITION -eq $MEM_PARTITION ] && [ $MEM_PARTITION -gt $MEM_INSTALL ]; then
+			sedlog " memory partition /data"
+			sedlog " memory install = $MEM_INSTALL kb"
+			sedlog " memory free partition /data : $MEM_PARTITION kb"
+			sedlog " free space is [OK]"
+		else
+			printlog "! memory partition /data"
+			printlog "! memory install = $MEM_INSTALL kb"
+			printlog "! memory free partition /data : $MEM_PARTITION kb"
+			printlog "! free space is [ERROR] full memory"
+			report_bug "/data partition memory is full"
+		fi
+		
+	fi
+
 fi
 
 #check partition ro/rw
