@@ -167,7 +167,7 @@ printlog "| Codename        : null"
 fi
 printlog "| Android Version : $(GET_PROP ro.build.version.release)"
 printlog "| Architecture    : $ARCH"
-printlog "| Sdk             : $(GET_PROP ro.build.version.sdk)"
+printlog "| Api             : $(GET_PROP ro.build.version.sdk)"
 printlog "| Density         : $(GET_PROP ro.sf.lcd_density)"
 printlog "| Seamless        : $device_abpartition"
 printlog "|___________________________________"
