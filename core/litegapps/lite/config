@@ -1,6 +1,6 @@
-sdk=26
+sdk=25
 arch=arm64
-restore.sdk=26
+restore.sdk=25
 restore.arch=arm64
 name=LiteGapps Lite
 dir_name=lite
