@@ -1,6 +1,6 @@
 # LiteGapps
 # customize.sh 
-# latest update 01-02-2021
+# latest update 22-02-2021
 # By wahyu6070
 
 chmod 755 $MODPATH/bin/litegapps-functions
@@ -9,6 +9,8 @@ chmod 755 $MODPATH/bin/litegapps-functions
 #path
 if [ -f /system_root/system/build.prop ]; then
 	SYSTEM=/system_root/system 
+elif [ -f /system_root/build.prop ]; then
+	SYSTEM=/system_root
 elif [ -f /system/system/build.prop ]; then
 	SYSTEM=/system/system
 else
