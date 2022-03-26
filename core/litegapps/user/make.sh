@@ -76,6 +76,7 @@ make_flashable_litegapps(){
 			
 		local MODULE_PROP=$tmp/$WFL/module.prop
 		local MODULE_DESC=`read_config desc`
+		local MODULE_UPDATE=https://raw.githubusercontent.com/litegapps/updater/main/core/litegapps/$(read_config dir_name)/${W_ARCH}/${W_SDK}/$WFL/update.json
 		SED "$(getp litegapps_type $MODULE_PROP)" "litegapps_regular" $MODULE_PROP
 		SED "$(getp litegapps_apk_compress $MODULE_PROP)" "${apk_compessed_type}" $MODULE_PROP
 		SED "$(getp litegapps_apk_compress_level $MODULE_PROP)" "$litegapps_apk_compress_level" $MODULE_PROP
@@ -86,7 +87,8 @@ make_flashable_litegapps(){
 		SED "$(getp versionCode $MODULE_PROP)" "$PROP_VERSIONCODE" $MODULE_PROP
 		SED "$(getp date $MODULE_PROP)" "$(date +%d-%m-%Y)" $MODULE_PROP
 		SED "$(getp description $MODULE_PROP)" "$MODULE_DESC" $MODULE_PROP
-			
+		sed -i 's,'"$(getp updateJson $MODULE_PROP)"','"${MODULE_UPDATE}"',g' $MODULE_PROP
+		
 		#set time stamp
 		set_time_stamp $tmp/$WFL
 			

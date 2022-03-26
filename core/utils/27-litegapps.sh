@@ -1,5 +1,5 @@
 #!/sbin/sh
-# Copyright 2020 - 2021 The Litegapps Project
+# Copyright 2020 - 2022 The Litegapps Project
 # Litegapps addon.d (running in rom installer)
 # by wahyu6070
 
@@ -7,8 +7,6 @@
 log=/data/media/0/Android/litegapps/litegapps_addon.d.log
 base=/data/kopi/modules/litegapps
 
-test ! -d $(dirname $log) && mkdir -p $(dirname $log)
-test -f $log && rm -rf $log
 
 ps | grep zygote | grep -v grep >/dev/null && BOOTMODE=true || BOOTMODE=false
 $BOOTMODE || ps -A 2>/dev/null | grep zygote | grep -v grep >/dev/null && BOOTMODE=true
@@ -117,11 +115,14 @@ case "$1" in
   	fi
     ;;
   pre-backup)
-    echo " " >> $log
-	echo "Litegapps Addon.d" >> $log
-	echo "Started -> $(date '+%d/%m/%Y %H:%M:%S')" >> $log
-	echo "System = $S" >> $log
-	echo " " >> $log
+  	test ! -d $(dirname $log) && mkdir -p $(dirname $log)
+  	test -f $log && rm -rf $log
+  	
+  	echo " " >> $log
+  	echo "Litegapps Addon.d" >> $log
+  	echo "Started -> $(date '+%d/%m/%Y %H:%M:%S')" >> $log
+  	echo "System = $S" >> $log
+  	echo " " >> $log
   ;;
   post-backup)
     # Stub

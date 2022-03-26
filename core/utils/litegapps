@@ -6,8 +6,8 @@
 #if you copy some code here please permission to the owner
 #
 
-propversion=v0.8
-propdate=11-12-2021
+propversion=v0.9
+propdate=23-03-2022
 
 # Colors
 GREEN='\e[01;32m'
@@ -205,6 +205,7 @@ boost6071=`getp1 $z`
 			break
 		else
 			am force-stop $boost6071 && print "${GREEN}[OK] •> ${WHITE}${boost6071//com.}" || print "${RED}[ERROR] •> ${WHITE}${boost6071//com.}" 2>/dev/null
+			break
 		fi
 	done
 done
@@ -214,7 +215,16 @@ print "- Done ";
 device(){
 	print
     ROM=$(getprop ro.build.display.id | cut -d'-' -f1)
-	print "Name ROM = $ROM ($(getprop ro.product.vendor.device)) "
+	print "Name ROM = $ROM"
+	print "Device Codename : $(getprop ro.product.vendor.device)"
+	print "Model = $(getprop ro.product.model)"
+	print "Vendor Model = $(getprop ro.product.vendor.model)"
+	print "Brand = $(getprop ro.product.brand)"
+	print "Manufacturer = $(getprop ro.product.manufacturer)"
+	print "Architecture = $(getprop ro.product.cpu.abi)"
+	print "Arch support = $(getprop ro.product.cpu.abilist)"
+	print "Fingerprint = $(getprop ro.build.fingerprint)"
+	print "Density = $(getprop ro.sf.lcd_density)"
 	print "Android Version = $(getprop ro.build.version.release)" |  tee -a $LOG;
 	print "Android Security patch = $(getprop ro.build.version.security_patch)"
 	print "battery Status = $(cat /sys/class/power_supply/battery/status)"
@@ -252,6 +262,7 @@ device(){
     else
     	print_false "Flashlight" "Not Supported"
     fi
+    
     }
 	
 gaming1(){
@@ -924,12 +935,44 @@ TWEAKS_boost_gpu(){
 		print "${YELLOW}  Note : maybe your device will be hotter and consume a lot of battery consumption.  Reboot if you want to disable it :)"
 		end_menu
 	}
+TWEAKS_GMS_DOSE(){
+	if ! pm list package | grep -q com.google.android.gms >/dev/null; then
+		print "${RED} ! Gms is not installed ${GREEN}"
+		sleep 3s
+		return 0
+	fi
+	print_title "Gms Dose"
+	local LIST_GMS="
+	com.google.android.gms/com.google.android.gms.auth.managed.admin.DeviceAdminReceiver
+	com.google.android.gms/com.google.android.gms.mdm.receivers.MdmDeviceAdminReceiver
+	"
+	if [ ! -f $DATA/tweaks_gms_dose ]; then
+		print "- Enable Gms Dose"
+		echo "active" > $DATA/tweaks_gms_dose
+		for GMS6 in $LIST_GMS; do
+			pm disable $GMS6 >/dev/null
+		done
+	else
+		print "- Disable Gms Dose"
+		del $DATA/tweaks_gms_dose
+		for GMS6 in $LIST_GMS; do
+			pm enable $GMS6 >/dev/null
+		done
+	fi
+	print "- Done"
+	end_menu
+	}
 TWEAKS(){
 	while true; do
 		print_title "Tweaks"
 		print "1. Boost CPU"
 		print "2. Boost GPU"
-		print "3. Exit"
+		if [ ! -f $DATA/tweaks_gms_dose ]; then
+		print "3. GMS Dose"
+		else
+		print "${VIOLET}3. GMS Dose${GREEN}"
+		fi
+		print "4. Exit"
 		SELECT
 		case $PILIH in
 		1)
@@ -938,7 +981,10 @@ TWEAKS(){
 		2)
 		TWEAKS_boost_gpu
 		;;
-		3 | exit)
+		3)
+		TWEAKS_GMS_DOSE
+		;;
+		4 | exit)
 		break
 		;;
 		*) error "Invalid selection" ; sleep 2s ;;
@@ -1053,7 +1099,7 @@ print " "
 print "                   ${YELLOW}LiteGapps ${WHITE}Controller${GREEN}"
 print " "
 print " "
-print "1.Boost              ${YELLOW}5.Litegapps Menu${GREEN}      9.Tweaks"
+print "1.Boost              5.Litegapps Menu      ${YELLOW}9.Tweaks${GREEN}"
 print "2.Gaming Mode        6.Memory Info         10.Settings"
 print "${batterystatus}7.Device Info         11.About"
 print "4.Check Ping         8.Add-on              12.Exit"

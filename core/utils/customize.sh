@@ -295,6 +295,14 @@ find $MODPATH/system -type f 2>/dev/null | while read setperm_file; do
 done >> $loglive
 
 
+#addon.d
+if [ $TYPEINSTALL = kopi ]; then
+	printlog "- Installing addon.d"
+	test ! -d $SYSTEM/addon.d && mkdir -p $SYSTEM/addon.d
+	cp -pf $MODPATH/bin/27-litegapps.sh $SYSTEM/addon.d/
+	chmod 755 $SYSTEM/addon.d/27-litegapps.sh
+fi
+
 #litegapps menu
 cdir $MODPATH/system/bin
 cp -pf $MODPATH/bin/litegapps $MODPATH/system/bin/
@@ -302,7 +310,7 @@ chmod 755 $MODPATH/system/bin/litegapps
 
 #Litegapps post fs
 if [ $TYPEINSTALL != kopi ] && [ -d /data/adb/service.d ] && [ ! -f $LITEGAPPS/disable_post_fs ]; then
-	print "- Installing litegapps post-fs"
+	printlog "- Installing litegapps post-fs"
 	cp -pf $MODPATH/bin/litegapps-post-fs /data/adb/service.d/
 	chmod 755 /data/adb/service.d/litegapps-post-fs
 fi
