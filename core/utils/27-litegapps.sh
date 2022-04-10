@@ -419,14 +419,16 @@ case "$1" in
     	  done
   	fi
   	
-  	UMOUNT2
+  	#UMOUNT2
     ;;
   pre-backup)
   	DIR_PARTITION
   	test ! -d $(dirname $log) && mkdir -p $(dirname $log)
   	test -f $log && rm -rf $log
   	echo " " >> $log
-  	echo "Litegapps Addon.d" >> $log
+  	echo "Addon Version : $V" >> $log
+  	echo "Tmp : $TMP"
+  	echo "LiteGapps Addon.d" >> $log
   	echo "Started -> $(date '+%d/%m/%Y %H:%M:%S')" >> $log
   	echo "System = $SYSTEM" >> $log
   	echo " " >> $log
