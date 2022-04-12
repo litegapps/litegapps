@@ -1,6 +1,7 @@
 # Litegapps Core Script
 #
-# copyright 2020 - 2021 litegapps
+# Copyright 2020 - 2022 The LiteGapps Project
+#
 
 base="`dirname $(readlink -f "$0")`"
 chmod -R 755 $base/bin
@@ -299,12 +300,12 @@ done
 if [ $(get_config litegapps.build) = true ]; then
 	LIST_LITEGAPPS=`get_config litegapps.type | sed "s/,/ /g"`
 	for i in $LIST_LITEGAPPS; do
-		if [ -f $base/core/litegapps/$i/make.sh ]; then
+		if [ -f $base/core/litegapps/make.sh ]; then
 			BASED=$base/core/litegapps/$i
-			chmod 755 $base/core/litegapps/$i/make.sh
-			. $base/core/litegapps/$i/make.sh
+			chmod 755 $base/core/litegapps/make.sh
+			. $base/core/litegapps/make.sh
 		else
-		 	ERROR "[ERROR] <$base/core/litegapps/$i/make.sh> not found"
+		 	ERROR "[ERROR] <$base/core/litegapps/make.sh> not found"
 		fi
 	done
 fi
@@ -314,14 +315,12 @@ fi
 if [ $(get_config litegapps++.build) = true ]; then
 	LIST_LITEGAPPS_PLUS=`get_config litegapps++.type | sed "s/,/ /g"`
 	for w in $LIST_LITEGAPPS_PLUS; do
-		if [ -f $base/core/litegapps++/$w/make.sh ]; then
-			if [ -f $base/core/litegapps++/$w/make.sh ]; then
+		if [ -f $base/core/litegapps++/make.sh ]; then
 			BASED=$base/core/litegapps++/$w
-			chmod 755 $base/core/litegapps++/$w/make.sh
-			. $base/core/litegapps++/$w/make.sh
-			fi
+			chmod 755 $base/core/litegapps++/make.sh
+			. $base/core/litegapps++/make.sh
 		else
-			ERROR "[ERROR] <$base/core/litegapps++/$w/make.sh> not found"
+			ERROR "[ERROR] <$base/core/litegapps++/make.sh> not found"
 		fi
 	done
 fi
