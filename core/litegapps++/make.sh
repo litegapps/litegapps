@@ -76,11 +76,11 @@ make_flashable_litegapps(){
 			
 		local MODULE_PROP=$tmp/$WFL/module.prop
 		local MODULE_DESC=`read_config desc`
-		local MODULE_UPDATE=https://raw.githubusercontent.com/litegapps/updater/main/core/litegapps/$(read_config dir_name)/${W_ARCH}/${W_SDK}/$WFL/update.json
-		SED "$(getp litegapps_type $MODULE_PROP)" "litegapps_regular" $MODULE_PROP
+		local MODULE_UPDATE=https://raw.githubusercontent.com/litegapps/updater/main/core/litegapps++/$(read_config dir_name)/$WFL/update.json
+		SED "$(getp litegapps_type $MODULE_PROP)" "litegapps_plus" $MODULE_PROP
 		SED "$(getp litegapps_apk_compress $MODULE_PROP)" "${apk_compessed_type}" $MODULE_PROP
 		SED "$(getp litegapps_apk_compress_level $MODULE_PROP)" "$litegapps_apk_compress_level" $MODULE_PROP
-		SED "$(getp name $MODULE_PROP)" "$NAME $W_ARCH $(get_android_version $W_SDK) $PROP_STATUS" $MODULE_PROP
+		SED "$(getp name $MODULE_PROP)" "$NAME $PROP_STATUS" $MODULE_PROP
 		SED "$(getp id $MODULE_PROP)" "litegapps" $MODULE_PROP
 		SED "$(getp author $MODULE_PROP)" "$PROP_BUILDER" $MODULE_PROP
 		SED "$(getp version $MODULE_PROP)" "v${PROP_VERSION}" $MODULE_PROP
@@ -92,8 +92,8 @@ make_flashable_litegapps(){
 		#set time stamp
 		set_time_stamp $tmp/$WFL
 			
-		local NAME_ZIP="[$WFL]$(read_config name | sed "s/ /_/g")_${W_ARCH}_$(get_android_version $W_SDK)_v${PROP_VERSION}_${PROP_STATUS}.zip"
-		local OUT_ZIP=$out/litegapps/$W_ARCH/$W_SDK/$(read_config dir_name)/$NAME_ZIP
+		local NAME_ZIP="[$WFL]$(read_config name | sed "s/ /_/g")_v${PROP_VERSION}_${PROP_STATUS}.zip"
+		local OUT_ZIP=$out/litegapps++/$(read_config dir_name)/$NAME_ZIP
 		make_zip $tmp/$WFL $OUT_ZIP
 	done
 	}
@@ -101,28 +101,25 @@ make_flashable_litegapps(){
 #################################################
 #Core
 #################################################
-CONFIG_ARCH=`read_config arch | sed "s/,/ /g"`
-CONFIG_SDK=`read_config sdk | sed "s/,/ /g"`
 NAME=`read_config name`
-for W_ARCH in $CONFIG_ARCH; do
 	#binary copy architecture type
-	BIN_ARCH=$W_ARCH
-	for W_SDK in $CONFIG_SDK; do
+	BIN_ARCH=arm
 		clear
 		sedlog "Building $NAME"
 		printmid "Building $NAME"
 		printlog " "
-		printlog "Architecture=$W_ARCH"
-		printlog "SDK=$W_SDK"
-		printlog "Android Target=$(get_android_version $W_SDK)"
+		printlog "Version : $PROP_VERSION (${PROP_VERSIONCODE})"
+		printlog "Builder : $PROP_BUILDER"
+		printlog "Status  : $PROP_STATUS"
+		printlog "Compressions : $PROP_COMPRESSION"
+		printlog "Compressions Level : $PROP_COMPRESSION_LEVEL"
 		printlog " "
 		[ -d $tmp ] && del $tmp && cdir $tmp || cdir $tmp
 		#copying gapps
 		if [ -d $BASED/gapps/$W_ARCH/$W_SDK ]; then
-			test ! -d $tmp/$W_ARCH/$W_SDK && cdir $tmp/$W_ARCH/$W_SDK
-			cp -af $BASED/gapps/$W_ARCH/$W_SDK/* $tmp/$W_ARCH/$W_SDK/
+			cp -af $BASED/gapps/* $tmp/
 		else
-			printlog "[ERROR] <$BASED/gapps/$W_ARCH/$W_SDK> not found"
+			printlog "[ERROR] <$BASED/gapps/> not found"
 			sleep 3s
 			continue
 		fi
@@ -134,6 +131,4 @@ for W_ARCH in $CONFIG_ARCH; do
 		make_tar_arch
 		make_archive
 		make_flashable_litegapps
-	done
-done
 

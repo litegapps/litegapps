@@ -1,5 +1,5 @@
-sdk=25
-arch=arm64
+sdk=27
+arch=arm
 restore.sdk=31
 restore.arch=arm64
 name=LiteGapps User

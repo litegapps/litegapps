@@ -112,9 +112,14 @@ for W_ARCH in $CONFIG_ARCH; do
 		sedlog "Building $NAME"
 		printmid "Building $NAME"
 		printlog " "
-		printlog "Architecture=$W_ARCH"
-		printlog "SDK=$W_SDK"
-		printlog "Android Target=$(get_android_version $W_SDK)"
+		printlog "Version : $PROP_VERSION (${PROP_VERSIONCODE})"
+		printlog "Builder : $PROP_BUILDER"
+		printlog "Status  : $PROP_STATUS"
+		printlog "Compressions : $PROP_COMPRESSION"
+		printlog "Compressions Level : $PROP_COMPRESSION_LEVEL"
+		printlog "Architecture : $W_ARCH"
+		printlog "SDK : $W_SDK"
+		printlog "Android Target : $(get_android_version $W_SDK)"
 		printlog " "
 		[ -d $tmp ] && del $tmp && cdir $tmp || cdir $tmp
 		#copying gapps
