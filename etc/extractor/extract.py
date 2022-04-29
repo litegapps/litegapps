@@ -114,6 +114,10 @@ for LIST_INPUT in os.listdir(INPUT):
          				print("- Extracting : ", file)
          				UNTAR(os.path.join(root, file), root)
          				os.remove(os.path.join(root, file))
+         			elif file.endswith('.zip'):
+         				print("- Extracting : ", file)
+         				UNZIP(os.path.join(root, file), root)
+         				os.remove(os.path.join(root, file))
          	shutil.copytree (TMP + LIST_INPUT, OUTPUT + LIST_INPUT , dirs_exist_ok=True) 
          else:
          	print("! Package not support : ", LIST_INPUT)
