@@ -1,4 +1,4 @@
-# The LiteGapps Project
+# Copyright 2020 - 2022 The Litegapps Project
 # by wahyu6070
 # uninstall.sh (running by update-binary)
 #

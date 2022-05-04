@@ -1,4 +1,4 @@
-# LiteGapps
+# Copyright 2020 - 2022 The Litegapps Project
 # customize.sh 
 # latest update 22-02-2021
 # By wahyu6070

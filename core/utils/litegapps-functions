@@ -1,5 +1,5 @@
-# Litegapps Functions        
-# Copyright (C) 2020 - 2021 The Litegapps Project
+# Copyright 2020 - 2022 The Litegapps Project
+# Litegapps Functions
 # By wahyu6070
 #
 print(){ ui_print "$1"; }
