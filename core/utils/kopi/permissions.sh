@@ -1,6 +1,6 @@
 # The LiteGapps Project
 # permissions.sh
-# latest update 01-02-2022
+# latest update 04-04-2022
 
 chmod 755 $MODPATH/bin/litegapps-functions
 #litegapps functions
@@ -19,7 +19,7 @@ done
 fi
 
 if [ $TYPEINSTALL = kopi ]; then
-	for T in $SYSDIR $PRODUCT $SYSTEM_EXT; do
+	for T in $SYSTEM $PRODUCT $SYSTEM_EXT; do
 		if [ -d $T ] && [ "$(ls -A $T)" ]; then
 			ls -alZR $T > $LITEGAPPS/log/$(basename ${T}).new
 		else
