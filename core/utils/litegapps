@@ -7,7 +7,7 @@
 #
 
 propversion=v0.9
-propdate=23-03-2022
+propdate=18-05-2022
 
 # Colors
 GREEN='\e[01;32m'
@@ -518,7 +518,7 @@ gaming(){
 	fi
 	
 	clear
-	[ -f $DATA/gaming_mode_2 ] && gaming22="${VIOLET}2.Disable Gaming Mode 2${GREEN}" || gaming22="2.Gaming Mode 2 (Not Recomended)"
+	[ -f $DATA/gaming_mode_2 ] && gaming22="${VIOLET}2.Disable Gaming Mode 2${GREEN}" || gaming22="2.Gaming Mode 2"
 	[ -f $DATA/gaming_mode_3 ] && gaming23="${VIOLET}3.Disable Gaming Mode 3${GREEN}" || gaming23="3.Gaming Mode 3"
 	printmid "${YELLOW}Gaming Mode Select $GREEN"
 	print
