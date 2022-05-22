@@ -10,7 +10,9 @@ make_flashable_litegapps(){
 	for WFL in MAGISK RECOVERY AUTO; do
 		printlog "- Build flashable [$WFL]"
 		cdir $tmp/$WFL
-		copy_binary_flashable $BIN_ARCH $tmp/$WFL/bin/$BIN_ARCH
+		for YR in arm arm64; do
+			copy_binary_flashable $YR $tmp/$WFL/bin/$YR
+		done
 			# copy core/utils/magisk or kopi installer
 			for W in 27-litegapps.sh litegapps-functions litegapps-post-fs litegapps; do
 				if [ -f $base/core/utils/$W ]; then
@@ -93,7 +95,7 @@ make_flashable_litegapps(){
 		set_time_stamp $tmp/$WFL
 			
 		local NAME_ZIP="[$WFL]$(read_config name | sed "s/ /_/g")_v${PROP_VERSION}_${PROP_STATUS}.zip"
-		local OUT_ZIP=$out/litegapps++/$(read_config dir_name)/$NAME_ZIP
+		local OUT_ZIP=$out/litegapps++/$(read_config dir_name)/v${PROP_VERSION}/$NAME_ZIP
 		make_zip $tmp/$WFL $OUT_ZIP
 	done
 	}

@@ -93,7 +93,7 @@ make_flashable_litegapps(){
 		set_time_stamp $tmp/$WFL
 			
 		local NAME_ZIP="[$WFL]$(read_config name | sed "s/ /_/g")_${W_ARCH}_$(get_android_version $W_SDK)_v${PROP_VERSION}_${PROP_STATUS}.zip"
-		local OUT_ZIP=$out/litegapps/$W_ARCH/$W_SDK/$(read_config dir_name)/$NAME_ZIP
+		local OUT_ZIP=$out/litegapps/$W_ARCH/$W_SDK/$(read_config dir_name)/v${PROP_VERSION}/$NAME_ZIP
 		make_zip $tmp/$WFL $OUT_ZIP
 	done
 	}
