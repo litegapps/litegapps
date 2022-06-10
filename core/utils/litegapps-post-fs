@@ -3,15 +3,16 @@
 # Litegapps_post-fs (running by magisk in booting)
 #
 
-sleep 25s
+sleep 60s
 litegapps_post_fs_version=1.0
 litegapps_post_fs_code=1
-log=/sdcard/Android/litegapps/LiteGapps_post-fs.log
-rm -f $log
+log=/sdcard/Android/litegapps/litegapps_post-fs.log
+
+rm -rf $log
 mkdir -p $(dirname $log)
 
 echo " " >> $log
-echo "Litegapps Post Fs" >> $log
+echo "LiteGapps Post Fs" >> $log
 echo "Version=$litegapps_post_fs_version" >> $log
 echo "VersionCode=$litegapps_post_fs_code=1" >> $log
 echo "Started -> $(date '+%d/%m/%Y %H:%M:%S')" >> $log
@@ -20,15 +21,9 @@ echo " " >> $log
 list_package="
 com.google.android.gms
 com.android.vending
-com.google.android.configupdater
-com.google.android.backuptransport
 com.google.android.ext.services
 com.google.android.apps.restore
-com.google.android.gsf
-com.google.android.markup
-com.google.android.ext.shared
-com.google.android.syncadapters.contacts
-com.google.android.syncadapters.calendar
+com.google.android.contacts
 "
 list_perm="
 android.permission.READ_CALENDAR
