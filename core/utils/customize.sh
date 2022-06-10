@@ -127,6 +127,8 @@ else
 fi
 sedlog "Format file : $format_file"
 
+#checking architecture executable support
+test ! -f $bin/tar && report_bug "your architecture is not supported or not compatible with your device"
 
 #checking executable
 for W in $format_file tar zip zipalign; do
