@@ -1,6 +1,6 @@
-# The LiteGapps Project
+# Copyright 2020 - 2022 The Litegapps Project
 # permissions.sh
-# latest update 04-04-2022
+# latest update 10-06-2022
 
 chmod 755 $MODPATH/bin/litegapps-functions
 #litegapps functions
