@@ -419,7 +419,7 @@ case "$1" in
     	  done
   	fi
   	
-  	#UMOUNT2
+  	UMOUNT2
     ;;
   pre-backup)
   	DIR_PARTITION
