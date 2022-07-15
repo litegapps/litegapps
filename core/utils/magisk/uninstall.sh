@@ -8,7 +8,7 @@ if [ -d /data/adb/litegapps ]; then
 	rm -rf /data/adb/litegapps
 fi
 
-sleep 30s
+sleep 60s
 
 LIST_PACKAGE="
 com.google.android.gms

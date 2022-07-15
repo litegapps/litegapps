@@ -142,7 +142,7 @@ printlog "| Version         : $MODULEVERSION"
 printlog "| Build date      : $MODULEDATE"
 printlog "| By              : $MODULEAUTHOR"
 case $TYPEINSTALL in
-magisk | magisk_module)
+magisk)
 printlog "| Mode            : systemless"
 ;;
 *)

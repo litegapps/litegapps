@@ -67,7 +67,7 @@ x86_64) ARCH=x86_64 ;;
 esac
 
 #mode installation
-[ $TYPEINSTALL ] || TYPEINSTALL=magisk_module
+[ $TYPEINSTALL ] || TYPEINSTALL=magisk
 case $TYPEINSTALL in
 kopi)
 	sedlog "- Type install KOPI module"
@@ -82,7 +82,7 @@ esac
 
 # Test /data rw partition
 case $TYPEINSTALL in
-magisk | magisk_module)
+magisk)
 	DIR_TEST=/data/adb/test8989
 	cdir $DIR_TEST
 	touch $DIR_TEST/io
@@ -416,9 +416,10 @@ for T in $SYSTEM $PRODUCT $SYSTEM_EXT; do
 
 done
 
-if [ $TYPEINSTALL = magisk ] || [ $TYPEINSTALL = magisk_module ]; then
+if [ $TYPEINSTALL = magisk ]; then
 #creating log
 make_log
 fi
 #terminal tips
 terminal_tips
+
