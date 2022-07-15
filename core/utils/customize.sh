@@ -336,7 +336,7 @@ if [ $TYPEINSTALL = kopi ]; then
 	if [ -d $MODPATH/system ] && [ ! -d $MODPATH/system/product ] && [ ! -d $MODPATH/system/system_ext ] && [ "$(ls -A $MODPATH/system)" ]; then
 		MEM_INSTALL=`du -sk $MODPATH/system | cut -f1`
 		MEM_PARTITION=`df -k $SYSTEM | tail -n 1 | tr -s ' ' | cut -d' ' -f3`
-		if [ $MEM_PARTITION -eq $MEM_PARTITION ] && [ $MEM_PARTITION -gt $MEM_INSTALL ]; then
+		if [ "$MEM_PARTITION" -eq "$MEM_PARTITION" ] && [ "$MEM_PARTITION" -gt "$MEM_INSTALL" ]; then
 			sedlog " memory partition $SYSTEM"
 			sedlog " memory install = $MEM_INSTALL kb"
 			sedlog " memory free partition $SYSTEM : $MEM_PARTITION kb"
@@ -352,7 +352,7 @@ if [ $TYPEINSTALL = kopi ]; then
 	if [ -d $MODPATH/system/product ] && [ "$(ls -A $MODPATH/system/product)" ]; then
 		MEM_INSTALL=`du -sk $MODPATH/system/product | cut -f1`
 		MEM_PARTITION=`df -k $PRODUCT | tail -n 1 | tr -s ' ' | cut -d' ' -f3`
-		if [ $MEM_PARTITION -eq $MEM_PARTITION ] && [ $MEM_PARTITION -gt $MEM_INSTALL ]; then
+		if [ "$MEM_PARTITION" -eq "$MEM_PARTITION" ] && [ "$MEM_PARTITION" -gt $"MEM_INSTALL" ]; then
 			sedlog " memory partition $PRODUCT"
 			sedlog " memory install = $MEM_INSTALL kb"
 			sedlog " memory free partition $PRODUCT : $MEM_PARTITION kb"
@@ -368,7 +368,7 @@ if [ $TYPEINSTALL = kopi ]; then
 	if [ -d $MODPATH/system/system_ext ] && [ "$(ls -A $MODPATH/system/system_ext)" ]; then
 		MEM_INSTALL=`du -sk $MODPATH/system/system_ext | cut -f1`
 		MEM_PARTITION=`df -k $SYSTEM_EXT | tail -n 1 | tr -s ' ' | cut -d' ' -f3`
-		if [ $MEM_PARTITION -eq $MEM_PARTITION ] && [ $MEM_PARTITION -gt $MEM_INSTALL ]; then
+		if [ "$MEM_PARTITION" -eq "$MEM_PARTITION" ] && [ "$MEM_PARTITION" -gt "$MEM_INSTALL" ]; then
 			sedlog " memory partition $SYSTEM_EXT"
 			sedlog " memory install = $MEM_INSTALL kb"
 			sedlog " memory free partition $SYSTEM_EXT : $MEM_PARTITION kb"
@@ -386,7 +386,7 @@ else
 	if [ -d $MODPATH/system ] && [ "$(ls -A $MODPATH/system)" ]; then
 		MEM_INSTALL=`du -sk $MODPATH/system | cut -f1`
 		MEM_PARTITION=`df -k /data | tail -n 1 | tr -s ' ' | cut -d' ' -f3`
-		if [ $MEM_PARTITION -eq $MEM_PARTITION ] && [ $MEM_PARTITION -gt $MEM_INSTALL ]; then
+		if [ "$MEM_PARTITION" -eq "$MEM_PARTITION" ] && [ "$MEM_PARTITION" -gt "$MEM_INSTALL" ]; then
 			sedlog " memory partition /data"
 			sedlog " memory install = $MEM_INSTALL kb"
 			sedlog " memory free partition /data : $MEM_PARTITION kb"
