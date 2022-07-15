@@ -9,5 +9,19 @@ if [ -d /data/adb/litegapps ]; then
 fi
 
 sleep 30s
-pm uninstall com.google.android.gms
-pm uninstall com.android.vending
+
+LIST_PACKAGE="
+com.google.android.gms
+com.android.vending
+com.google.android.calendar
+com.google.android.gm
+com.google.android.play.games
+com.google.android.videos
+com.google.android.apps.photos
+com.google.android.apps.docs
+"
+
+for L in $LIST_PACKAGE; do
+    pm uninstall $L
+done
+
