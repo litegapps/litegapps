@@ -1,6 +1,6 @@
 # Copyright 2020 - 2022 The Litegapps Project
 # customize.sh 
-# latest update 22-02-2021
+# latest update 15-07-2022
 # By wahyu6070
 
 chmod 755 $MODPATH/bin/litegapps-functions
