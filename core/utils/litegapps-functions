@@ -175,6 +175,7 @@ printlog "| Architecture    : $ARCH"
 printlog "| Api             : $(GET_PROP ro.build.version.sdk)"
 printlog "| Density         : $(GET_PROP ro.sf.lcd_density)"
 printlog "| Seamless        : $device_abpartition"
+printlog "| BootMode        : $BOOTMODE"
 sedlog "| System          : $SYSTEM"
 printlog "|___________________________________"
 if [ $DEV_MODE = ON ]; then
