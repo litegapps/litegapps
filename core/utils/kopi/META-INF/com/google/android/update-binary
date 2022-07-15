@@ -484,7 +484,7 @@ set_progress 0.5;
 
 #req
 minsdk=`getp minsdk $MODULE`
-if [ $minsdk -eq $minsdk ] && [ $API -lt $minsdk ]; then
+if [ "$minsdk" -eq "$minsdk" ] && [ $API -lt "$minsdk" ]; then
 abort "- Android version not support !"
 fi
 
