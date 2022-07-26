@@ -162,7 +162,7 @@ zip)
 esac
 
 #extract tar files
-printlog "- Extracting archive"
+printlog "- Extracting Archive"
 if [ -f $files/files.tar ]; then
 	sedlog "Extracting $files/$ARCH.tar"
 	$bin/tar -xf $files/files.tar -C $tmp
@@ -261,7 +261,7 @@ ARCH=$ARCH
 MODULES=$MODPATH/modules
 MODULE_TMP=$MODPATH/module_tmp
 if [ -d $MODULES ] && ! rmdir $MODULES 2>/dev/null; then
-	printlog "- Modules detected"
+	printlog "- Modules Detected"
 	for LIST_MODULES in $(find $MODULES -type f); do
 	sedlog "- Extracting <$LIST_MODULES>"
 		if [ -f $LIST_MODULES ]; then
