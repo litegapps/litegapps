@@ -1,5 +1,5 @@
-sdk=27
-arch=arm
+sdk=29
+arch=arm64
 restore.sdk=31
 restore.arch=arm64
 name=LiteGapps Pixel
