@@ -1,6 +1,6 @@
-sdk=29
+sdk=32
 arch=arm64
-restore.sdk=31
+restore.sdk=32
 restore.arch=arm64
 name=LiteGapps Go
 dir_name=go

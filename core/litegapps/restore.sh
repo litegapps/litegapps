@@ -90,6 +90,7 @@ done
 NUM_6070=0
 for D_ARCH in $LIST_ARCH; do
 	for D_SDK in $LIST_SDK; do
+		[ ! -d $BASED/$D_ARCH/$D_SDK ] && break
 		for L_RESTORE in $(ls -1 $BASED/$D_ARCH/$D_SDK); do
 			if [ -f $BASED/$D_ARCH/$D_SDK/$L_RESTORE ]; then
 			F_RESTORE=$BASED/$D_ARCH/$D_SDK/$L_RESTORE
