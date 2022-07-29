@@ -227,7 +227,7 @@ if [ "$1" = restore ]; then
 		fi
 	else
 		printlog "1. Downloading : bin.zip"
-       curl -L -o $base/files/bin.zip https://gitlab.com/litegapps/litegapps-server-bin/-/raw/main/bin.zip?inline=false >/dev/null 2>&1
+       curl --progress-bar -L -o $base/files/bin.zip https://gitlab.com/litegapps/litegapps-server-bin/-/raw/main/bin.zip?inline=false
        if [  $? -eq 0 ]; then
        	printlog "     Downloading status : Successful"
        	printlog "     File size : $(du -sh $base/files/bin.zip | cut -f1)"
@@ -251,12 +251,12 @@ if [ "$1" = restore ]; then
 	fi
 	if [ $(get_config litegapps.build) = true ]; then
 		for i in $(get_config litegapps.restore | sed "s/,/ /g"); do
-			if [ -f $base/core/litegapps/$i/restore.sh ]; then
+			if [ -f $base/core/litegapps/restore.sh ]; then
 				BASED=$base/core/litegapps/$i
-				chmod 755 $base/core/litegapps/$i/restore.sh
-				. $base/core/litegapps/$i/restore.sh
+				chmod 755 $base/core/litegapps/restore.sh
+				. $base/core/litegapps/restore.sh
 			else
-				printlog "! [SKIP] <$base/core/litegapps/$i/restore.sh> Not found"
+				printlog "! [SKIP] <$base/core/litegapps/restore.sh> Not found"
 			fi
 		done
 	fi

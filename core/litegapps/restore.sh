@@ -58,7 +58,7 @@ for D_ARCH in $LIST_ARCH; do
        else
        	cdir $GAPPS_FILES/$D_ARCH/$D_SDK 
        fi
-       curl -L -o $GAPPS_FILES/$D_ARCH/$D_SDK/$D_SDK.zip https://sourceforge.net/projects/litegapps/files/files-server/litegapps/$D_ARCH/$D_SDK/$D_SDK.zip/download >/dev/null 2>&1
+       curl --progress-bar -L -o $GAPPS_FILES/$D_ARCH/$D_SDK/$D_SDK.zip https://sourceforge.net/projects/litegapps/files/files-server/litegapps/$D_ARCH/$D_SDK/$D_SDK.zip/download
        if [  $? -eq 0 ]; then
        	printlog "     Downloading status : Successful"
        	printlog "     File size : $(du -sh $GAPPS_FILES/$D_ARCH/$D_SDK/$D_SDK.zip | cut -f1)"
@@ -111,7 +111,7 @@ for D_ARCH in $LIST_ARCH; do
 						test -f $MODULES_FILES/$D_ARCH/$D_SDK/$L_RESTORE/$L_MODULES.zip && del $MODULES_FILES/$D_ARCH/$D_SDK/$L_RESTORE/$L_MODULES.zip
        		 		#download
        		 		SERVER=https://sourceforge.net/projects/litegapps/files/addon/
-       		 		curl -L -o $MODULES_FILES/$D_ARCH/$D_SDK/$L_RESTORE/$L_MODULES.zip $SERVER/$D_ARCH/$D_SDK/$L_RESTORE/$D_SDK.zip >/dev/null 2>&1
+       		 		curl --progress-bar -L -o $MODULES_FILES/$D_ARCH/$D_SDK/$L_RESTORE/$L_MODULES.zip $SERVER/$D_ARCH/$D_SDK/$L_RESTORE/$D_SDK.zip
        		 		if [  $? -eq 0 ]; then
        		 			printlog "     Downloading status : Successful"
        		 			printlog "     File size : $(du -sh $MODULES_FILES/$D_ARCH/$D_SDK/$L_RESTORE/$L_MODULES.zip | cut -f1)"
