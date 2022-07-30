@@ -75,7 +75,7 @@ done
 #################################################
 #Cleaning dir
 #################################################
-if [ "$1" = clean ]; then
+CLEAN(){
 	list_fol="
 	$base/output
 	$base/etc/extractor/input
@@ -144,14 +144,13 @@ if [ "$1" = clean ]; then
 	done
 	[ -d $tmp ] && del $tmp
 	print "- Cleaning Done"
-	exit 0
-fi
+}
 
 
 #################################################
 # Upload
 #################################################
-if [ "$1" = upload ]; then
+UPLOAD(){
 	clear
 	printlog " Litegapps Uploading files"
 	printlog " "
@@ -192,12 +191,12 @@ if [ "$1" = upload ]; then
 	printlog "- Uploading <$SC> to <$TG>"
 	scp $SC $USERNAME@web.sourceforge.net:$TG
 	done
-	exit 0
-fi
+	
+}
 #################################################
 # Restore
 #################################################
-if [ "$1" = restore ]; then
+RESTORE(){
 	clear
 	[ ! -d $base/files ] && cdir $base/files
 	printlog "               Restoring Files"
@@ -272,59 +271,110 @@ if [ "$1" = restore ]; then
 		done
 	fi
 	
-#
-exit 0
-fi
-for W in $base/bin/arm; do
-	if [ ! -d $W ]; then
-	printlog "bin or gapps files not found. please restore !"
-	printlog "usage : sh make restore"
-	exit 1
-	fi
-done
+}
 
 #################################################
-#Remove placeholder file
+# Make
 #################################################
-RM_PLACEHOLDER=`find $base -name place_holder -type f`
-for W in $RM_PLACEHOLDER; do
-	if [ -f $W ]; then
-		printlog "- Removing file <$W>"
-		del $W
+MAKE(){
+	for W in $base/bin/arm; do
+		if [ ! -d $W ]; then
+			printlog "bin or gapps files not found. please restore !"
+			printlog "usage : sh make restore"
+		exit 1
+		fi
+	done
+
+	#################################################
+	#Remove placeholder file
+	#################################################
+	RM_PLACEHOLDER=`find $base -name place_holder -type f`
+	for W in $RM_PLACEHOLDER; do
+		if [ -f $W ]; then
+			printlog "- Removing file <$W>"
+			del $W
+		fi
+	done
+
+	#################################################
+	#Litegapps
+	#################################################
+	if [ $(get_config litegapps.build) = true ]; then
+		LIST_LITEGAPPS=`get_config litegapps.type | sed "s/,/ /g"`
+		for i in $LIST_LITEGAPPS; do
+			if [ -f $base/core/litegapps/make.sh ]; then
+				BASED=$base/core/litegapps/$i
+				chmod 755 $base/core/litegapps/make.sh
+				. $base/core/litegapps/make.sh
+			else
+		 		ERROR "[ERROR] <$base/core/litegapps/make.sh> not found"
+			fi
+		done
 	fi
-done
+	#################################################
+	#Litegapps++
+	#################################################
+	if [ $(get_config litegapps++.build) = true ]; then
+		LIST_LITEGAPPS_PLUS=`get_config litegapps++.type | sed "s/,/ /g"`
+		for w in $LIST_LITEGAPPS_PLUS; do
+			if [ -f $base/core/litegapps++/make.sh ]; then
+				BASED=$base/core/litegapps++/$w
+				chmod 755 $base/core/litegapps++/make.sh
+				. $base/core/litegapps++/make.sh
+			else
+				ERROR "[ERROR] <$base/core/litegapps++/make.sh> not found"
+			fi
+		done
+	fi
+	#################################################
+	#Done
+	#################################################
+	del $tmp
+}
 
 #################################################
-#Litegapps
+# Set Package litegapps variant
 #################################################
-if [ $(get_config litegapps.build) = true ]; then
-	LIST_LITEGAPPS=`get_config litegapps.type | sed "s/,/ /g"`
-	for i in $LIST_LITEGAPPS; do
-		if [ -f $base/core/litegapps/make.sh ]; then
-			BASED=$base/core/litegapps/$i
-			chmod 755 $base/core/litegapps/make.sh
-			. $base/core/litegapps/make.sh
-		else
-		 	ERROR "[ERROR] <$base/core/litegapps/make.sh> not found"
-		fi
-	done
-fi
-#################################################
-#Litegapps++
-#################################################
-if [ $(get_config litegapps++.build) = true ]; then
-	LIST_LITEGAPPS_PLUS=`get_config litegapps++.type | sed "s/,/ /g"`
-	for w in $LIST_LITEGAPPS_PLUS; do
-		if [ -f $base/core/litegapps++/make.sh ]; then
-			BASED=$base/core/litegapps++/$w
-			chmod 755 $base/core/litegapps++/make.sh
-			. $base/core/litegapps++/make.sh
-		else
-			ERROR "[ERROR] <$base/core/litegapps++/make.sh> not found"
-		fi
-	done
-fi
-#################################################
-#Done
-#################################################
-del $tmp
+SET_PACKAGE(){
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	echo
+	}
+case $1 in
+restore | r)
+RESTORE
+;;
+make | m)
+MAKE
+;;
+clean | c)
+CLEAN
+;;
+upload | u)
+UPLOAD
+;;
+set-package)
+SET_PACKAGE
+;;
+*)
+print "usage : bash make <options>"
+print " "
+print "Options"
+print "restore            restoring files"
+print "make               build litegapps"
+print "clean              cleaning all files"
+print "upload             upload files output"
+print "set-package        set package varian litegapps"
+print " "
+;;
+esac
+
+test -d $tmp && del $tmp
