@@ -1,11 +1,11 @@
+AndroidPlatformServices
 CarrierServices
 CarrierSetup
 Common
 ConfigUpdater
-GoogleBackupTransport
 GoogleCalendarSyncAdapter
-GoogleContactsSyncAdapter
 GoogleExtShared
+GoogleFeedback
 GoogleOneTimeInitializer
 GooglePartnerSetup
 GoogleRestore
