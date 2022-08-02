@@ -348,6 +348,49 @@ SET_PACKAGE(){
 	
 	echo
 	}
+UPDATE_GAPPS_SERVER(){
+	clear
+	printlog "        Update Gapps Server"
+	printlog " "
+	#litegapps
+	local BASE_GAPPS=$base/core/litegapps/lite/gapps
+	for A in $(ls -1 $BASE_GAPPS); do
+		for B in $(ls -1 $BASE_GAPPS/$A); do
+			if [ -d $BASE_GAPPS/$A/$B/system ]; then
+				printlog "- Zipping $BASE_GAPPS/$A/$B/system"
+				cd $BASE_GAPPS/$A/$B
+				del $tmp/files-server/litegapps/$A/$B
+				cdir $tmp/files-server/litegapps/$A/$B
+				zip -r9 $tmp/files-server/litegapps/$A/$B/$B.zip * >/dev/null
+			fi
+		done
+	done
+	printlog "- Upload to server"
+	printlog " "
+	for W in sftp scp; do
+		if $(command -v $W >/dev/null); then
+		printlog "Executable <$W> <$(command -v $W)> [OK]"
+		else
+		printlog "Executable <$W> [ERROR] not found"
+		exit 1
+		fi
+	done
+	printlog " "
+	printlog "- Total Size file upload : $(du -sh $out)"
+	printlog "- Server : Sourceforge"
+	printlog "- Username account sourceforge"
+	echo -n "- User name = "
+	read USERNAME
+	cd $tmp
+	for C in $(find * -name *.zip -type f); do
+		SC=$C
+		TG=/home/frs/project/litegapps/$SC
+		printlog "- Uploading <$SC> to <$TG>"
+		scp $SC $USERNAME@web.sourceforge.net:$TG
+	done
+	printlog " "
+	printlog "- done"
+	}
 case $1 in
 restore | r)
 RESTORE
@@ -364,15 +407,20 @@ UPLOAD
 set-package)
 SET_PACKAGE
 ;;
+update-gapps-server)
+UPDATE_GAPPS_SERVER
+;;
 *)
 print "usage : bash make <options>"
 print " "
 print "Options"
-print "restore            restoring files"
-print "make               build litegapps"
-print "clean              cleaning all files"
-print "upload             upload files output"
-print "set-package        set package varian litegapps"
+print "restore              restoring files"
+print "make                 build litegapps"
+print "clean                cleaning all files"
+print "upload               upload files output"
+print "set-package          set package varian litegapps"
+print "update-gapps-server  update files server gapps"
+print " "
 print " "
 ;;
 esac
