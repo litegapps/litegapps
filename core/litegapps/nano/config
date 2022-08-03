@@ -1,4 +1,4 @@
-sdk=32
+sdk=31
 arch=arm64
 restore.sdk=32
 restore.arch=arm64
