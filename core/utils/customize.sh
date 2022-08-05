@@ -281,20 +281,20 @@ if [ -d $MODULES ] && ! rmdir $MODULES 2>/dev/null; then
 fi
 
 #Permissions
-find $MODPATH/system -type d 2>/dev/null | while read setperm_dir; do
-	while_log "- Set chcon dir : $setperm_dir"
-	ch_con $setperm_dir
-	while_log "- Set chmod 755 dir : $setperm_dir"
-	chmod 755 $setperm_dir
-done >> $loglive
-
 printlog "- Set Permissions"
-find $MODPATH/system -type f 2>/dev/null | while read setperm_file; do
-	while_log "- Set chcon file : $setperm_file"
+for setperm_dir in $(find $MODPATH/system -type d 2>/dev/null); do
+	sedlog "- Set chcon dir : $setperm_dir"
+	ch_con $setperm_dir
+	sedlog "- Set chmod 755 dir : $setperm_dir"
+	chmod 755 $setperm_dir
+done
+
+for setperm_file in $(find $MODPATH/system -type f 2>/dev/null); do
+	sedlog "- Set chcon file : $setperm_file"
 	ch_con $setperm_file
-	while_log "- Set chmod 644 file : $setperm_file"
+	sedlog "- Set chmod 644 file : $setperm_file"
 	chmod 644 $setperm_file
-done >> $loglive
+done
 
 
 #addon.d
@@ -317,16 +317,19 @@ if [ $TYPEINSTALL != kopi ] && [ -d /data/adb/service.d ] && [ ! -f $LITEGAPPS/d
 	chmod 755 /data/adb/service.d/litegapps-post-fs
 fi
 
-printlog "- Cleaning cache"
-LIST_CACHE="
-$tmp
-$files
-$MODPATH/modules
-"
-for W in $LIST_CACHE ; do
-	sedlog "- removing cache $W"
-	del $W
+#check partition ro/rw
+partition_check
+
+ls -alZR $MODPATH/system > $LITEGAPPS/log/system_modpath
+for T in $SYSTEM $PRODUCT $SYSTEM_EXT; do
+	if [ -d $T ] && [ "$(ls -A $T)" ]; then
+		ls -alZR $T > $LITEGAPPS/log/$(basename ${T}).old
+	else
+		sedlog "! <$T> not found"
+	fi
+
 done
+
 
 
 # cheking memory partition
@@ -336,7 +339,7 @@ if [ $TYPEINSTALL = kopi ]; then
 	if [ -d $MODPATH/system ] && [ ! -d $MODPATH/system/product ] && [ ! -d $MODPATH/system/system_ext ] && [ "$(ls -A $MODPATH/system)" ]; then
 		MEM_INSTALL=`du -sk $MODPATH/system | cut -f1`
 		MEM_PARTITION=`df -k $SYSTEM | tail -n 1 | tr -s ' ' | cut -d' ' -f3`
-		if [ "$MEM_PARTITION" -eq "$MEM_PARTITION" ] && [ "$MEM_PARTITION" -gt "$MEM_INSTALL" ]; then
+		if [[ "$MEM_PARTITION" -eq "$MEM_PARTITION" ]] && [[ "$MEM_PARTITION" -gt "$MEM_INSTALL" ]]; then
 			sedlog " memory partition $SYSTEM"
 			sedlog " memory install = $MEM_INSTALL kb"
 			sedlog " memory free partition $SYSTEM : $MEM_PARTITION kb"
@@ -352,7 +355,7 @@ if [ $TYPEINSTALL = kopi ]; then
 	if [ -d $MODPATH/system/product ] && [ "$(ls -A $MODPATH/system/product)" ]; then
 		MEM_INSTALL=`du -sk $MODPATH/system/product | cut -f1`
 		MEM_PARTITION=`df -k $PRODUCT | tail -n 1 | tr -s ' ' | cut -d' ' -f3`
-		if [ "$MEM_PARTITION" -eq "$MEM_PARTITION" ] && [ "$MEM_PARTITION" -gt $"MEM_INSTALL" ]; then
+		if [[ "$MEM_PARTITION" -eq "$MEM_PARTITION" ]] && [[ "$MEM_PARTITION" -gt $"MEM_INSTALL" ]]; then
 			sedlog " memory partition $PRODUCT"
 			sedlog " memory install = $MEM_INSTALL kb"
 			sedlog " memory free partition $PRODUCT : $MEM_PARTITION kb"
@@ -365,10 +368,10 @@ if [ $TYPEINSTALL = kopi ]; then
 			report_bug "$PRODUCT partition memory is full"
 		fi
 	fi
-	if [ -d $MODPATH/system/system_ext ] && [ "$(ls -A $MODPATH/system/system_ext)" ]; then
+	if [[ -d $MODPATH/system/system_ext ]] && [[ "$(ls -A $MODPATH/system/system_ext)" ]]; then
 		MEM_INSTALL=`du -sk $MODPATH/system/system_ext | cut -f1`
 		MEM_PARTITION=`df -k $SYSTEM_EXT | tail -n 1 | tr -s ' ' | cut -d' ' -f3`
-		if [ "$MEM_PARTITION" -eq "$MEM_PARTITION" ] && [ "$MEM_PARTITION" -gt "$MEM_INSTALL" ]; then
+		if [[ "$MEM_PARTITION" -eq "$MEM_PARTITION" ]] && [[ "$MEM_PARTITION" -gt "$MEM_INSTALL" ]]; then
 			sedlog " memory partition $SYSTEM_EXT"
 			sedlog " memory install = $MEM_INSTALL kb"
 			sedlog " memory free partition $SYSTEM_EXT : $MEM_PARTITION kb"
@@ -386,7 +389,7 @@ else
 	if [ -d $MODPATH/system ] && [ "$(ls -A $MODPATH/system)" ]; then
 		MEM_INSTALL=`du -sk $MODPATH/system | cut -f1`
 		MEM_PARTITION=`df -k /data | tail -n 1 | tr -s ' ' | cut -d' ' -f3`
-		if [ "$MEM_PARTITION" -eq "$MEM_PARTITION" ] && [ "$MEM_PARTITION" -gt "$MEM_INSTALL" ]; then
+		if [[ "$MEM_PARTITION" -eq "$MEM_PARTITION" ]] && [[ "$MEM_PARTITION" -gt "$MEM_INSTALL" ]]; then
 			sedlog " memory partition /data"
 			sedlog " memory install = $MEM_INSTALL kb"
 			sedlog " memory free partition /data : $MEM_PARTITION kb"
@@ -403,17 +406,15 @@ else
 
 fi
 
-#check partition ro/rw
-partition_check
-
-ls -alZR $MODPATH/system > $LITEGAPPS/log/system_modpath
-for T in $SYSTEM $PRODUCT $SYSTEM_EXT; do
-	if [ -d $T ] && [ "$(ls -A $T)" ]; then
-		ls -alZR $T > $LITEGAPPS/log/$(basename ${T}).old
-	else
-		sedlog "! <$T> not found"
-	fi
-
+printlog "- Cleaning cache"
+LIST_CACHE="
+$tmp
+$files
+$MODPATH/modules
+"
+for W in $LIST_CACHE ; do
+	sedlog "- removing cache $W"
+	del $W
 done
 
 if [ $TYPEINSTALL = magisk ]; then
