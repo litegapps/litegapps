@@ -8,16 +8,13 @@ cdir (){ mkdir -p "$@"; }
 printlog(){
 	print "$1"
 	if [ "$1" != " " ]; then
-	echo "$1 [$(date '+%d/%m/%Y %H:%M:%S')]" >> $log
-	echo "$1 [$(date '+%d/%m/%Y %H:%M:%S')]" >> $loglive
+		echo "$1 [$(date '+%d/%m/%Y %H:%M:%S')]" >> $log
 	else
-	print "$1" >> $log
-	echo "$1" >> $loglive
+		print "$1" >> $log
 	fi
 	}
 sedlog(){
 	echo "[Processing]  $1 [$(date '+%d/%m/%Y %H:%M:%S')]" >> $log
-	echo "[Processing]  $1 [$(date '+%d/%m/%Y %H:%M:%S')]" >> $loglive
 	}
 	
 while_log(){
@@ -26,32 +23,28 @@ while_log(){
 listlog(){
 	echo " " >> $log
 	echo "---------- Folder List : $1 ----------" >> $log
-	echo " " >> $loglive
-	echo "---------- Folder List : $1 ----------" >> $loglive
-	find "$1" -type f | while read lol; do
-	while_log "| $(du -sah $lol | cut -f 1) | $lol"
-	done >> $loglive
+	for w in $(find "$1" -type f); do
+		echo "| $(du -sah $w | cut -f 1) | $w" >> $log
+	done
 	echo "--------------------------------------" >> $log
 	echo " " >> $log
-	echo "--------------------------------------" >> $loglive
-	echo " " >> $loglive
 	}
 
 getp(){ grep "^$1" "$2" | head -n1 | cut -d = -f 2; }
 
 abort(){
-	print " " | tee -a $log | tee -a $loglive
-	print "!!! $1" | tee -a $log | tee -a $loglive
-	print " " | tee -a $log | tee -a $loglive
+	print " " | tee -a $log
+	print "!!! $1" | tee -a $log
+	print " " | tee -a $log
 	exit 1
 	}
 	
 make_log(){
 	#creating log
 	if [ $(getp litegapps_type $MODPATH/module.prop) = litegapps_plus ]; then
-	NAME_LOG=`echo "[LOG]litegapps++_$(getp version $MODPATH/module.prop).zip"`
+		NAME_LOG=`echo "[LOG]litegapps++_$(getp version $MODPATH/module.prop).zip"`
 	else
-	NAME_LOG=`echo "[LOG]litegapps_$(getp version $MODPATH/module.prop).zip"`
+		NAME_LOG=`echo "[LOG]litegapps_$(getp version $MODPATH/module.prop).zip"`
 	fi
 	
 	if [ $DEV_MODE = OFF ]; then
@@ -69,9 +62,9 @@ make_log(){
 	done
 	
 	if [ -d $LITEGAPPS/log ]; then
-		listlog $tmp
-		listlog $MODPATH
-		listlog $LITEGAPPS
+		for TR in $tmp $MODPATH $LITEGAPPS; do
+			test -d $TR && listlog $TR
+		done
 		cd $LITEGAPPS/log
 		test -f $LITEGAPPS/$NAME_LOG && del $LITEGAPPS/$NAME_LOG
 		$bin/zip -r9 $LITEGAPPS/$NAME_LOG * >/dev/null 2>&1
@@ -178,7 +171,7 @@ printlog "| Seamless        : $device_abpartition"
 printlog "| BootMode        : $BOOTMODE"
 sedlog "| System          : $SYSTEM"
 printlog "|___________________________________"
-if [ $DEV_MODE = ON ]; then
+if [[ $DEV_MODE == ON ]]; then
 	#skip if
 	unset
 else
