@@ -154,19 +154,6 @@ setenforce 0
 [ "$AKHOME" ] || AKHOME=$POSTINSTALL/tmp/anykernel;
 [ "$ANDROID_ROOT" ] || ANDROID_ROOT=/system;
 
-ui_print() {
-  until [ ! "$1" ]; do
-    echo "ui_print $1
-      ui_print" >> $OUTFD;
-    shift;
-  done;
-}
-ui_printfile() {
-  while IFS='' read -r line ||  [[ -n "$line" ]]; do
-    ui_print "$line";
-  done < $1;
-}
-show_progress() { echo "progress $1 $2" >> $OUTFD; }
 file_getprop() {  grep "^$2=" "$1" |  tail -n1 |  cut -d= -f2-; }
 find_slot() {
   local slot=$(getprop ro.boot.slot_suffix 2>/dev/null);
