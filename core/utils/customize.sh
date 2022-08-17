@@ -344,12 +344,14 @@ if [ $TYPEINSTALL = kopi ]; then
 			sedlog " memory install = $MEM_INSTALL kb"
 			sedlog " memory free partition $SYSTEM : $MEM_PARTITION kb"
 			sedlog " free space is [OK]"
-		else
+		elif [[ "$MEM_PARTITION" -eq "$MEM_PARTITION" ] && [[ "$MEM_PARTITION" -le "$MEM_INSTALL" ]]; then
 			printlog "! memory partition $SYSTEM"
 			printlog "! memory install = $MEM_INSTALL kb"
 			printlog "! memory free partition $SYSTEM : $MEM_PARTITION kb"
 			printlog "! free space is [ERROR] full memory"
 			report_bug "$SYSTEM partition memory is full"
+		else
+			sedlog "! memory partition $SYSTEM is not detected size"
 		fi
 	fi
 	if [ -d $MODPATH/system/product ] && [ "$(ls -A $MODPATH/system/product)" ]; then
@@ -360,12 +362,14 @@ if [ $TYPEINSTALL = kopi ]; then
 			sedlog " memory install = $MEM_INSTALL kb"
 			sedlog " memory free partition $PRODUCT : $MEM_PARTITION kb"
 			sedlog " free space is [OK]"
-		else
+		elif [[ "$MEM_PARTITION" -eq "$MEM_PARTITION" ] && [[ "$MEM_PARTITION" -le "$MEM_INSTALL" ]]; then
 			printlog "! memory partition $PRODUCT"
 			printlog "! memory install = $MEM_INSTALL kb"
 			printlog "! memory free partition $PRODUCT : $MEM_PARTITION kb"
 			printlog "! free space is [ERROR] full memory"
 			report_bug "$PRODUCT partition memory is full"
+		else
+			sedlog "! memory partition $PRODUCT is not detected size"
 		fi
 	fi
 	if [[ -d $MODPATH/system/system_ext ]] && [[ "$(ls -A $MODPATH/system/system_ext)" ]]; then
@@ -376,12 +380,14 @@ if [ $TYPEINSTALL = kopi ]; then
 			sedlog " memory install = $MEM_INSTALL kb"
 			sedlog " memory free partition $SYSTEM_EXT : $MEM_PARTITION kb"
 			sedlog " free space is [OK]"
-		else
+		elif [[ "$MEM_PARTITION" -eq "$MEM_PARTITION" ] && [[ "$MEM_PARTITION" -le "$MEM_INSTALL" ]]; then
 			printlog "! memory partition $SYSTEM_EXT"
 			printlog "! memory install = $MEM_INSTALL kb"
 			printlog "! memory free partition $SYSTEM_EXT : $MEM_PARTITION kb"
 			printlog "! free space is [ERROR] full memory"
 			report_bug "$SYSTEM_EXT partition memory is full"
+		else
+			sedlog "! memory partition $SYSTEM_EXT is not detected size"
 		fi
 		
 	fi
@@ -394,14 +400,15 @@ else
 			sedlog " memory install = $MEM_INSTALL kb"
 			sedlog " memory free partition /data : $MEM_PARTITION kb"
 			sedlog " free space is [OK]"
-		else
+		elif [[ "$MEM_PARTITION" -eq "$MEM_PARTITION" ] && [[ "$MEM_PARTITION" -le "$MEM_INSTALL" ]]; then
 			printlog "! memory partition /data"
 			printlog "! memory install = $MEM_INSTALL kb"
 			printlog "! memory free partition /data : $MEM_PARTITION kb"
 			printlog "! free space is [ERROR] full memory"
 			report_bug "/data partition memory is full"
+		else
+			sedlog "! memory partition /data is not detected size"
 		fi
-		
 	fi
 
 fi

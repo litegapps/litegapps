@@ -52,6 +52,9 @@ make_log(){
 	else
 		printlog "- Make log to <$LITEGAPPS/$NAME_LOG>"
 	fi
+	
+	getprop > $LITEGAPPS/log/get_prop
+	
 	for BLOG in $SYSTEM $PRODUCT $SYSTEM_EXT $VENDOR; do
 		local BASENAME=`basename $BLOG`
 		if [ -f $BLOG/build.prop ]; then
@@ -171,49 +174,32 @@ printlog "| Seamless        : $device_abpartition"
 printlog "| BootMode        : $BOOTMODE"
 sedlog "| System          : $SYSTEM"
 printlog "|___________________________________"
-if [[ $DEV_MODE == ON ]]; then
-	#skip if
-	unset
-else
-	return 0
-fi
-printlog "|          Developer Mode"
-printlog "| Boot Mode    : $BOOTMODE"
-printlog "| System       : $SYSTEM"
+sedlog "|          Developer Mode"
+sedlog "| Boot Mode    : $BOOTMODE"
+sedlog "| System       : $SYSTEM"
 if [ -d /dev/block/mapper ]; then
 	dynamic3=true
 else
 	dynamic3=false
 fi
-printlog "| Dynamic Partition : $dynamic3"
-if [ -d $SYSTEM ]; then
-	touch $SYSTEM/litegapps.test
-	if [ -f $SYSTEM/litegapps.test ]; then
-		del $SYSTEM/litegapps.test
-		printlog "| Read/Write system : true"
-	else
-		printlog "| Read/Write system : false"
-	fi
-else
-printlog "| Read/Write system : false"
-fi
-printlog "| Litegapps Type : $(getp litegapps_type $MODPATH/module.prop)"
-printlog "| Litegapps Compress : $(getp litegapps_apk_compress $MODPATH/module.prop)"
-printlog "|___________________________________"
-printlog "             Memory Info"
+sedlog "| Dynamic Partition : $dynamic3"
+sedlog "| Litegapps Type : $(getp litegapps_type $MODPATH/module.prop)"
+sedlog "| Litegapps Compress : $(getp litegapps_apk_compress $MODPATH/module.prop)"
+sedlog "|___________________________________"
+sedlog "             Memory Info"
 for W897 in /data /system /product /system_ext /vendor /dev; do
 		if [ -d $W897 ]; then
 		local FILESYSTEM=`df -h $W897 | tail -n 1 | tr -s ' ' | cut -d' ' -f1`
-		printlog " Partition  = $W897"
-		printlog " Filesystem = $FILESYSTEM"
-		printlog " Mounted on = $(df -h $W897 | tail -n 1 | tr -s ' ' | cut -d' ' -f6)"
-		printlog " Free       = $(df -h $W897 | tail -n 1 | tr -s ' ' | cut -d' ' -f4)"
-		printlog " Usage      = $(df -h $W897 | tail -n 1 | tr -s ' ' | cut -d' ' -f3)"
-		printlog " Total      = $(df -h $W897 | tail -n 1 | tr -s ' ' | cut -d' ' -f2)"
-		printlog " Used %     = $(df -h $W897 | tail -n 1 | tr -s ' ' | cut -d' ' -f5)"
-		printlog " Type       = $(mount | grep $FILESYSTEM | tail -n 1 | tr -s ' ' | cut -d' ' -f5)"
-		printlog "____________________________________________"
-		printlog " "
+		sedlog " Partition  = $W897"
+		sedlog " Filesystem = $FILESYSTEM"
+		sedlog " Mounted on = $(df -h $W897 | tail -n 1 | tr -s ' ' | cut -d' ' -f6)"
+		sedlog " Free       = $(df -h $W897 | tail -n 1 | tr -s ' ' | cut -d' ' -f4)"
+		sedlog " Usage      = $(df -h $W897 | tail -n 1 | tr -s ' ' | cut -d' ' -f3)"
+		sedlog " Total      = $(df -h $W897 | tail -n 1 | tr -s ' ' | cut -d' ' -f2)"
+		sedlog " Used %     = $(df -h $W897 | tail -n 1 | tr -s ' ' | cut -d' ' -f5)"
+		sedlog " Type       = $(mount | grep $FILESYSTEM | tail -n 1 | tr -s ' ' | cut -d' ' -f5)"
+		sedlog "____________________________________________"
+		sedlog " "
 		fi
 done
 }
