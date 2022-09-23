@@ -39,6 +39,17 @@ abort(){
 	exit 1
 	}
 	
+find_slot() {
+  local slot=$(getprop ro.boot.slot_suffix 2>/dev/null);
+  [ "$slot" ] || slot=$( grep -o 'androidboot.slot_suffix=.*$' /proc/cmdline |  cut -d\  -f1 |  cut -d= -f2);
+  if [ ! "$slot" ]; then
+    slot=$(getprop ro.boot.slot 2>/dev/null);
+    [ "$slot" ] || slot=$( grep -o 'androidboot.slot=.*$' /proc/cmdline |  cut -d\  -f1 |  cut -d= -f2);
+    [ "$slot" ] && slot=_$slot;
+  fi;
+  [ "$slot" ] && echo "$slot";
+}
+
 make_log(){
 	#creating log
 	if [ $(getp litegapps_type $MODPATH/module.prop) = litegapps_plus ]; then
@@ -118,17 +129,12 @@ GET_PROP(){
 	
 	}
 litegapps_info(){
-	device_abpartition=$(getprop ro.build.ab_update)
-	[ -n "$device_abpartition" ] || device_abpartition="A only"
-	
 MODULEVERSION=`getp version $MODPATH/module.prop`
 MODULECODE=`getp versionCode $MODPATH/module.prop`
 MODULENAME=`getp name $MODPATH/module.prop`
 MODULEANDROID=`getp android $MODPATH/module.prop`
 MODULEDATE=`getp date $MODPATH/module.prop`
 MODULEAUTHOR=`getp author $MODPATH/module.prop`
-device_abpartition=$(getprop ro.build.ab_update)
-[ -n "$device_abpartition" ] || device_abpartition="A only"
 [ -n "$system" ] || system="systemless"
 [ -n "$TYPEINSTALL" ] || TYPEINSTALL="magisk module"
 printlog "____________________________________"
@@ -170,7 +176,11 @@ printlog "| Android Version : $(GET_PROP ro.build.version.release)"
 printlog "| Architecture    : $ARCH"
 printlog "| Api             : $(GET_PROP ro.build.version.sdk)"
 printlog "| Density         : $(GET_PROP ro.sf.lcd_density)"
-printlog "| Seamless        : $device_abpartition"
+if $(getprop ro.build.ab_update); then
+	printlog "| Seamless        : A/B (slot $(find_slot) )"
+else
+	printlog "| Seamless        : A only"
+fi
 printlog "| BootMode        : $BOOTMODE"
 sedlog "| System          : $SYSTEM"
 printlog "|___________________________________"
