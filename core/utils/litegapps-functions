@@ -177,7 +177,7 @@ printlog "| Architecture    : $ARCH"
 printlog "| Api             : $(GET_PROP ro.build.version.sdk)"
 printlog "| Density         : $(GET_PROP ro.sf.lcd_density)"
 if $(getprop ro.build.ab_update); then
-	printlog "| Seamless        : A/B (slot $(find_slot) )"
+	printlog "| Seamless        : A/B (slot $(find_slot))"
 else
 	printlog "| Seamless        : A only"
 fi
