@@ -101,6 +101,12 @@ report_bug(){
 	printlog " "
 	del $MODPATH
 	[ $TYPEINSTALL = "kopi" ] && del $KOPIMOD
+	
+	if ! $BOOTMODE; then
+		#umount
+		print "- Umounting partitions";
+		restore_env
+	fi
 	exit 1
 }
 
@@ -145,7 +151,7 @@ printlog "| Build date      : $MODULEDATE"
 printlog "| By              : $MODULEAUTHOR"
 case $TYPEINSTALL in
 magisk)
-printlog "| Mode            : systemless"
+printlog "| Mode            : systemless (Magisk Module)"
 ;;
 *)
 printlog "| Mode            : non systemless"
@@ -187,7 +193,7 @@ printlog "|___________________________________"
 sedlog "|          Developer Mode"
 sedlog "| Boot Mode    : $BOOTMODE"
 sedlog "| System       : $SYSTEM"
-if [ -d /dev/block/mapper ]; then
+if [ -f /dev/block/by-name/super ]; then
 	dynamic3=true
 else
 	dynamic3=false
@@ -250,13 +256,39 @@ partition_check(){
 		fi
 	done
 	}
+get_android_version(){
+	local input=$1
+	case $input in
+		21) echo 5.0 ;;
+		22) echo 5.1 ;;
+		23) echo 6.0 ;;
+		24) echo 7.0 ;;
+		25) echo 7.1 ;;
+		26) echo 8.0 ;;
+		27) echo 8.1 ;;
+		28) echo 9.0 ;;
+		29) echo 10.0 ;;
+		30) echo 11.0 ;;
+		31) echo 12.0 ;;
+		32) echo 12.1 ;;
+		33) echo 13.0 ;;
+	 esac
+	}
 litegapps_plus(){
 	test ! -d $tmp/$ARCH/$SDKTARGET && cdir $tmp/$ARCH/$SDKTARGET
 	#sdk
 	if [ -d $tmp/cross_sdk/$SDKTARGET ]; then
 		cp -af $tmp/cross_sdk/$SDKTARGET/* $tmp/$ARCH/$SDKTARGET/
 	else
-		report_bug "Your Android Version Not Support <litegapps++>"
+		print "+ Architecture Support"
+		for A1 in $(ls -1 $tmp/arch); do
+			printlog "         $A1"
+		done
+		print "+ Android Version Support"
+		for A2 in $(ls -1 $tmp/cross_sdk); do
+			printlog "         $(get_android_version $A2)"
+		done
+		report_bug "Your Android Version Not Support (litegapps++)"
 	fi
 
 	#arch
@@ -296,3 +328,4 @@ litegapps_plus(){
 		fi
 	fi
 	}
+	

@@ -181,9 +181,19 @@ fi
 #### End defference litegapps++
 
 #cheking sdk files
-[ ! -d $tmp/$ARCH/$SDKTARGET ] && report_bug "Your Android Version Not Support"
-#using litegapps compress apk or google default apk
+if [ ! -d $tmp/$ARCH/$SDKTARGET ]; then
+	print "+ Architecture Support"
+	for A1 in $(ls -1 $tmp); do
+		printlog "         $A1"
+	done
+	print "+ Android Version Support"
+	for A2 in $(ls -1 $tmp/$ARCH); do
+		printlog "         $(get_android_version $A2)"
+	done
+	report_bug "Your Android Version Not Support"
+fi
 
+#using litegapps compress apk or google default apk
 if [ "$(getp litegapps_apk_compress $MODPATH/module.prop)" = litegapps_compress ]; then
 	sedlog "Using litegapps system compress apk"
 	#extrack tar files
@@ -233,7 +243,7 @@ if [ "$(getp litegapps_apk_compress $MODPATH/module.prop)" = litegapps_compress 
 	done
 	
 else
-	sedlog "Using google default system compress apk"
+	sedlog "+ Using google default system compress apk"
 fi
 
 #copying file
