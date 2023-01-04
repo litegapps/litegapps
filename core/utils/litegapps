@@ -6,8 +6,8 @@
 #if you copy some code here please permission to the owner
 #
 
-propversion=v0.9
-propdate=18-05-2022
+propversion=v1.0
+propdate=19-07-2022
 
 # Colors
 GREEN='\e[01;32m'
@@ -247,10 +247,10 @@ device(){
     else
     	print "${WHITE}magisk = Not found"
     fi
-    [ "$(getprop persist.vendor.camera.HAL3.enabled)" -eq 1 ] && print "Camera2api = Enable" || print "${WHITE}Camera2api = Disable $GREEN"
+    
     [ "$(grep f2fs /vendor/etc/fstab.qcom)" ] && print "F2FS = This ROM supports F2FS" || print "${WHITE}F2FS = This ROM not supports F2FS${GREEN}"
     test -f /sys/kernel/touchpanel/dclicknode && [ "$(cat /sys/kernel/touchpanel/dclicknode)" -eq 1 ] && print "DT2W = Enable" || print "${WHITE}DT2W = Disable${GREEN}"
-    [ -d /dev/block/mapper ] && print "Dynamic Partitions = true" || "Dynamic Partitions = false"
+    [ -L /dev/block/by-name/super ] && print "Dynamic Partitions = true" || "Dynamic Partitions = false"
     if pm list packages -s | grep -q com.google.android.gms; then
     print "Gapps=installed"
     else
@@ -694,52 +694,49 @@ addon_led_calerful(){
 		done
 	}
 addon_boot_unpacker(){
-	if [ -f $BASED/boot.img ]; then
-			block=$BASED/boot.img
-		elif [ ! -z $(find /dev/block -type l -iname boot | head -n 1) ]; then
-			block=$(find /dev/block -type l -iname boot | head -n 1)
-		elif [ ! -z /dev/block/by-name/boot ]; then
-			block=/dev/block/by-name/boot
-		else
+	print_title "Boot image Unpacker"
+	if [ $(command -v magiskboot) ]; then
+		local MAGISKBOOT=magiskboot
+	elif [ -f /data/adb/magisk/magiskboot ]; then
+		local MAGISKBOOT=/data/adb/magisk/magiskboot
+	fi
+	local L_BOOT="
+	/dev/block/by-name/boot
+	/dev/block/by-name/boot_a
+	/dev/block/by-name/boot_b
+	$BASED/boot.img
+	"
+	local NUM=$NUM
+	for BI in $L_BOOT; do
+		if [ -f $BI ] || [ -L $BI ]; then 
+			local NUM=$(((NUM+1)))
+			local NAME=`basename $BI`
+			local OUT=$BASED/boot/$NAME
 			print
-			echo -n "- Set Manual Boot image : "
-			read setboot
-			block=$setboot
-		fi
-		
-		if [ $(command -v magiskboot) ]; then
-			local MAGISKBOOT=magiskboot
-		elif [ -f /data/adb/magisk/magiskboot ]; then
-			local MAGISKBOOT=/data/adb/magisk/magiskboot
-		fi
-		if [ "$MAGISKBOOT" ] && [ ! -z $block ]; then
-			print_title "Boot image Unpacker"
-			print "- Block  : $block"
-			print "- Output : $BASED/boot/<here>"
-			print " "
-			sleep 2s
-			del $BASED/boot
-			cdir $BASED/boot
-			cd $BASED/boot
+			print "${NUM}. $Name"
+			print "- Input  : $BI"
+			print "- Output : $BASED/$NAME/<here>"
+			print
+			del $OUT
+			cdir $OUT
+			cd $OUT
 			print "- Unpack boot image"
 			sleep 1s
-			cat $block > $BASED/boot/old-boot.img
-			$MAGISKBOOT unpack -h $block 2>/dev/null
+			cat $BI > $OUT/old-boot.img
+			$MAGISKBOOT unpack -h $BI 2>/dev/null
 			print "- Repack boot image"
-			$MAGISKBOOT repack $block 2>/dev/null
+			$MAGISKBOOT repack $BI 2>/dev/null
 			cd /
-			sleep 1s
-			print "- Unpackimg Done"
-			end_menu
-		else
-			print_title "Boot image Unpacker"
-			print "${RED}! Magiskboot or Boot.img Not found"
-			end_menu
+			print "- Unpack boot image Done"
+			
 		fi
+	
+	done
+	end_menu
 	}
 addon_enable_all_apps(){
 	print_title "Enable All Apps"
-	for WAHYU67 in $(pm list packages); do
+	for WAHYU67 in $(pm list packages -d); do
 		local APP_INPUT=`getp1 $WAHYU67`
 		for WAHYU77 in $blacklist_term; do
 			if [ $APP_INPUT != $WAHYU77 ]; then
@@ -891,26 +888,29 @@ meminfo(){
 	}
 TWEAKS_boost_cpu(){
 	print_title "Boost CPU"
-	print "- Boost Cluster 1"
-	local cluster1=/sys/devices/system/cpu/cpu0/cpufreq
-	if grep -q performance $cluster1/scaling_available_governors 2>/dev/null; then
-		print "• Set governor"
-		echo performance > $cluster1/scaling_governor
-	fi
-	if [ $(cat $cluster1/scaling_max_freq) -eq $(cat $cluster1/scaling_max_freq) ]; then
-		print "• Set freq"
-		echo "$(cat $cluster1/scaling_max_freq)" > $cluster1/scaling_min_freq
-	fi
-	print "- Boost Cluster 2"
-	local cluster2=/sys/devices/system/cpu/cpu7/cpufreq
-	if grep -q performance $cluster2/scaling_available_governor 2>/dev/null; then
-		print "• Set governor"
-		echo performance > $cluster2/scaling_governor
-	fi
-	if [ $(cat $cluster2/scaling_max_freq) -eq $(cat $cluster2/scaling_max_freq) ]; then
-		print "• Set freq"
-		echo "$(cat $cluster2/scaling_max_freq)" > $cluster2/scaling_min_freq
-	fi
+	local LIST_CPU="
+	cpu0
+	cpu1
+	cpu2
+	cpu3
+	cpu4
+	cpu5
+	cpu6
+	cpu7
+	"
+	for CPU in $LIST_CPU; do
+		local CPU_D=/sys/devices/system/cpu/$CPU
+		local NUM=$NUM
+		if [ -d $CPU_D ]; then
+		local NUM=$(((NUM+1)))
+			if grep -q performance $CPU_D/cpufreq/scaling_available_governors 2>/dev/null; then
+				print "- Boost CPU $NUM"
+				echo performance > $CPU_D/cpufreq/scaling_governor
+			fi
+		fi
+	
+	done
+	
 	print
 	print "- Done"
 	print
@@ -962,6 +962,32 @@ TWEAKS_GMS_DOSE(){
 	print "- Done"
 	end_menu
 	}
+TWEAKS_DISABLE_GAPPS(){
+	local LIST_GAPPS="
+	com.google.android.settings.intelligence
+	com.android.vending
+	com.google.android.gms
+	com.google.android.gm
+	com.google.android.youtube
+	com.google.android.play.games
+	com.google.android.apps.youtube.creator
+	"
+	if [ ! -f $DATA/tweaks_disable_gapps ]; then
+		print_title "Enable Gapps"
+		echo "active" > $DATA/tweaks_disable_gapps
+		for GMS5 in $LIST_GAPPS; do
+			pm disable $GMS5 >/dev/null && print "${GREEN}[OK] •> ${WHITE}${GMS5//com.}" || print "${RED}[ERROR] •> ${WHITE}${GMS5//com.}" 2>/dev/null
+		done
+	else
+		print_title "Disable Gapps"
+		del $DATA/tweaks_disable_gapps
+		for GMS5 in $LIST_GAPPS; do
+			pm enable $GMS5 >/dev/null && print "${GREEN}[OK] •> ${WHITE}${GMS5//com.}" || print "${RED}[ERROR] •> ${WHITE}${GMS5//com.}" 2>/dev/null
+		done
+	fi
+	print "- Done"
+	end_menu
+	}
 TWEAKS(){
 	while true; do
 		print_title "Tweaks"
@@ -972,7 +998,12 @@ TWEAKS(){
 		else
 		print "${VIOLET}3. GMS Dose${GREEN}"
 		fi
-		print "4. Exit"
+		if [ ! -f $DATA/tweaks_disable_gapps ]; then
+		print "4. Disable Gapps"
+		else
+		print "${VIOLET}4. Disable Gapps${GREEN}"
+		fi
+		print "5. Exit"
 		SELECT
 		case $PILIH in
 		1)
@@ -984,7 +1015,10 @@ TWEAKS(){
 		3)
 		TWEAKS_GMS_DOSE
 		;;
-		4 | exit)
+		4)
+		TWEAKS_DISABLE_GAPPS
+		;;
+		5 | exit)
 		break
 		;;
 		*) error "Invalid selection" ; sleep 2s ;;

@@ -134,6 +134,26 @@ GET_PROP(){
 	fi
 	
 	}
+get_android_codename(){
+	local input=$1
+	case $input in
+		21) echo "Lollipop" ;;
+		22) echo "Lollipop" ;;
+		23) echo "Marshmallow" ;;
+		24) echo "Nougat" ;;
+		25) echo "Nougat" ;;
+		26) echo "Oreo" ;;
+		27) echo "Oreo" ;;
+		28) echo "Pie" ;;
+		29) echo "Quince Tart" ;;
+		30) echo "Red Velvet Cake" ;;
+		31) echo "Snow Cone" ;;
+		32) echo "Snow Cone" ;;
+		33) echo "Tiramisu" ;;
+		34) echo "Upside Down Cake" ;;
+		*) echo "null" ;;
+	 esac
+	}
 litegapps_info(){
 MODULEVERSION=`getp version $MODPATH/module.prop`
 MODULECODE=`getp versionCode $MODPATH/module.prop`
@@ -178,11 +198,11 @@ printlog "| Codename        : $(GET_PROP ro.product.device)"
 else
 printlog "| Codename        : null"
 fi
-printlog "| Android Version : $(GET_PROP ro.build.version.release)"
+printlog "| Android Version : $(GET_PROP ro.build.version.release) ($(get_android_codename $(GET_PROP ro.build.version.sdk)))"
 printlog "| Architecture    : $ARCH"
 printlog "| Api             : $(GET_PROP ro.build.version.sdk)"
 printlog "| Density         : $(GET_PROP ro.sf.lcd_density)"
-if $(getprop ro.build.ab_update); then
+if [ $(getprop ro.build.ab_update) = "true" ]; then
 	printlog "| Seamless        : A/B (slot $(find_slot))"
 else
 	printlog "| Seamless        : A only"
@@ -272,6 +292,8 @@ get_android_version(){
 		31) echo 12.0 ;;
 		32) echo 12.1 ;;
 		33) echo 13.0 ;;
+		34) echo 14.0 ;;
+		*) echo null ;;
 	 esac
 	}
 litegapps_plus(){
