@@ -366,6 +366,7 @@ get_android_version(){
 		31) echo 12.0 ;;
 		32) echo 12.1 ;;
 		33) echo 13.0 ;;
+		34) echo 14.0 ;;
 	 esac
 	}
 	
