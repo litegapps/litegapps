@@ -4,16 +4,15 @@ this is a tool for building litegapps
 
 # Cloning
 ### https
-``git clone --depth 1 https://github.com/wahyu6070/litegapps``
+``git clone git@github.com:litegapps/litegapps.git``
 ### ssh
-``git clone --depth 1 git@github.com:litegapps/litegapps.git``
-
+``git clone git@github.com:litegapps/litegapps.git``
 
 # Configure
 
-``version=2.4`` version litegapps
+``version=2.9`` version litegapps
  
-``version.code=24`` version code litegapps
+``version.code=29`` version code litegapps
  
 ``codename=Stable`` Codename status build``
  
