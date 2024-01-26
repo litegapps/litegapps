@@ -4,7 +4,7 @@ this is a tool for building litegapps
 
 # Cloning
 ### https
-``git clone git@github.com:litegapps/litegapps.git``
+``https://github.com/litegapps/litegapps.git``
 ### ssh
 ``git clone git@github.com:litegapps/litegapps.git``
 

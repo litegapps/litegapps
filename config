@@ -1,5 +1,5 @@
-version=2.9
-version.code=29
+version=3.1
+version.code=31
 codename=stable
 name.builder=soekarno
 #unofficial or official
@@ -25,6 +25,8 @@ litegapps.build=true
 litegapps.restore=lite
 #list-type = lite,core,go,micro,pixel,nano,basic
 litegapps.type=lite
+# litegapps multi or single files.tar archive
+litegapps.tar=multi
 
 #Litegapps++ prop
 litegapps++.build=false
