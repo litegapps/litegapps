@@ -102,29 +102,31 @@ make_flashable_litegapps(){
 #################################################
 #Core
 #################################################
-if [ $ARCH_IN == $ARCH_IN ]; then
+if [ $ARCH_IN ]; then
 CONFIG_ARCH=$ARCH_IN
 else
 CONFIG_ARCH=`read_config arch | sed "s/,/ /g"`
 fi
-if [ $SDK_IN == $SDK_IN ]; then
+if [ $SDK_IN ]; then
 CONFIG_SDK=$SDK_IN
 else
 CONFIG_SDK=`read_config sdk | sed "s/,/ /g"`
 fi
 
-if [ $PRODUCT = $PRODUCT ]; then
+if [ $PRODUCT ]; then
 NAME=$PRODUCT
 else
 NAME=`read_config name`
 fi
 
-if [ $VARIANT = $VARIANT ]; then
+if [ $VARIANT ]; then
 VARIANT=$VARIANT
 else
 VARIANT=`read_config dir_name`
 fi
 
+echo $CONFIG_ARCH
+echo p
 for W_ARCH in $CONFIG_ARCH; do
 	#binary copy architecture type
 	BIN_ARCH=$W_ARCH
@@ -170,6 +172,7 @@ for W_ARCH in $CONFIG_ARCH; do
 		make_archive
 		fi
 		make_flashable_litegapps
+		echo berhasik2
 	done
 done
 
