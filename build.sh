@@ -623,17 +623,19 @@ MAKE(){
 	#Litegapps
 	#################################################
 	if [ "$PRODUCT" = "litegapps" ] || [ "$(get_config litegapps.build)" = "true" ]; then
-		if [ "$VARIANT" = "$VARIANT" ]; then
+		if [ $VARIANT ]; then
 		LIST_LITEGAPPS=$VARIANT
 		else
 		LIST_LITEGAPPS=`get_config litegapps.type | sed "s/,/ /g"`
 		fi
 		
 		for i in $LIST_LITEGAPPS; do
+		export VARIANT=$i
 			if [ -f $base/core/litegapps/make.sh ]; then
 				BASED=$base/core/litegapps/$i
 				chmod 755 $base/core/litegapps/make.sh
 				. $base/core/litegapps/make.sh
+				echo berhasil
 			else
 		 		ERROR "[ERROR] <$base/core/litegapps/make.sh> not found"
 			fi
