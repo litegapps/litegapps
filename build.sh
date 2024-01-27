@@ -474,7 +474,6 @@ CLEAN(){
 # Upload
 #################################################
 UPLOAD(){
-	clear
 	printlog " Litegapps Uploading files"
 	printlog " "
 	for W in sftp scp; do
@@ -520,7 +519,6 @@ UPLOAD(){
 # Restore
 #################################################
 RESTORE(){
-	clear
 	[ ! -d $base/files ] && cdir $base/files
 	printlog "               Restoring Files"
 	printlog " "
@@ -549,7 +547,7 @@ RESTORE(){
 		fi
 	else
 		printlog "1. Downloading : bin.zip"
-       curl --progress-bar -L -o $base/files/bin.zip https://gitlab.com/litegapps/litegapps-server-bin/-/raw/main/bin.zip?inline=false
+       curl --progress-bar -L -o $base/files/bin.zip https://sourceforge.net/projects/litegapps/files/files-server/bin/bin.zip/download
        if [  $? -eq 0 ]; then
        	printlog "     Downloading status : Successful"
        	printlog "     File size : $(du -sh $base/files/bin.zip | cut -f1)"
@@ -679,7 +677,6 @@ SET_PACKAGE(){
 	echo
 	}
 UPDATE_GAPPS_SERVER(){
-	clear
 	printlog "        Update Gapps Server"
 	printlog " "
 	#litegapps
