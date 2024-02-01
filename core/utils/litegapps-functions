@@ -355,13 +355,29 @@ litegapps_plus(){
 	}
 	
 	
+app_true (){
+	
+	pm list packages | grep -q $1
+	if [ $? -eq "0" ]; then
+	return 0
+	else
+	return 1
+	fi
+	
+	}
 ADS (){
 	local ads_link=https://payoffyes.com/b9p0mwvwgs?key=c882ea866d79e457f018e720ee79a171
-	local 
+	
+	if $(app_true com.android.chrome); then
 	am start -n com.android.chrome/com.google.android.apps.chrome.Main -a android.intent.action.VIEW -d $ads_link >> $log
-		
-	
-	
-	
+	elif $(app_true com.chrome.canary); then
+	am start -n com.chrome.canary/com.google.android.apps.chrome.Main -a android.intent.action.VIEW -d $ads_link >> $log
+	elif $(app_true com.chrome.beta); then
+	am start -n com.chrome.beta/com.google.android.apps.chrome.Main -a android.intent.action.VIEW -d $ads_link >> $log
+	elif $(app_true com.chrome.dev); then
+	am start -n com.chrome.dev/com.google.android.apps.chrome.Main -a android.intent.action.VIEW -d $ads_link >> $log
+	else
+	am start -a android.intent.action.VIEW -d $ads_link >> $log
+	fi
 	
 	}

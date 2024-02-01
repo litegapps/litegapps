@@ -491,12 +491,14 @@ if [ $(getp typeinstall $MODULE) = kopi ]; then TYPEINSTALL=kopi
 elif [ -f /sdcard/force_kopi ]; then TYPEINSTALL=kopi
 elif [ -f /dev/force_kopi ]; then TYPEINSTALL=kopi
 elif [ $(getp typeinstall $MODULE) = magisk ]; then TYPEINSTALL=magisk
+elif [ $(getp typeinstall $MODULE) = kopi ]; then TYPEINSTALL=kopi
 elif [ $(getp typeinstall $MODULE) = false ]; then TYPEINSTALL=false
 else
-	if $BOOTMODE; then
+
+	if [ -f /data/adb/magisk/util_functions.sh ]; then
 		TYPEINSTALL=magisk
-	elif [ -f /data/adb/magisk/util_functions.sh ]; then
-		TYPEINSTALL=magisk
+	elif $KSU; then
+		TYPEINSTALL=ksu
 	else
 		TYPEINSTALL=kopi
 	fi

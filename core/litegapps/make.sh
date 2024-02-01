@@ -7,7 +7,7 @@ read_config(){
 	getp "$1" $CONFIG
 	}
 make_flashable_litegapps(){
-	for WFL in MAGISK RECOVERY AUTO; do
+	for WFL in MAKSU RECOVERY AUTO; do
 		printlog "- Build flashable [$WFL]"
 		cdir $tmp/$WFL
 		copy_binary_flashable $BIN_ARCH $tmp/$WFL/bin/$BIN_ARCH
@@ -41,8 +41,8 @@ make_flashable_litegapps(){
 				fi
 			done
 		case $WFL in
-			MAGISK)
-				cp -af $base/core/utils/magisk/* $tmp/$WFL/
+			MAKSU)
+				cp -af $base/core/utils/maksu/* $tmp/$WFL/
 			;;
 			RECOVERY)
 				cp -af $base/core/utils/kopi/* $tmp/$WFL/
@@ -97,7 +97,7 @@ make_flashable_litegapps(){
 		else
 		local NAME_ZIP="${WFL}-$PRODUCT-$VARIANT-${W_ARCH}-$(get_android_version $W_SDK)-$(date +%Y%m%d)-${PROP_STATUS}.zip"
 		fi
-		local OUT_ZIP=$out/litegapps/$W_ARCH/$W_SDK/$(read_config dir_name)/$(date +%Y-%m-%d)/$NAME_ZIP
+		local OUT_ZIP=$out/litegapps/$W_ARCH/$W_SDK/$VARIANT/$(date +%Y-%m-%d)/$NAME_ZIP
 		make_zip $tmp/$WFL $OUT_ZIP
 	done
 	}
