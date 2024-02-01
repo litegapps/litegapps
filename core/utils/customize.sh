@@ -1,7 +1,6 @@
-# Copyright 2020 - 2022 The Litegapps Project
+#
 # customize.sh 
-# latest update 15-07-2022
-# By wahyu6070
+#
 
 chmod 755 $MODPATH/bin/litegapps-functions
 #litegapps functions
@@ -49,12 +48,6 @@ files=$MODPATH/files
 #detected build.prop
 [ ! -f $SYSTEM/build.prop ] && report_bug "System build.prop not found"
 
-#developer mode
-if [ -f /sdcard/Android/litegapps/mode_developer ]; then
-	DEV_MODE=ON
-else
-	DEV_MODE=OFF
-fi
 
 SDKTARGET=$(getp ro.build.version.sdk $SYSTEM/build.prop)
 findarch=$(getp ro.product.cpu.abi $SYSTEM/build.prop | cut -d '-' -f -1)
@@ -66,19 +59,26 @@ x86_64) ARCH=x86_64 ;;
 *) report_bug " <$findarch> Your Architecture Not Support" ;;
 esac
 
+
 #mode installation
-[ $TYPEINSTALL ] || TYPEINSTALL=magisk
-case $TYPEINSTALL in
-kopi)
-	sedlog "- Type install KOPI module"
-;;
-magisk)
-	sedlog "- Type install KOPI installer convert to magisk module"
-;;
-*)
-	sedlog "- Type install MAGISK module"
-;;
-esac
+if [ ! $TYPEINSTALL ] && $KSU; then
+TYPEINSTALL=ksu
+elif [ ! $TYPEINSTALL ] && [ ! $KSU ]; then
+TYPEINSTALL=magisk
+elif [ $TYPEINSTALL = "ksu" ]; then
+TYPEINSTALL=ksu
+sedlog "- Type install KOPI installer convert to ksu module"a
+elif [ $TYPEINSTALL = "magisk" ]; then
+TYPEINSTALL=magisk
+sedlog "- Type install KOPI installer convert to magisk module"
+elif [ $TYPEINSTALL = "kopi" ]; then
+TYPEINSTALL=kopi
+sedlog "- Type install KOPI installer convert to kopi module"
+else
+TYPEINSTALL=kopi
+sedlog "- Type install is not found, use default to kopi module"
+fi
+
 
 # Test /data rw partition
 case $TYPEINSTALL in
@@ -111,16 +111,8 @@ chmod -R 755 $bin
 #checking format file
 if [ -f $files/files.tar.xz ]; then
 	format_file=xz
-elif [ -f $files/files.tar.7z ]; then
-	format_file=7za
 elif [ -f $files/files.tar.br ]; then
 	format_file=brotli
-elif [ -f $files/files.tar.gz ]; then
-	format_file=gzip
-elif [ -f $files/files.tar.zst ]; then
-	format_file=zstd
-elif [ -f $files/files.tar.zip ]; then
-	format_file=zip
 else
 	report_bug "File Gapps not found or format not support"
 	listlog $files
@@ -131,7 +123,7 @@ sedlog "Format file : $format_file"
 test ! -f $bin/tar && report_bug "your architecture is not supported or not compatible with your device"
 
 #checking executable
-for W in $format_file tar zip zipalign; do
+for W in $format_file tar zip; do
 	test ! -f $bin/$W && report_bug "Please add executable <$W> in <$bin/$W>"
 done
 
@@ -141,21 +133,9 @@ case $format_file in
 xz)
 	$bin/xz -d $files/files.tar.xz || report_bug "Failed extract <files.tar.xz>"
 ;;
-7za)
-	$bin/7za e -y $files/files.tar.7z >/dev/null || report_bug "Failed extract <files.tar.7z>"
-	;;
-gunzip)
-	$bin/gzip -d $files/files.tar.gz || report_bug "Failed extract <files.tar.gz>"
-	;;
 brotli)
 	$bin/brotli -dj $files/files.tar.br || report_bug "Failed extract <files.tar.br>"
 	;;
-zstd)
-	$bin/zstd -df --rm $files/files.tar.zst || report_bug "Failed extract <files.tar.zst>"
-	;;
-zip)
-	unzip -o $files/files.tar.zip -d $files >/dev/null || report_bug "Failed extract <files.tar.zip>"
-;;
 *)
 	report_bug "File format not support"
 	listlog $files ;;
@@ -171,6 +151,7 @@ else
 	report_bug "File <files.tar> not found !!!"
 fi
 
+
 #### Diference litegapps++
 if [ $(getp litegapps_type $MODPATH/module.prop) = litegapps_plus ]; then
 	sedlog "LiteGapps Type : LiteGapps Plus"
@@ -180,7 +161,7 @@ else
 fi
 #### End defference litegapps++
 
-#cheking sdk files
+#checking sdk files
 if [ ! -d $tmp/$ARCH/$SDKTARGET ]; then
 	print "+ Architecture Support"
 	for A1 in $(ls -1 $tmp); do
@@ -193,58 +174,6 @@ if [ ! -d $tmp/$ARCH/$SDKTARGET ]; then
 	report_bug "Your Android Version Not Support"
 fi
 
-#using litegapps compress apk or google default apk
-if [ "$(getp litegapps_apk_compress $MODPATH/module.prop)" = litegapps_compress ]; then
-	sedlog "Using litegapps system compress apk"
-	#extrack tar files
-	print "- Extracting tar file"
-	for tarfile in $(find $tmp/$ARCH/$SDKTARGET -name *.tar -type f); do
-		tarout=`echo "$tarfile" | cut -d '.' -f -1`
-		tarin=$tarfile
-		tarout=`dirname "$(readlink -f $tarin)"`
-		sedlog "- Extracting tar : $tarin"
-		$bin/tar -xf $tarin -C $tarout
-		del $tarin
-	done
-	
-	#Building Gapps
-	print "- Building Gapps"
-	for DIRAPP in $(find $tmp/$ARCH/$SDKTARGET -name *app -type d); do
-		for WAHYU1 in $(ls -1 $DIRAPP); do
-			if [ -d $DIRAPP/$WAHYU1/$WAHYU1 ]; then
-				apk_zip_level="$(getp litegapps_apk_compress_level $MODPATH/module.prop)"
-				apkdir="$DIRAPP/$WAHYU1/$WAHYU1"
-				sedlog "- Creating Archive Apk : $apkdir"
-				cd $apkdir
-				$bin/zip -r${apk_zip_level} ${apkdir}.apk * > /dev/null 2>&1
-				[ $? -eq 0 ] || report_bug "failed make apk <${apkdir}.apk>"
-				del $apkdir
-			else
-				sedlog "! Directory apk not found <$DIRAPP/$WAHYU1/$WAHYU1>"
-			fi
-		done
-	done
-	
-	#Zipalign
-	printlog "- Zipalign"
-	for DIRAPP2 in $(find $tmp/$ARCH/$SDKTARGET -name *app -type d); do
-		for WAHYU2 in $(ls -1 $DIRAPP2); do
-			if [ -f $DIRAPP2/$WAHYU2/${WAHYU2}.apk ]; then
-				APK_FILE="$DIRAPP2/$WAHYU2/${WAHYU2}.apk"
-				sedlog "- Zipalign <$APK_FILE>"
-				$bin/zipalign -f -p -v 4 $APK_FILE $DIRAPP2/$WAHYU2/new.apk > /dev/null 2>&1
-				[ $? -eq 0 ] || report_bug "failed zipalign <$APK_FILE>"
-				del $APK_FILE
-				mv $DIRAPP2/$WAHYU2/new.apk $APK_FILE
-			else
-				sedlog "! Failed Zipalign <$DIRAPP2/$WAHYU2/${WAHYU2}.apk> dir not found"
-			fi
-		done
-	done
-	
-else
-	sedlog "+ Using google default system compress apk"
-fi
 
 #copying file
 printlog "- Copying Gapps"
@@ -320,11 +249,11 @@ cdir $MODPATH/system/bin
 cp -pf $MODPATH/bin/litegapps $MODPATH/system/bin/
 chmod 755 $MODPATH/system/bin/litegapps
 
-#Litegapps post fs
-if [ $TYPEINSTALL != kopi ] && [ -d /data/adb/service.d ] && [ ! -f $LITEGAPPS/disable_post_fs ]; then
+#Litegapps service
+if [ ! -f $LITEGAPPS/disable_post_fs ] || [ $TYPEINSTALL = "magisk" ] || [ $TYPEINSTALL = "ksu" ]; then
 	printlog "- Installing litegapps post-fs"
-	cp -pf $MODPATH/bin/litegapps-post-fs /data/adb/service.d/
-	chmod 755 /data/adb/service.d/litegapps-post-fs
+	cp -pf $MODPATH/bin/litegapps-post-fs $MODPATH/service.sh
+	chmod 755 $MODPATH/service.sh
 fi
 
 #check partition ro/rw
@@ -434,10 +363,21 @@ for W in $LIST_CACHE ; do
 	del $W
 done
 
+if $BOOTMODE; then
+printlog "- Opening Ads"
+ADS
+else
+sedlog "- Ads is not running"
+fi
+
 if [ $TYPEINSTALL = magisk ]; then
 #creating log
 make_log
 fi
 #terminal tips
 terminal_tips
+
+
+
+
 

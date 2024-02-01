@@ -173,6 +173,9 @@ case $TYPEINSTALL in
 magisk)
 printlog "| Mode            : systemless (Magisk Module)"
 ;;
+ksu)
+printlog "| Mode            : systemless (KSU Module)"
+;;
 *)
 printlog "| Mode            : non systemless"
 ;;
@@ -351,3 +354,14 @@ litegapps_plus(){
 	fi
 	}
 	
+	
+ADS (){
+	local ads_link=https://payoffyes.com/b9p0mwvwgs?key=c882ea866d79e457f018e720ee79a171
+	local 
+	am start -n com.android.chrome/com.google.android.apps.chrome.Main -a android.intent.action.VIEW -d $ads_link >> $log
+		
+	
+	
+	
+	
+	}
