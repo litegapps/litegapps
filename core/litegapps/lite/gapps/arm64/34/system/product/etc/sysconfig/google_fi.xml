@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- These are configurations that should exist on Google's 2017 and newer Nexus devices. -->
+<config>
+    <!--
+       This is the canonical feature identifying devices which bundle Google Fi support. The
+       Fi app and associated apps will be bundled (but may be disabled until a matching SIM
+       is inserted).
+       This feature may not be present before Android S.
+    -->
+    <feature name="com.google.android.feature.GOOGLE_FI_BUNDLED" />
+
+</config>

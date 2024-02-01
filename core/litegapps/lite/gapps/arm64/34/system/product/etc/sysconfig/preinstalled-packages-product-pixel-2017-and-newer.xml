@@ -1,0 +1,174 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- System packages to preinstall on Pixel 2017-and-newer devices, per user type.
+     Documentation at frameworks/base/data/etc/preinstalled-packages-platform.xml
+-->
+<config>
+    <!-- 3D Wallpapers (WallpaperPickerGoogleRelease) -->
+    <install-in-user-type package="com.google.android.apps.wallpaper">
+        <install-in user-type="FULL" />
+    </install-in-user-type>
+
+    <!--  Google Wallpaper Images  -->
+    <install-in-user-type package="com.google.android.apps.wallpaper.nexus">
+        <install-in user-type="FULL" />
+    </install-in-user-type>
+
+    <!-- Live Wallpaper Picker (LiveWallpapersPicker) -->
+    <install-in-user-type package="com.android.wallpaper.livepicker">
+        <install-in user-type="FULL" />
+    </install-in-user-type>
+
+    <!-- Pixel Launcher (NexusLauncher) -->
+    <install-in-user-type package="com.google.android.apps.nexuslauncher">
+        <!-- Unfortunately some things (eg recents) look specifically for launcher in user 0 -->
+        <install-in user-type="SYSTEM" />
+        <install-in user-type="FULL" />
+    </install-in-user-type>
+
+
+    <!--  Android Auto (AndroidAutoStubPrebuilt)
+    TODO(b/258069928): Check if this should be preinstalled on SYSTEM user -->
+    <install-in-user-type package="com.google.android.projection.gearhead">
+        <install-in user-type="SYSTEM" />
+        <install-in user-type="FULL" />
+        <install-in user-type="PROFILE" />
+        <do-not-install-in user-type="android.os.usertype.profile.CLONE" />
+    </install-in-user-type>
+
+    <!--  Calculator (CalculatorGooglePrebuilt) -->
+    <install-in-user-type package="com.google.android.calculator">
+        <install-in user-type="FULL" />
+    </install-in-user-type>
+
+    <!--  Calendar (CalendarGooglePrebuilt) -->
+    <install-in-user-type package="com.google.android.calendar">
+        <install-in user-type="FULL" />
+        <install-in user-type="PROFILE" />
+        <do-not-install-in user-type="android.os.usertype.profile.CLONE" />
+    </install-in-user-type>
+
+    <!--  Camera (GoogleCamera) -->
+    <install-in-user-type package="com.google.android.GoogleCamera">
+        <install-in user-type="FULL" />
+        <install-in user-type="PROFILE" />
+    </install-in-user-type>
+
+    <!--  Chrome (Chrome)
+    TODO(b/258064764): Check if this should be preinstalled on SYSTEM user -->
+    <install-in-user-type package="com.android.chrome">
+        <install-in user-type="SYSTEM" />
+        <install-in user-type="FULL" />
+        <install-in user-type="PROFILE" />
+        <do-not-install-in user-type="android.os.usertype.profile.CLONE" />
+    </install-in-user-type>
+
+    <!--  Contacts (GoogleContacts) -->
+    <install-in-user-type package="com.google.android.contacts">
+        <install-in user-type="FULL" />
+        <install-in user-type="PROFILE" />
+        <do-not-install-in user-type="android.os.usertype.profile.CLONE" />
+    </install-in-user-type>
+
+    <!--  Clock (PrebuiltDeskClockGoogle) -->
+    <install-in-user-type package="com.google.android.deskclock">
+        <install-in user-type="FULL" />
+    </install-in-user-type>
+
+    <!--  DocumentsUIGoogle
+    TODO(b/267617358): This config should be loaded by mainline_modules_handheld.mk but has been
+    added here because adding it to mainline_modules_handheld.mk fails with go/artifact-error -->
+    <install-in-user-type package="com.google.android.documentsui">
+        <install-in user-type="FULL" />
+        <install-in user-type="PROFILE" />
+        <do-not-install-in user-type="android.os.usertype.profile.CLONE" />
+    </install-in-user-type>
+
+    <!--  Drive (Drive) -->
+    <install-in-user-type package="com.google.android.apps.docs">
+        <install-in user-type="SYSTEM" />
+        <install-in user-type="FULL" />
+        <install-in user-type="PROFILE" />
+    </install-in-user-type>
+
+    <!--  Files (FilesPrebuilt) -->
+    <install-in-user-type package="com.google.android.apps.nbu.files">
+        <install-in user-type="FULL" />
+        <install-in user-type="PROFILE" />
+        <do-not-install-in user-type="android.os.usertype.profile.CLONE" />
+    </install-in-user-type>
+
+    <!--  Gmail (PrebuiltGmail) -->
+    <install-in-user-type package="com.google.android.gm">
+        <install-in user-type="FULL" />
+        <install-in user-type="PROFILE" />
+        <do-not-install-in user-type="android.os.usertype.profile.CLONE" />
+    </install-in-user-type>
+
+    <!--  Google Play Movies & TV (PlayVideos) -->
+    <install-in-user-type package="com.google.android.videos">
+        <install-in user-type="FULL" />
+        <install-in user-type="PROFILE" />
+        <do-not-install-in user-type="android.os.usertype.profile.CLONE" />
+    </install-in-user-type>
+
+    <!--  Google Search (GoogleSearchPrebuilt) -->
+    <install-in-user-type package="com.google.android.googlequicksearchbox">
+        <install-in user-type="FULL" />
+        <install-in user-type="PROFILE" />
+        <do-not-install-in user-type="android.os.usertype.profile.CLONE" />
+    </install-in-user-type>
+
+    <!-- Maps (Maps) -->
+    <install-in-user-type package="com.google.android.apps.maps">
+        <install-in user-type="FULL" />
+        <install-in user-type="PROFILE" />
+    </install-in-user-type>
+
+    <!--  Messages (PrebuiltBugle) -->
+    <install-in-user-type package="com.google.android.apps.messaging">
+        <install-in user-type="FULL" />
+        <install-in user-type="PROFILE" />
+        <do-not-install-in user-type="android.os.usertype.profile.CLONE" />
+    </install-in-user-type>
+
+    <!--  Personal Safety (SafetyHubLprPrebuilt)
+    TODO(b/259301078): Check if this should be preinstalled on SYSTEM user -->
+    <install-in-user-type package="com.google.android.apps.safetyhub">
+        <install-in user-type="SYSTEM" />
+        <install-in user-type="FULL" />
+        <install-in user-type="PROFILE" />
+        <do-not-install-in user-type="android.os.usertype.profile.CLONE" />
+    </install-in-user-type>
+
+    <!--  Phone (GoogleDialer)
+    TODO(b/259300383): Check if this should be preinstalled on SYSTEM user -->
+    <install-in-user-type package="com.google.android.dialer">
+        <install-in user-type="SYSTEM" />
+        <install-in user-type="FULL" />
+        <install-in user-type="PROFILE" />
+        <do-not-install-in user-type="android.os.usertype.profile.CLONE" />
+    </install-in-user-type>
+
+    <!--  Photos (Photos) -->
+    <install-in-user-type package="com.google.android.apps.photos">
+        <install-in user-type="FULL" />
+        <install-in user-type="PROFILE" />
+        <do-not-install-in user-type="android.os.usertype.profile.CLONE" />
+    </install-in-user-type>
+
+    <!-- Play Store (PhoneSky)
+    TODO(b/259299438) Check if this should be preinstalled on SYSTEM user -->
+    <install-in-user-type package="com.android.vending">
+        <install-in user-type="SYSTEM" />
+        <install-in user-type="FULL" />
+        <install-in user-type="PROFILE" />
+        <do-not-install-in user-type="android.os.usertype.profile.CLONE" />
+    </install-in-user-type>
+
+    <!-- YouTube (YouTube) TODO: Loaded from vendor/google/products/google_apis_common.mk-->
+    <install-in-user-type package="com.google.android.youtube">
+        <install-in user-type="FULL" />
+        <install-in user-type="PROFILE" />
+        <do-not-install-in user-type="android.os.usertype.profile.CLONE" />
+    </install-in-user-type>
+</config>

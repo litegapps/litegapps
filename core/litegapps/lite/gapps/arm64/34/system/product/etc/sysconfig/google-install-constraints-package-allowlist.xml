@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  ~ Copyright (C) 2022 The Android Open Source Project
+  ~
+  ~ Licensed under the Apache License, Version 2.0 (the "License");
+  ~ you may not use this file except in compliance with the License.
+  ~ You may obtain a copy of the License at
+  ~
+  ~      http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License
+  -->
+
+<!--
+This XML file declares which platform packages can use install-constraints manifest tag.
+It should only contain packages that are part of Android Tiramisu and above.
+
+TODO(b/233873647): generate this list from a common config
+-->
+<config>
+    <install-constraints-allowed package="com.android.apex.cts.shim" />
+    <install-constraints-allowed package="com.google.android.adbd" />
+    <install-constraints-allowed package="com.google.android.adservices" />
+    <install-constraints-allowed package="com.google.android.appsearch" />
+    <install-constraints-allowed package="com.google.android.art" />
+    <install-constraints-allowed package="com.google.android.captiveportallogin" />
+    <install-constraints-allowed package="com.google.android.cellbroadcast" />
+    <install-constraints-allowed package="com.google.android.conscrypt" />
+    <install-constraints-allowed package="com.google.android.documentsui" />
+    <install-constraints-allowed package="com.google.android.extservices" />
+    <install-constraints-allowed package="com.google.android.ipsec" />
+    <install-constraints-allowed package="com.google.android.media" />
+    <install-constraints-allowed package="com.google.android.mediaprovider" />
+    <install-constraints-allowed package="com.google.android.media.swcodec" />
+    <install-constraints-allowed package="com.google.android.modulemetadata" />
+    <install-constraints-allowed package="com.google.android.networkstack" />
+    <install-constraints-allowed package="com.google.android.neuralnetworks" />
+    <install-constraints-allowed package="com.google.android.ondevicepersonalization" />
+    <install-constraints-allowed package="com.google.android.os.statsd" />
+    <install-constraints-allowed package="com.google.android.permission" />
+    <install-constraints-allowed package="com.google.android.resolv" />
+    <install-constraints-allowed package="com.google.android.scheduling" />
+    <install-constraints-allowed package="com.google.android.sdkext" />
+    <install-constraints-allowed package="com.google.android.tethering" />
+    <install-constraints-allowed package="com.google.android.tzdata4" />
+    <install-constraints-allowed package="com.google.android.uwb" />
+    <install-constraints-allowed package="com.google.android.wifi" />
+    <install-constraints-allowed package="com.google.mainline.adservices" />
+    <install-constraints-allowed package="com.google.mainline.primary.libs" />
+    <install-constraints-allowed package="com.google.mainline.telemetry" />
+</config>
