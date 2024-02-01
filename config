@@ -1,13 +1,11 @@
-version=3.1
-version.code=31
+version=3.2
+version.code=32
 codename=stable
 name.builder=wahyu6070
 #unofficial or official
 build.status=wahyu6070
 set.time.stamp=true
 date.time=202007122239
-#litegapps_compress or litegapps_default
-apk.compress.type=litegapps_default
 #xz or brotli
 compression=xz
 #1-9
@@ -26,7 +24,7 @@ litegapps.restore=lite
 #list-type = lite,core,go,micro,pixel,nano,basic
 litegapps.type=lite
 # litegapps multi or single files.tar archive
-litegapps.tar=single
+litegapps.tar=multi
 
 #Litegapps++ prop
 litegapps++.build=false
