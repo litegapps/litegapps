@@ -92,8 +92,11 @@ make_flashable_litegapps(){
 		
 		#set time stamp
 		set_time_stamp $tmp/$WFL
-			
+		if [ "$VARIANT" = "lite" ]; then
+		local NAME_ZIP="${WFL}-LiteGapps-${W_ARCH}-$(get_android_version $W_SDK)-$(date +%Y%m%d)-${PROP_STATUS}.zip"
+		else
 		local NAME_ZIP="${WFL}-$PRODUCT-$VARIANT-${W_ARCH}-$(get_android_version $W_SDK)-$(date +%Y%m%d)-${PROP_STATUS}.zip"
+		fi
 		local OUT_ZIP=$out/litegapps/$W_ARCH/$W_SDK/$(read_config dir_name)/$(date +%Y-%m-%d)/$NAME_ZIP
 		make_zip $tmp/$WFL $OUT_ZIP
 	done
