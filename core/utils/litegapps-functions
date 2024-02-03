@@ -210,7 +210,7 @@ if [ $(getprop ro.build.ab_update) = "true" ]; then
 else
 	printlog "| Seamless        : A only"
 fi
-printlog "| BootMode        : $BOOTMODE"
+sedlog "| BootMode        : $BOOTMODE"
 sedlog "| System          : $SYSTEM"
 printlog "|___________________________________"
 sedlog "|          Developer Mode"

@@ -366,6 +366,7 @@ done
 if $BOOTMODE; then
 printlog "- Opening Ads"
 ADS
+sleep 15s
 else
 sedlog "- Ads is not running"
 fi

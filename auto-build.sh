@@ -358,6 +358,35 @@ CORE (){
 	done
 	}
 	
+	
+	
+while true; do
+echo -n "    Select architecture : "
+read selarch
+case $selarch in
+arm64 | arm | x86 | x86_64)
+arch=$selarch
+break
+;;
+*)
+echo "! $selarch not found list"
+;;
+esac
+done
+while true; do
+echo -n "    Select SDK : "
+read selsdk
+case $selsdk in
+28 | 29 | 30 | 31 | 32 | 33 | 34)
+sdk=$selsdk
+break
+;;
+*)
+echo "! $selsdk not found list"
+;;
+esac
+done
+
 for ARCH in $arch; do
 for SDK in $sdk; do
 RELEASE=/home/frs/project/litegapps/litegapps/$ARCH/$SDK

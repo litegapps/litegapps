@@ -7,7 +7,7 @@ read_config(){
 	getp "$1" $CONFIG
 	}
 make_flashable_litegapps(){
-	for WFL in MAKSU RECOVERY AUTO; do
+	for WFL in MAGISK KSU RECOVERY AUTO; do
 		printlog "- Build flashable [$WFL]"
 		cdir $tmp/$WFL
 		copy_binary_flashable $BIN_ARCH $tmp/$WFL/bin/$BIN_ARCH
@@ -20,12 +20,7 @@ make_flashable_litegapps(){
 				fi
 			done
 			
-			# Customize.sh
-			if [ -f $base/core/utils/customize.sh ]; then
-				cp -pf $base/core/utils/customize.sh $tmp/$WFL/
-			else
-				ERROR "Customize.sh <$base/core/utils/customize.sh> not found"
-			fi
+			
 			# LICENSE
 			if [ -f $base/core/utils/LICENSE ]; then
 				cp -pf $base/core/utils/LICENSE $tmp/$WFL/
@@ -41,8 +36,11 @@ make_flashable_litegapps(){
 				fi
 			done
 		case $WFL in
-			MAKSU)
-				cp -af $base/core/utils/maksu/* $tmp/$WFL/
+			MAGISK)
+				cp -af $base/core/utils/magisk/* $tmp/$WFL/
+			;;
+			KSU)
+				cp -af $base/core/utils/ksu/* $tmp/$WFL/
 			;;
 			RECOVERY)
 				cp -af $base/core/utils/kopi/* $tmp/$WFL/
@@ -95,7 +93,7 @@ make_flashable_litegapps(){
 		if [ "$VARIANT" = "lite" ]; then
 		local NAME_ZIP="${WFL}-LiteGapps-${W_ARCH}-$(get_android_version $W_SDK)-$(date +%Y%m%d)-${PROP_STATUS}.zip"
 		else
-		local NAME_ZIP="${WFL}-$PRODUCT-$VARIANT-${W_ARCH}-$(get_android_version $W_SDK)-$(date +%Y%m%d)-${PROP_STATUS}.zip"
+		local NAME_ZIP="${WFL}-LiteGapps-$VARIANT-${W_ARCH}-$(get_android_version $W_SDK)-$(date +%Y%m%d)-${PROP_STATUS}.zip"
 		fi
 		local OUT_ZIP=$out/litegapps/$W_ARCH/$W_SDK/$VARIANT/$(date +%Y-%m-%d)/$NAME_ZIP
 		make_zip $tmp/$WFL $OUT_ZIP
@@ -128,8 +126,7 @@ else
 VARIANT=`read_config dir_name`
 fi
 
-echo $CONFIG_ARCH
-echo p
+
 for W_ARCH in $CONFIG_ARCH; do
 	#binary copy architecture type
 	BIN_ARCH=$W_ARCH
@@ -175,7 +172,6 @@ for W_ARCH in $CONFIG_ARCH; do
 		make_archive
 		fi
 		make_flashable_litegapps
-		echo berhasik2
 	done
 done
 

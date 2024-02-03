@@ -35,13 +35,13 @@ printmid() {
 
 
 setime(){
-	if [[ $1 == '-f' ]] && [ "$2" ] && [ $3 -eq $3 ]; then
+	if [ $1 = '-f' ] && [ "$2" ] && [ $3 -eq $3 ]; then
 	   if [ -f "$2" ]; then
 	      touch -ct $3 "$2" 2>/dev/null || echo "setime: bad '$3': Value too large for defined data type"
 	   else
 	      echo "setime: $2: Is not file"
 	   fi
-	elif [[ $1 == '-r' ]] && [ "$2" ] && [ $3 -eq $3 ]; then
+	elif [ $1 = '-r' ] && [ "$2" ] && [ $3 -eq $3 ]; then
 	   if [ -d "$2" ]; then
 	      find "$2" -print | while read filename; do
 	      touch -ct $3 "$filename" 2>/dev/null || echo "setime: bad '$3': Value too large for defined data type"
@@ -49,9 +49,9 @@ setime(){
 	   else
 	      echo "setime: $2: Is not directory"
 	   fi
-	elif [[ $1 == '--version' ]] || [[ $1 == '-v' ]]; then
+	elif [ $1 = '--version' ] || [ $1 = '-v' ]; then
 	echo "setime v1.0 Copyright (C) 2020 wahyu kurniawan (wahyu6070)."
-    elif [[ $1 == '--help' ]] || [[ $1 == '-h' ]]; then
+    elif [ $1 = '--help' ] || [ $1 = '-h' ]; then
     echo "usage : setime <options> <input> <datetime>"
     echo " "
     echo "example : setime -r /sdcard/download 202004081503"
@@ -405,6 +405,7 @@ CLEAN(){
 	$base/etc/extractor/bin
 	$base/etc/extractor/output
 	$base/log
+	$base/tmp_files
 	"
 	if [ -f $base/files/bin.zip ]; then
 		print "!!! files <bin.zip> found"
@@ -633,7 +634,6 @@ MAKE(){
 				BASED=$base/core/litegapps/$i
 				chmod 755 $base/core/litegapps/make.sh
 				. $base/core/litegapps/make.sh
-				echo berhasil
 			else
 		 		ERROR "[ERROR] <$base/core/litegapps/make.sh> not found"
 			fi
