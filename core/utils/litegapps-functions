@@ -53,7 +53,7 @@ find_slot() {
 make_log(){
 	#creating log
 	if [ $(getp litegapps_type $MODPATH/module.prop) = litegapps_plus ]; then
-		NAME_LOG=`echo "[LOG]litegapps++_$(getp version $MODPATH/module.prop).zip"`
+		NAME_LOG=`echo "[LOG]litegappsx_$(getp version $MODPATH/module.prop).zip"`
 	else
 		NAME_LOG=`echo "[LOG]litegapps_$(getp version $MODPATH/module.prop).zip"`
 	fi
@@ -76,7 +76,7 @@ make_log(){
 	done
 	
 	if [ -d $LITEGAPPS/log ]; then
-		for TR in $tmp $MODPATH $LITEGAPPS; do
+		for TR in $TMPDIR $MODPATH $LITEGAPPS; do
 			test -d $TR && listlog $TR
 		done
 		cd $LITEGAPPS/log
@@ -154,7 +154,7 @@ get_android_codename(){
 		*) echo "null" ;;
 	 esac
 	}
-litegapps_info(){
+INFO(){
 MODULEVERSION=`getp version $MODPATH/module.prop`
 MODULECODE=`getp versionCode $MODPATH/module.prop`
 MODULENAME=`getp name $MODPATH/module.prop`
@@ -165,19 +165,30 @@ MODULEAUTHOR=`getp author $MODPATH/module.prop`
 [ -n "$TYPEINSTALL" ] || TYPEINSTALL="magisk module"
 printlog "____________________________________"
 printlog "|"
+case $1 in
+install)
+printlog "| Mode            : Install"
+;;
+uninstall)
+printlog "| Mode            : Uninstall"
+;;
+*)
+printlog "| Mode            : Not Detected"
+;;
+esac
 printlog "| Name            : $MODULENAME"
 printlog "| Version         : $MODULEVERSION"
 printlog "| Build date      : $MODULEDATE"
 printlog "| By              : $MODULEAUTHOR"
 case $TYPEINSTALL in
 magisk)
-printlog "| Mode            : systemless (Magisk Module)"
+printlog "| Install As      : systemless (Magisk Module)"
 ;;
 ksu)
-printlog "| Mode            : systemless (KSU Module)"
+printlog "| Install As      : systemless (KSU Module)"
 ;;
 *)
-printlog "| Mode            : non systemless"
+printlog "| Install As      : non systemless"
 ;;
 esac
 printlog "|___________________________________"
@@ -300,62 +311,62 @@ get_android_version(){
 	 esac
 	}
 litegapps_plus(){
-	test ! -d $tmp/$ARCH/$SDKTARGET && cdir $tmp/$ARCH/$SDKTARGET
+	test ! -d $TMPDIR/$ARCH/$SDKTARGET && cdir $TMPDIR/$ARCH/$SDKTARGET
 	#sdk
-	if [ -d $tmp/cross_sdk/$SDKTARGET ]; then
-		cp -af $tmp/cross_sdk/$SDKTARGET/* $tmp/$ARCH/$SDKTARGET/
+	if [ -d $TMPDIR/cross_sdk/$SDKTARGET ]; then
+		cp -af $TMPDIR/cross_sdk/$SDKTARGET/* $TMPDIR/$ARCH/$SDKTARGET/
 	else
 		print "+ Architecture Support"
-		for A1 in $(ls -1 $tmp/arch); do
+		for A1 in $(ls -1 $TMPDIR/arch); do
 			printlog "         $A1"
 		done
 		print "+ Android Version Support"
-		for A2 in $(ls -1 $tmp/cross_sdk); do
+		for A2 in $(ls -1 $TMPDIR/cross_sdk); do
 			printlog "         $(get_android_version $A2)"
 		done
 		report_bug "Your Android Version Not Support (litegapps++)"
 	fi
 
 	#arch
-	if [ -d $tmp/arch/$ARCH ]; then
+	if [ -d $TMPDIR/arch/$ARCH ]; then
 		if [ $SDKTARGET -gt 28 ]; then
-			cdir  $tmp/$ARCH/$SDKTARGET/system/product
-			cp -af $tmp/arch/$ARCH/system/* $tmp/$ARCH/$SDKTARGET/system/product/
+			cdir  $TMPDIR/$ARCH/$SDKTARGET/system/product
+			cp -af $TMPDIR/arch/$ARCH/system/* $TMPDIR/$ARCH/$SDKTARGET/system/product/
 		else
-			cp -af $tmp/arch/$ARCH/* $tmp/$ARCH/$SDKTARGET/
+			cp -af $TMPDIR/arch/$ARCH/* $TMPDIR/$ARCH/$SDKTARGET/
 		fi
 	fi
 	#croos system
-	if [ -d $tmp/cross_system ]; then
+	if [ -d $TMPDIR/cross_system ]; then
 		if [ $SDKTARGET -gt 28 ]; then
-			cdir $tmp/$ARCH/$SDKTARGET/system/product
-			cp -af $tmp/cross_system/system/* $tmp/$ARCH/$SDKTARGET/system/product
+			cdir $TMPDIR/$ARCH/$SDKTARGET/system/product
+			cp -af $TMPDIR/cross_system/system/* $TMPDIR/$ARCH/$SDKTARGET/system/product
 		else
-			cp -af $tmp/cross_system/* $tmp/$ARCH/$SDKTARGET/
+			cp -af $TMPDIR/cross_system/* $TMPDIR/$ARCH/$SDKTARGET/
 		fi
 	fi
 	
 	#api 23+
-	if [ $SDKTARGET -ge 23 ] && [ $SDKTARGET -le 30 ] && [ -d $tmp/23 ]; then
+	if [ $SDKTARGET -ge 23 ] && [ $SDKTARGET -le 30 ] && [ -d $TMPDIR/23 ]; then
 		if [ $SDKTARGET -ge 29 ]; then
-			cdir $tmp/$ARCH/$SDKTARGET/system/product/
-			cp -af $tmp/23/$ARCH/system/* $tmp/$ARCH/$SDKTARGET/system/product/
+			cdir $TMPDIR/$ARCH/$SDKTARGET/system/product/
+			cp -af $TMPDIR/23/$ARCH/system/* $TMPDIR/$ARCH/$SDKTARGET/system/product/
 		else
-			cp -af $tmp/23/$ARCH/* $tmp/$ARCH/$SDKTARGET/
+			cp -af $TMPDIR/23/$ARCH/* $TMPDIR/$ARCH/$SDKTARGET/
 		fi
 	#api 31+
-	elif [ $SDKTARGET -ge 31 ] && [ $SDKTARGET -le 32 ] && [ -d $tmp/31 ]; then
+	elif [ $SDKTARGET -ge 31 ] && [ $SDKTARGET -le 32 ] && [ -d $TMPDIR/31 ]; then
 		if [ $SDKTARGET -ge 29 ]; then
-			cdir $tmp/$ARCH/$SDKTARGET/system/product/
-			cp -af $tmp/31/$ARCH/system/* $tmp/$ARCH/$SDKTARGET/system/product/
+			cdir $TMPDIR/$ARCH/$SDKTARGET/system/product/
+			cp -af $TMPDIR/31/$ARCH/system/* $TMPDIR/$ARCH/$SDKTARGET/system/product/
 		else
-			cp -af $tmp/31/$ARCH/* $tmp/$ARCH/$SDKTARGET/
+			cp -af $TMPDIR/31/$ARCH/* $TMPDIR/$ARCH/$SDKTARGET/
 		fi
 	fi
 	}
 	
 	
-app_true (){
+app_true(){
 	
 	pm list packages | grep -q $1
 	if [ $? -eq "0" ]; then
@@ -365,7 +376,7 @@ app_true (){
 	fi
 	
 	}
-ADS (){
+ADS_START(){
 	local ads_link=https://payoffyes.com/b9p0mwvwgs?key=c882ea866d79e457f018e720ee79a171
 	
 	if $(app_true com.android.chrome); then
@@ -379,5 +390,372 @@ ADS (){
 	else
 	am start -a android.intent.action.VIEW -d $ads_link >> $log
 	fi
+	}
+	
+	
+ADS(){
+	if $BOOTMODE; then
+	printlog "- Opening Ads"
+	ADS_START
+	sleep 15s
+	else
+	sedlog "- Ads is not running"
+	fi
+	}
+	
+INITIAL(){
+	local mode=$1
+	#path
+	if [ -f /system_root/system/build.prop ]; then
+		SYSTEM=/system_root/system 
+	elif [ -f /system_root/build.prop ]; then
+		SYSTEM=/system_root
+	elif [ -f /system/system/build.prop ]; then
+		SYSTEM=/system/system
+	else
+		SYSTEM=/system
+	fi
+
+	if [ ! -L $SYSTEM/vendor ]; then
+		VENDOR=$SYSTEM/vendor
+	else
+		VENDOR=/vendor
+	fi
+
+	# /product dir (android 10+)
+	if [ ! -L $SYSTEM/product ]; then
+		PRODUCT=$SYSTEM/product
+	else
+		PRODUCT=/product
+	fi
+
+	# /system_ext dir (android 11+)
+	if [ ! -L $SYSTEM/system_ext ]; then
+		SYSTEM_EXT=$SYSTEM/system_ext
+	else
+		SYSTEM_EXT=/system_ext
+	fi
+	
+	
+	[ "TMPDIR" ] || TMPDIR=/dev/tmp
+	LITEGAPPS=/data/media/0/Android/litegapps
+	log=$LITEGAPPS/log/litegapps.log
+	files=$MODPATH/files
+
+	#detected build.prop
+	[ ! -f $SYSTEM/build.prop ] && report_bug "System build.prop not found"
+
+
+	[ $API ] || API=$(getp ro.build.version.sdk $SYSTEM/build.prop)
+	[ $ARCH ] || ARCH=$(getp ro.product.cpu.abi $SYSTEM/build.prop | cut -d '-' -f -1)
+
+	case $ARCH in
+	arm64) ARCH=arm64 ;;
+	armeabi | arm) ARCH=arm ;;
+	x86) ARCH=x86 ;;
+	x86_64) ARCH=x86_64 ;;
+	*) report_bug " <$ARCH> Your Architecture Not Support" ;;
+	esac
+
+
+	#mode installation
+	if [ ! $TYPEINSTALL ] && [ $KSU ]; then
+	TYPEINSTALL=ksu
+	elif [ ! $TYPEINSTALL ] && [ ! $KSU ]; then
+	TYPEINSTALL=magisk
+	elif [ $TYPEINSTALL = "ksu" ]; then
+	TYPEINSTALL=ksu
+	sedlog "- Type install KOPI installer convert to ksu module"a
+	elif [ $TYPEINSTALL = "magisk" ]; then
+	TYPEINSTALL=magisk
+	sedlog "- Type install KOPI installer convert to magisk module"
+	elif [ $TYPEINSTALL = "kopi" ]; then
+	TYPEINSTALL=kopi
+	sedlog "- Type install KOPI installer convert to kopi module"
+	else
+	TYPEINSTALL=kopi
+	sedlog "- Type install is not found, use default to kopi module"
+	fi
+
+
+	# Test /data rw partition
+	case $TYPEINSTALL in
+	magisk | ksu )
+	DIR_TEST=/data/adb/test8989
+	cdir $DIR_TEST
+	touch $DIR_TEST/io
+	[ -f $DIR_TEST/io ] && del $DIR_TEST || report_bug "/data partition is encrypt or read only"
+	;;
+	esac
+
+	for CCACHE in $LITEGAPPS/log; do
+		test -d $CCACHE && del $CCACHE && cdir $CCACHE || cdir $CCACHE
+	done
+
+	#functions litegapps info module.prop and build.prop
+	INFO $mode
+	print " "
+		
+}
+
+SET_PERM_PARTITION (){
+	#Permissions
+	printlog "- Set Permissions"
+	for setperm_dir in $(find $MODPATH/system -type d 2>/dev/null); do
+		sedlog "- Set chcon dir : $setperm_dir"
+		ch_con $setperm_dir
+		sedlog "- Set chmod 755 dir : $setperm_dir"
+		chmod 755 $setperm_dir
+	done
+
+	for setperm_file in $(find $MODPATH/system -type f 2>/dev/null); do
+		sedlog "- Set chcon file : $setperm_file"
+		ch_con $setperm_file
+		sedlog "- Set chmod 644 file : $setperm_file"
+		chmod 644 $setperm_file
+	done
+	
+	}
+	
+PARTITION_MEM_CHECK(){
+# cheking memory partition
+# $STSTEM $PRODUCT $SYSTEM_EXT is variable in kopi installer
+if [ $TYPEINSTALL = kopi ]; then
+	printlog "- Checking Memory"
+	if [ -d $MODPATH/system ] && [ ! -d $MODPATH/system/product ] && [ ! -d $MODPATH/system/system_ext ] && [ "$(ls -A $MODPATH/system)" ]; then
+		MEM_INSTALL=`du -sk $MODPATH/system | cut -f1`
+		MEM_PARTITION=`df -k $SYSTEM | tail -n 1 | tr -s ' ' | cut -d' ' -f3`
+		if [ "$MEM_PARTITION" -eq "$MEM_PARTITION" ] && [ "$MEM_PARTITION" -gt "$MEM_INSTALL" ]; then
+			sedlog " memory partition $SYSTEM"
+			sedlog " memory install = $MEM_INSTALL kb"
+			sedlog " memory free partition $SYSTEM : $MEM_PARTITION kb"
+			sedlog " free space is [OK]"
+		elif [ "$MEM_PARTITION" -eq "$MEM_PARTITION" ] && [ "$MEM_PARTITION" -le "$MEM_INSTALL" ]; then
+			printlog "! memory partition $SYSTEM"
+			printlog "! memory install = $MEM_INSTALL kb"
+			printlog "! memory free partition $SYSTEM : $MEM_PARTITION kb"
+			printlog "! free space is [ERROR] full memory"
+			report_bug "$SYSTEM partition memory is full"
+		else
+			sedlog "! memory partition $SYSTEM is not detected size"
+		fi
+	fi
+	if [ -d $MODPATH/system/product ] && [ "$(ls -A $MODPATH/system/product)" ]; then
+		MEM_INSTALL=`du -sk $MODPATH/system/product | cut -f1`
+		MEM_PARTITION=`df -k $PRODUCT | tail -n 1 | tr -s ' ' | cut -d' ' -f3`
+		if [ "$MEM_PARTITION" -eq "$MEM_PARTITION" ] && [ "$MEM_PARTITION" -gt $"MEM_INSTALL" ]; then
+			sedlog " memory partition $PRODUCT"
+			sedlog " memory install = $MEM_INSTALL kb"
+			sedlog " memory free partition $PRODUCT : $MEM_PARTITION kb"
+			sedlog " free space is [OK]"
+		elif [ "$MEM_PARTITION" -eq "$MEM_PARTITION" ] && [ "$MEM_PARTITION" -le "$MEM_INSTALL" ]; then
+			printlog "! memory partition $PRODUCT"
+			printlog "! memory install = $MEM_INSTALL kb"
+			printlog "! memory free partition $PRODUCT : $MEM_PARTITION kb"
+			printlog "! free space is [ERROR] full memory"
+			report_bug "$PRODUCT partition memory is full"
+		else
+			sedlog "! memory partition $PRODUCT is not detected size"
+		fi
+	fi
+	if [ -d $MODPATH/system/system_ext ] && [ "$(ls -A $MODPATH/system/system_ext)" ]; then
+		MEM_INSTALL=`du -sk $MODPATH/system/system_ext | cut -f1`
+		MEM_PARTITION=`df -k $SYSTEM_EXT | tail -n 1 | tr -s ' ' | cut -d' ' -f3`
+		if [ "$MEM_PARTITION" -eq "$MEM_PARTITION" ] && [ "$MEM_PARTITION" -gt "$MEM_INSTALL" ]; then
+			sedlog " memory partition $SYSTEM_EXT"
+			sedlog " memory install = $MEM_INSTALL kb"
+			sedlog " memory free partition $SYSTEM_EXT : $MEM_PARTITION kb"
+			sedlog " free space is [OK]"
+		elif [ "$MEM_PARTITION" -eq "$MEM_PARTITION" ] && [ "$MEM_PARTITION" -le "$MEM_INSTALL" ]; then
+			printlog "! memory partition $SYSTEM_EXT"
+			printlog "! memory install = $MEM_INSTALL kb"
+			printlog "! memory free partition $SYSTEM_EXT : $MEM_PARTITION kb"
+			printlog "! free space is [ERROR] full memory"
+			report_bug "$SYSTEM_EXT partition memory is full"
+		else
+			sedlog "! memory partition $SYSTEM_EXT is not detected size"
+		fi
+		
+	fi
+else
+	if [ -d $MODPATH/system ] && [ "$(ls -A $MODPATH/system)" ]; then
+		MEM_INSTALL=`du -sk $MODPATH/system | cut -f1`
+		MEM_PARTITION=`df -k /data | tail -n 1 | tr -s ' ' | cut -d' ' -f3`
+		if [ "$MEM_PARTITION" -eq "$MEM_PARTITION" ] && [ "$MEM_PARTITION" -gt "$MEM_INSTALL" ]; then
+			sedlog " memory partition /data"
+			sedlog " memory install = $MEM_INSTALL kb"
+			sedlog " memory free partition /data : $MEM_PARTITION kb"
+			sedlog " free space is [OK]"
+		elif [ "$MEM_PARTITION" -eq "$MEM_PARTITION" ] && [ "$MEM_PARTITION" -le "$MEM_INSTALL" ]; then
+			printlog "! memory partition /data"
+			printlog "! memory install = $MEM_INSTALL kb"
+			printlog "! memory free partition /data : $MEM_PARTITION kb"
+			printlog "! free space is [ERROR] full memory"
+			report_bug "/data partition memory is full"
+		else
+			sedlog "! memory partition /data is not detected size"
+		fi
+	fi
+
+fi
+}
+
+set_prop() {
+  local property="$1"
+  local value="$2"
+  file_location="$3"
+  if grep -q "${property}" "${file_location}"; then
+    sed -i "s/\(${property}\)=.*/\1=${value}/g" "${file_location}"
+  else
+    echo "${property}=${value}" >>"${file_location}"
+  fi
+}
+SETUP_WIZARD(){
+	case $TYPEINSTALL in
+	magisk | ksu)
+	PROP_DIR=$MODPATH/system.prop
+	touch $PROP_DIR
+	set_prop "setupwizard.feature.baseline_setupwizard_enabled" "true" "$PROP_DIR"
+	set_prop "ro.setupwizard.enterprise_mode" "1" "$PROP_DIR"
+	set_prop "ro.setupwizard.rotation_locked" "true" "$PROP_DIR"
+	set_prop "setupwizard.enable_assist_gesture_training" "true" "$PROP_DIR"
+	set_prop "setupwizard.theme" "glif_v3_light" "$PROP_DIR"
+	set_prop "setupwizard.feature.skip_button_use_mobile_data.carrier1839" "true" "$PROP_DIR"
+	set_prop "setupwizard.feature.show_pai_screen_in_main_flow.carrier1839" "false" "$PROP_DIR"
+	set_prop "setupwizard.feature.show_pixel_tos" "false" "$PROP_DIR"
+	set_prop "ro.setupwizard.network_required" "false" "$PROP_DIR"
+	;;
+	kopi)
+	PROP_FILE=$SYSTEM/build.prop
+	sedlog "- Backuping $PROP_FILE TO $DIR_BACKUP/build.prop"
+	cp -pf $PROP_FILE $DIR_BACKUP/build.prop
+	set_prop "setupwizard.feature.baseline_setupwizard_enabled" "true" "$PROP_FILE"
+	set_prop "ro.setupwizard.enterprise_mode" "1" "$PROP_FILE"
+	set_prop "ro.setupwizard.rotation_locked" "true" "$PROP_FILE"
+	set_prop "setupwizard.enable_assist_gesture_training" "true" "$PROP_FILE"
+	set_prop "setupwizard.theme" "glif_v3_light" "$SYSTEM/product/build.prop"
+	set_prop "setupwizard.feature.skip_button_use_mobile_data.carrier1839" "true" "$PROP_FILE"
+	set_prop "setupwizard.feature.show_pai_screen_in_main_flow.carrier1839" "false" "$PROP_FILE"
+	set_prop "setupwizard.feature.show_pixel_tos" "false" "$PROP_FILE"
+	set_prop "ro.setupwizard.network_required" "false" "$PROP_FILE"
+	;;
+	esac
+	}
+	
+MODULE_INSTALL(){
+	local DIR_BACKUP=$LITEGAPPS/backup
+	local packagename=`getp package.name $MODULE_TMP/litegapps-prop`
+	local packageid=`getp package.id $MODULE_TMP/litegapps-prop`
+	local packagesize=`getp package.size $MODULE_TMP/litegapps-prop`
+	cdir $DIR_BACKUP
+	
+	# fix bootloop partisi /data tidak di clean flash atau mode systemless
+	local list1="
+	GoogleKeyboard
+	DeskClockGoogle
+	"
+	for A8 in $list1; do
+		local blacklist=false
+	  if [ $A8 = $packageid ]; then
+	    local blacklist=true
+	    break
+	  fi
+	done
+	
+	if [ -f /data/system/packages.xml ] && [ $blacklist = true ]; then
+		printlog "-! Skipping $packagename"
+		return 0
+	elif [ $TYPEINSTALL = magisk ] || [ $TYPEINSTALL = ksu ] && [ $blacklist = true ]; then
+		printlog "-! Skipping $packagename"
+		return 0
+	else
+		printlog "- Installing $packagename"
+	fi
+	
+	
+	#check package 
+	if [ ! "$SDK" -eq "$(getp android_sdk $MODULE_TMP/module.prop)" ]; then
+		printlog "-! This package for sdk : $(getp android_sdk $MODULE_TMP/module.prop)"
+		printlog "-! Your sdk version : $SDK"
+		printlog " "
+		printlog "-! Install package $packagename Failed !!!"
+		return 1
+	fi
+	if [ "$ARCH" != "$(getp android_arch $MODULE_TMP/module.prop)" ]; then
+		printlog "! This package for arch : $(getp android_arch $MODULE_TMP/module.prop)"
+		printlog "! Your arch version : $ARCH"
+		printlog " "
+		printlog "! Install package $packagename Failed !!!"
+		return 1
+	fi
+
+	# remove file and backup
+	for Y in $SYSTEM $PRODUCT $SYSTEM_EXT; do
+     for G in app priv-app; do
+        for P in $(cat $MODULE_TMP/list-rm); do
+           if [ -d $Y/$G/$P ]; then
+             if [ $TYPEINSTALL = magisk ]; then
+                if [ $SYSTEM = $Y ]; then
+                     printlog "- Debloating systemless $Y/$G/$P"
+                     mkdir -p $MODPATH/system/$G/$P/.replace
+                elif [ $SYSTEM_EXT = $Y ]; then
+                     printlog "- Debloating systemless $Y/$G/$P"
+                     mkdir -p $MODPATH/system/system_ext/$G/$P/.replace
+                elif [ $PRODUCT = $Y ]; then
+                    printlog "- Debloating systemless $Y/$G/$P"
+                    mkdir -p $MODPATH/system/product/$G/$P/.replace
+                fi
+             else
+               [ ! -d $DIR_BACKUP${Y}/$G/$P ] && mkdir -p $DIR_BACKUP${Y}/$G/$P
+               printlog "+ Backuping to $DIR_BACKUP${Y}/$G/$P"
+               cp -rdf $Y/$G/$P/* $DIR_BACKUP${Y}/$G/$P/
+               printlog "- Removing  $Y/$G/$P"
+               echo "$Y/$G/$P" >> $DIR_BACKUP/list-debloat
+               rm -rf $Y/$G/$P
+             fi
+           fi
+        done
+     done
+	done
+
+	# Copying files
+	cp -rdf $MODULE_TMP/system/* $MODPATH/system/
+	[ $MAGISKUP ] || MAGISKUP=$MODPATH
+	
+	if [ $packageid = "SetupWizard" ]; then
+	#add buildprop config
+	printlog "-+ Add config Setup Wizard in build.prop"
+	SETUP_WIZARD
+	fi
+}
+
+MODULE_UNINSTALL(){
+	
+	local DIR_BACKUP=$LITEGAPPS/backup
+
+cdir $DIR_BACKUP
+printlog "- Uninstalling $(getp package.name $MODULE_TMP/litegapps-prop)"
+if [ -f $DIR_BACKUP/list-debloat ]; then
+	for P in $(cat $DIR_BACKUP/list-debloat); do
+		[ ! -d $P ] && cdir $P
+		printlog "- Restoring $P"
+		sedlog "- copying $DIR_BACKUP${P} T0 $DIR_i/"
+		cp -rdf $DIR_BACKUP${P}/* $P/
+		#set permissions
+		chmod 644 $P/$(basename $P).apk
+		chcon -h u:object_r:system_file:s0 $P/$(basename $P).apk
+		chmod 755 $P
+		chcon -h u:object_r:system_file:s0 $P
+	done
+fi
+
+
+# restore product/build.prop
+if [ -f $DIR_BACKUP/build.prop ]; then
+	cp -pf $DIR_BACKUP/build.prop $SYSTEM/build.prop
+fi
+del $DIR_BACKUP
+
+	
 	
 	}

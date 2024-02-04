@@ -453,6 +453,7 @@ unzip -o "$ZIPFILE" >&2
 
 [ ! -f module.prop ] && abort "- Module.prop Not Found"
 
+
 #prop
 prop=$SYSTEM/build.prop
 API=`getp ro.build.version.sdk $prop`

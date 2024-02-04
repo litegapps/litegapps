@@ -1,13 +1,14 @@
-# Copyright 2020 - 2022 The Litegapps Project
+# Copyright 2020 - 2024 The Litegapps Project
 # permissions.sh
-# latest update 10-06-2022
+# latest update 04-02-2024
 
 chmod 755 $MODPATH/bin/litegapps-functions
 #litegapps functions
 . $MODPATH/bin/litegapps-functions
 LITEGAPPS=/sdcard/Android/litegapps
 
-if [ $TYPEINSTALL = "magisk" ]; then
+case $TYPEINSTALL in
+magisk | ksu )
 chcon -hR u:object_r:system_file:s0 $MAGISKUP/system
 find $MAGISKUP/system -type f | while read anjay; do
 	dir6070=$(dirname $anjay)
@@ -16,9 +17,8 @@ find $MAGISKUP/system -type f | while read anjay; do
 	ch_con $dir6070
 	chmod 755 $dir6070
 done
-fi
-
-if [ $TYPEINSTALL = kopi ]; then
+;;
+kopi)
 	for T in $SYSTEM $PRODUCT $SYSTEM_EXT; do
 		if [ -d $T ] && [ "$(ls -A $T)" ]; then
 			ls -alZR $T > $LITEGAPPS/log/$(basename ${T}).new
@@ -28,4 +28,5 @@ if [ $TYPEINSTALL = kopi ]; then
 
 	done
 	make_log
-fi
+;;
+esac

@@ -22,7 +22,7 @@ litegapps.build=true
 #list-restore = lite,core,go,micro,pixel,nano,basic
 litegapps.restore=lite
 #list-type = lite,core,go,micro,pixel,nano,basic
-litegapps.type=core
+litegapps.type=lite
 # litegapps multi or single files.tar archive
 litegapps.tar=multi
 

@@ -1,4 +1,4 @@
-# Copyright 2020 - 2022 The Litegapps Project
+# Copyright 2020 - 2024 The Litegapps Project
 # by wahyu6070
 # uninstall.sh (running by update-binary)
 #
@@ -7,50 +7,11 @@ chmod 755 $MODPATH/bin/litegapps-functions
 #litegapps functions
 . $MODPATH/bin/litegapps-functions
 
-tmp=$MODPATH/tmp
-LITEGAPPS=/data/media/0/Android/litegapps
-log=$LITEGAPPS/log/litegapps_uninstall.log
-loglive=$LITEGAPPS/log/litegapps_live_uninstall.log
-files=$MODPATH/files
-SDKTARGET=$(getp ro.build.version.sdk $SYSTEM/build.prop)
-
-findarch=$(getp ro.product.cpu.abi $SYSTEM/build.prop | cut -d '-' -f -1)
-case $findarch in
-arm64) ARCH=arm64 ;;
-armeabi) ARCH=arm ;;
-x86) ARCH=x86 ;;
-x86_64) ARCH=x86_64 ;;
-*) report_bug " <$findarch> Your Architecture Not Support" ;;
-esac
-
-for CCACHE in $LITEGAPPS/log $tmp; do
-	test -d $CCACHE && del $CCACHE && cdir $CCACHE || cdir $CCACHE
-done
-
-#functions litegapps info module.prop and build.prop
-litegapps_info
-print " "
-#detected build.prop
-[ -f $SYSTEM/build.prop ] || report_bug "System build.prop not found"
-
-#mode installation
-[ -n "$TYPEINSTALL" ] || TYPEINSTALL=magisk_module
-case $TYPEINSTALL in
-kopi)
-	sedlog "- Type install KOPI module"
-;;
-magisk)
-	sedlog "- Type install KOPI installer convert to magisk module"
-;;
-*)
-	sedlog "- Type install MAGISK module"
-;;
-esac
-
+INITIAL uninstall
 
 # uninstall in modules
 MODULES=$MODPATH/modules
-MODULE_TMP=$MODPATH/module_tmp
+MODULE_TMP=$TMPDIR/module_tmp
 if [ -d $MODULES ] && ! rmdir $MODULES 2>/dev/null; then
 	printlog "- Modules detected"
 	for LIST_MODULES in $(find $MODULES -type f); do
@@ -59,9 +20,8 @@ if [ -d $MODULES ] && ! rmdir $MODULES 2>/dev/null; then
 			del $MODULE_TMP
 			cdir $MODULE_TMP
 			unzip -o $LIST_MODULES -d $MODULE_TMP >/dev/null
-			if [ -f $MODULE_TMP/module-uninstall.sh ]; then
-				chmod 755 $MODULE_TMP/module-uninstall.sh
-				. $MODULE_TMP/module-uninstall.sh
+			if [ -f $MODULE_TMP/litegapps-prop ]; then
+				MODULE_UNINSTALL
 			else
 				printlog "! Failed installing module <$(basename $LIST_MODULES)> skipping"
 				continue
@@ -154,9 +114,9 @@ if [ -f $KOPIMOD/list_install_system_ext ]; then
 fi
 
 
-if [ -f $system/addon.d/27-litegapps.sh ]; then
+if [ -f $SYSTEM/addon.d/27-litegapps.sh ]; then
 	sedlog "- Removing addon.d <27-litegapps.sh>"
-	del $system/addon.d/27-litegapps.sh
+	del $SYSTEM/addon.d/27-litegapps.sh
 fi
 printlog "- Uninstalling successfully"
 printlog "- Thank you for using LiteGapps"

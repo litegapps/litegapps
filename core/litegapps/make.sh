@@ -7,7 +7,7 @@ read_config(){
 	getp "$1" $CONFIG
 	}
 make_flashable_litegapps(){
-	for WFL in MAGISK KSU RECOVERY AUTO; do
+	for WFL in MAKSU RECOVERY AUTO; do
 		printlog "- Build flashable [$WFL]"
 		cdir $tmp/$WFL
 		copy_binary_flashable $BIN_ARCH $tmp/$WFL/bin/$BIN_ARCH
@@ -36,11 +36,8 @@ make_flashable_litegapps(){
 				fi
 			done
 		case $WFL in
-			MAGISK)
-				cp -af $base/core/utils/magisk/* $tmp/$WFL/
-			;;
-			KSU)
-				cp -af $base/core/utils/ksu/* $tmp/$WFL/
+			MAKSU)
+				cp -af $base/core/utils/MAKSU/* $tmp/$WFL/
 			;;
 			RECOVERY)
 				cp -af $base/core/utils/kopi/* $tmp/$WFL/
@@ -51,6 +48,15 @@ make_flashable_litegapps(){
 				cp -af $base/core/utils/kopi/* $tmp/$WFL/
 			;;
 		esac
+		
+		# Customize.sh
+			if [ -f $base/core/utils/customize.sh ]; then
+				cp -pf $base/core/utils/customize.sh $tmp/$WFL/
+			else
+				ERROR "Customize.sh <$base/core/utils/customize.sh> not found"
+			fi
+		
+		
 		# copy file.tar.(type archive) in tmp
 		cdir $tmp/$WFL/files
 		if [ $(get_config litegapps.tar) = "multi" ] && [ -f $tmpfiles/files.tar.$(get_config compression) ]; then
