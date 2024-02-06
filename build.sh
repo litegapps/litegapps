@@ -343,7 +343,7 @@ PROP_SET_TIME=`get_config set.time.stamp`
 PROP_SET_DATE=`get_config date.time`
 PROP_COMPRESSION=`get_config compression`
 PROP_COMPRESSION_LEVEL=`get_config compression.level`
-PROP_ZIP_APK_PROP_COMPRESSION=`get_config zip.apk.compression`
+
 
 if [ $2 = $2 ]; then
 PRODUCT=$2
@@ -369,26 +369,6 @@ case $(get_config build.status) in
 		PROP_STATUS=unofficial ;;
 esac
 
-case "$(get_config apk.compress.type)" in
-litegapps_compress)
-apk_compessed_type=litegapps_compress
-;;
-litegapps_default)
-apk_compessed_type=litegapps_default
-;;
-*)
-apk_compessed_type=litegapps_default
-;;
-esac
-
-case "$(get_config litegapps_apk_compress_level)" in
-0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9)
-litegapps_apk_compress_level=`get_config litegapps_apk_compress_level`
-;;
-*)
-litegapps_apk_compress_level=0
-;;
-esac
 
 #process tmp
 for P_TMP in $base/log $tmp; do
@@ -446,10 +426,10 @@ CLEAN(){
 	fi
 	done
 	for i in reguler lts microg; do
-		if [ -f $base/core/litegapps++/$i/clean.sh ]; then
-			BASED=$base/core/litegapps++/$i
-			chmod 755 $base/core/litegapps++/$i/clean.sh
-			. $base/core/litegapps++/$i/clean.sh
+		if [ -f $base/core/litegappsx/$i/clean.sh ]; then
+			BASED=$base/core/litegappsx/$i
+			chmod 755 $base/core/litegappsx/$i/clean.sh
+			. $base/core/litegappsx/$i/clean.sh
 		fi
 	done
 	
@@ -640,17 +620,17 @@ MAKE(){
 		done
 	fi
 	#################################################
-	#Litegapps++
+	#Litegappsx
 	#################################################
-	if [ $(get_config litegapps++.build) = true ]; then
-		LIST_LITEGAPPS_PLUS=`get_config litegapps++.type | sed "s/,/ /g"`
+	if [ $(get_config litegappsx.build) = true ]; then
+		LIST_LITEGAPPS_PLUS=`get_config litegappsx.type | sed "s/,/ /g"`
 		for w in $LIST_LITEGAPPS_PLUS; do
-			if [ -f $base/core/litegapps++/make.sh ]; then
-				BASED=$base/core/litegapps++/$w
-				chmod 755 $base/core/litegapps++/make.sh
-				. $base/core/litegapps++/make.sh
+			if [ -f $base/core/litegappsx/make.sh ]; then
+				BASED=$base/core/litegappsx/$w
+				chmod 755 $base/core/litegappx/make.sh
+				. $base/core/litegappsx/make.sh
 			else
-				ERROR "[ERROR] <$base/core/litegapps++/make.sh> not found"
+				ERROR "[ERROR] <$base/core/litegappsx/make.sh> not found"
 			fi
 		done
 	fi

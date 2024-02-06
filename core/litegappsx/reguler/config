@@ -1,4 +1,4 @@
-name=LiteGapps++ LTS
-dir_name=lts
+name=LiteGappsX
+dir_name=reguler
 modules=false
 desc=litegapps is a google apps package that supports almost all arch and android versions while maintaining lightness, saving battery and more.

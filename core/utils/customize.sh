@@ -64,14 +64,14 @@ else
 fi
 
 
-#### Diference litegapps++
-if [ $(getp litegapps_type $MODPATH/module.prop) = litegapps_plus ]; then
-	sedlog "LiteGapps Type : LiteGapps Plus"
-	litegapps_plus
+#### Diference litegappsX
+if [ $(getp litegapps_type $MODPATH/module.prop) = litegappsx ]; then
+	sedlog "LiteGapps Type : LiteGapps X"
+	litegappsx
 else
 	sedlog "LiteGapps Type : LiteGapps Reguler"
 fi
-#### End defference litegapps++
+#### End defference litegappsX
 
 #checking sdk files
 if [ ! -d $TMPDIR/$ARCH/$API ]; then

@@ -37,7 +37,7 @@ make_flashable_litegapps(){
 			done
 		case $WFL in
 			MAKSU)
-				cp -af $base/core/utils/MAKSU/* $tmp/$WFL/
+				cp -af $base/core/utils/maksu/* $tmp/$WFL/
 			;;
 			RECOVERY)
 				cp -af $base/core/utils/kopi/* $tmp/$WFL/
@@ -83,8 +83,6 @@ make_flashable_litegapps(){
 		local MODULE_DESC=`read_config desc`
 		local MODULE_UPDATE=https://raw.githubusercontent.com/litegapps/updater/main/core/litegapps/$VARIANT/${W_ARCH}/${W_SDK}/$WFL/update.json
 		SED "$(getp litegapps_type $MODULE_PROP)" "litegapps_regular" $MODULE_PROP
-		SED "$(getp litegapps_apk_compress $MODULE_PROP)" "${apk_compessed_type}" $MODULE_PROP
-		SED "$(getp litegapps_apk_compress_level $MODULE_PROP)" "$litegapps_apk_compress_level" $MODULE_PROP
 		SED "$(getp name $MODULE_PROP)" "$NAME $W_ARCH $(get_android_version $W_SDK) $PROP_STATUS" $MODULE_PROP
 		SED "$(getp id $MODULE_PROP)" "litegapps" $MODULE_PROP
 		SED "$(getp author $MODULE_PROP)" "$PROP_BUILDER" $MODULE_PROP

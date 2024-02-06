@@ -1,4 +1,4 @@
-# Copyright 2020 - 2022 The Litegapps Project
+# Copyright 2020 - 2024 The Litegapps Project
 # Litegapps Functions
 # By wahyu6070
 #
@@ -52,7 +52,7 @@ find_slot() {
 
 make_log(){
 	#creating log
-	if [ $(getp litegapps_type $MODPATH/module.prop) = litegapps_plus ]; then
+	if [ $(getp litegapps_type $MODPATH/module.prop) = litegappsx ]; then
 		NAME_LOG=`echo "[LOG]litegappsx_$(getp version $MODPATH/module.prop).zip"`
 	else
 		NAME_LOG=`echo "[LOG]litegapps_$(getp version $MODPATH/module.prop).zip"`
@@ -161,8 +161,7 @@ MODULENAME=`getp name $MODPATH/module.prop`
 MODULEANDROID=`getp android $MODPATH/module.prop`
 MODULEDATE=`getp date $MODPATH/module.prop`
 MODULEAUTHOR=`getp author $MODPATH/module.prop`
-[ -n "$system" ] || system="systemless"
-[ -n "$TYPEINSTALL" ] || TYPEINSTALL="magisk module"
+
 printlog "____________________________________"
 printlog "|"
 case $1 in
@@ -193,6 +192,7 @@ printlog "| Install As      : non systemless"
 esac
 printlog "|___________________________________"
 printlog "|"
+printlog "| Website         : https://litegapps.github.io"
 printlog "| Telegram        : https://t.me/litegapps"
 printlog "|___________________________________"
 printlog "|              Device Info"
@@ -310,11 +310,11 @@ get_android_version(){
 		*) echo null ;;
 	 esac
 	}
-litegapps_plus(){
-	test ! -d $TMPDIR/$ARCH/$SDKTARGET && cdir $TMPDIR/$ARCH/$SDKTARGET
+litegappsx(){
+	test ! -d $TMPDIR/$ARCH/$API && cdir $TMPDIR/$ARCH/$API
 	#sdk
-	if [ -d $TMPDIR/cross_sdk/$SDKTARGET ]; then
-		cp -af $TMPDIR/cross_sdk/$SDKTARGET/* $TMPDIR/$ARCH/$SDKTARGET/
+	if [ -d $TMPDIR/cross_sdk/$API ]; then
+		cp -af $TMPDIR/cross_sdk/$API/* $TMPDIR/$ARCH/$API/
 	else
 		print "+ Architecture Support"
 		for A1 in $(ls -1 $TMPDIR/arch); do
@@ -324,45 +324,30 @@ litegapps_plus(){
 		for A2 in $(ls -1 $TMPDIR/cross_sdk); do
 			printlog "         $(get_android_version $A2)"
 		done
-		report_bug "Your Android Version Not Support (litegapps++)"
+		report_bug "Your Android Version Not Support (litegappsX)"
 	fi
 
 	#arch
 	if [ -d $TMPDIR/arch/$ARCH ]; then
-		if [ $SDKTARGET -gt 28 ]; then
-			cdir  $TMPDIR/$ARCH/$SDKTARGET/system/product
-			cp -af $TMPDIR/arch/$ARCH/system/* $TMPDIR/$ARCH/$SDKTARGET/system/product/
+		if [ $API -gt 28 ]; then
+			cdir  $TMPDIR/$ARCH/$API/system/product
+			cp -af $TMPDIR/arch/$ARCH/system/* $TMPDIR/$ARCH/$API/system/product/
 		else
-			cp -af $TMPDIR/arch/$ARCH/* $TMPDIR/$ARCH/$SDKTARGET/
-		fi
-	fi
-	#croos system
-	if [ -d $TMPDIR/cross_system ]; then
-		if [ $SDKTARGET -gt 28 ]; then
-			cdir $TMPDIR/$ARCH/$SDKTARGET/system/product
-			cp -af $TMPDIR/cross_system/system/* $TMPDIR/$ARCH/$SDKTARGET/system/product
-		else
-			cp -af $TMPDIR/cross_system/* $TMPDIR/$ARCH/$SDKTARGET/
+			cp -af $TMPDIR/arch/$ARCH/* $TMPDIR/$ARCH/$API/
 		fi
 	fi
 	
-	#api 23+
-	if [ $SDKTARGET -ge 23 ] && [ $SDKTARGET -le 30 ] && [ -d $TMPDIR/23 ]; then
-		if [ $SDKTARGET -ge 29 ]; then
-			cdir $TMPDIR/$ARCH/$SDKTARGET/system/product/
-			cp -af $TMPDIR/23/$ARCH/system/* $TMPDIR/$ARCH/$SDKTARGET/system/product/
+	#croos system
+	if [ -d $TMPDIR/cross_system ]; then
+		if [ $API -gt 28 ]; then
+			cdir $TMPDIR/$ARCH/$API/system/product
+			cp -af $TMPDIR/cross_system/system/* $TMPDIR/$ARCH/$API/system/product
 		else
-			cp -af $TMPDIR/23/$ARCH/* $TMPDIR/$ARCH/$SDKTARGET/
-		fi
-	#api 31+
-	elif [ $SDKTARGET -ge 31 ] && [ $SDKTARGET -le 32 ] && [ -d $TMPDIR/31 ]; then
-		if [ $SDKTARGET -ge 29 ]; then
-			cdir $TMPDIR/$ARCH/$SDKTARGET/system/product/
-			cp -af $TMPDIR/31/$ARCH/system/* $TMPDIR/$ARCH/$SDKTARGET/system/product/
-		else
-			cp -af $TMPDIR/31/$ARCH/* $TMPDIR/$ARCH/$SDKTARGET/
+			cp -af $TMPDIR/cross_system/* $TMPDIR/$ARCH/$API/
 		fi
 	fi
+	
+	
 	}
 	
 	
@@ -377,7 +362,7 @@ app_true(){
 	
 	}
 ADS_START(){
-	local ads_link=https://payoffyes.com/b9p0mwvwgs?key=c882ea866d79e457f018e720ee79a171
+	local ads_link=https://payoffyes.com/fbz37smn33?key=a6ae3c4640a1737a2a572d122c10794c
 	
 	if $(app_true com.android.chrome); then
 	am start -n com.android.chrome/com.google.android.apps.chrome.Main -a android.intent.action.VIEW -d $ads_link >> $log
@@ -705,11 +690,11 @@ MODULE_INSTALL(){
                     printlog "- Debloating systemless $Y/$G/$P"
                     mkdir -p $MODPATH/system/product/$G/$P/.replace
                 fi
-             else
+             elif [ $TYPEINSTALL = kopi ]; then
                [ ! -d $DIR_BACKUP${Y}/$G/$P ] && mkdir -p $DIR_BACKUP${Y}/$G/$P
-               printlog "+ Backuping to $DIR_BACKUP${Y}/$G/$P"
+               printlog "-+ Backuping to $DIR_BACKUP${Y}/$G/$P"
                cp -rdf $Y/$G/$P/* $DIR_BACKUP${Y}/$G/$P/
-               printlog "- Removing  $Y/$G/$P"
+               printlog "-+ Removing  $Y/$G/$P"
                echo "$Y/$G/$P" >> $DIR_BACKUP/list-debloat
                rm -rf $Y/$G/$P
              fi
@@ -719,7 +704,9 @@ MODULE_INSTALL(){
 	done
 
 	# Copying files
+	sedlog "- Copying <$MODULE_TMP/system> to <$MODPATH/system>"
 	cp -rdf $MODULE_TMP/system/* $MODPATH/system/
+	listlog $MODPATH/system
 	[ $MAGISKUP ] || MAGISKUP=$MODPATH
 	
 	if [ $packageid = "SetupWizard" ]; then

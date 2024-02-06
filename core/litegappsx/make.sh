@@ -7,7 +7,7 @@ read_config(){
 	getp "$1" $CONFIG
 	}
 make_flashable_litegapps(){
-	for WFL in MAGISK RECOVERY AUTO; do
+	for WFL in MAKSU RECOVERY AUTO; do
 		printlog "- Build flashable [$WFL]"
 		cdir $tmp/$WFL
 		for YR in arm arm64; do
@@ -34,17 +34,10 @@ make_flashable_litegapps(){
 			else
 				ERROR "LICENSE <$base/core/utils/LICENSE> not found"
 			fi
-			# copy core/utils files
-			for W in README.md; do
-				if [ -f $BASED/utils/$W ]; then
-				cp $BASED/utils/$W $tmp/$WFL/
-				else
-				ERROR "magisk files <$BASED/utils/$W> not found"
-				fi
-			done
+			
 		case $WFL in
-			MAGISK)
-				cp -af $base/core/utils/magisk/* $tmp/$WFL/
+			MAKSU)
+				cp -af $base/core/utils/maksu/* $tmp/$WFL/
 			;;
 			RECOVERY)
 				cp -af $base/core/utils/kopi/* $tmp/$WFL/
@@ -79,9 +72,7 @@ make_flashable_litegapps(){
 		local MODULE_PROP=$tmp/$WFL/module.prop
 		local MODULE_DESC=`read_config desc`
 		local MODULE_UPDATE=https://raw.githubusercontent.com/litegapps/updater/main/core/litegapps++/$(read_config dir_name)/$WFL/update.json
-		SED "$(getp litegapps_type $MODULE_PROP)" "litegapps_plus" $MODULE_PROP
-		SED "$(getp litegapps_apk_compress $MODULE_PROP)" "${apk_compessed_type}" $MODULE_PROP
-		SED "$(getp litegapps_apk_compress_level $MODULE_PROP)" "$litegapps_apk_compress_level" $MODULE_PROP
+		SED "$(getp litegapps_type $MODULE_PROP)" "litegappsx" $MODULE_PROP
 		SED "$(getp name $MODULE_PROP)" "$NAME $PROP_STATUS" $MODULE_PROP
 		SED "$(getp id $MODULE_PROP)" "litegapps" $MODULE_PROP
 		SED "$(getp author $MODULE_PROP)" "$PROP_BUILDER" $MODULE_PROP
@@ -94,8 +85,8 @@ make_flashable_litegapps(){
 		#set time stamp
 		set_time_stamp $tmp/$WFL
 			
-		local NAME_ZIP="[$WFL]$(read_config name | sed "s/ /_/g")_v${PROP_VERSION}_${PROP_STATUS}.zip"
-		local OUT_ZIP=$out/litegapps++/$(read_config dir_name)/v${PROP_VERSION}/$NAME_ZIP
+		local NAME_ZIP="${WFL}-$(read_config name | sed "s/ /-/g")-v${PROP_VERSION}-${PROP_STATUS}.zip"
+		local OUT_ZIP=$out/litegappsx/$(read_config dir_name)/v${PROP_VERSION}/$NAME_ZIP
 		make_zip $tmp/$WFL $OUT_ZIP
 	done
 	}

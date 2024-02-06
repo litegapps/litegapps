@@ -442,9 +442,9 @@ export MODPATH=$kopi
 
 if [ -d $kopi ]; then
 	del $kopi
-	cdir $kopi || abort "- failed make dir $kopi"
+	cdir $kopi #|| abort "- failed make dir $kopi"
 else
-	cdir $kopi || abort "- failed make dir $kopi"
+	cdir $kopi #|| abort "- failed make dir $kopi"
 fi
 
 cd $kopi

@@ -14,8 +14,6 @@ compression.level=9
 zip.level=9
 # true/false
 zip.signer=false
-# 1-9
-litegapps_apk_compress_level=5
 
 #Litegapps prop
 litegapps.build=true
@@ -24,11 +22,11 @@ litegapps.restore=lite
 #list-type = lite,core,go,micro,pixel,nano,basic
 litegapps.type=lite
 # litegapps multi or single files.tar archive
-litegapps.tar=multi
+litegapps.tar=single
 
-#Litegapps++ prop
-litegapps++.build=false
+#Litegappsx prop
+litegappsx.build=truee
 #list-restore = reguler,lts,microg
-litegapps++.restore=lite
+litegappsx.restore=lite
 #list-type = reguler,lts,microg
-litegapps++.type=microg
+litegappsx.type=reguler
