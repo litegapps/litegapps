@@ -106,7 +106,31 @@ if [ -d $TMPDIR/$ARCH/$API/vendor ]; then
 	cp -af $TMPDIR/$ARCH/$API/vendor/* $vendirtarget/
 fi
 
+
 # modules
+list_config="
+/sdcard
+/data/media/0
+/system
+/vendor
+/product
+/system_ext
+/data
+/dev
+"
+
+for YY in $list_config; do
+	if [ -f $YY/litegapps.config ]; then
+		FCONFIG=$YY/litegapps.config
+		break
+	fi
+done
+
+if [ -f $FCONFIG ]; then
+	printlog "- Config Detected $FCONFIG"
+fi
+
+
 SDK=$API
 ARCH=$ARCH
 MODULES=$MODPATH/modules

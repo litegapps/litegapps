@@ -362,7 +362,7 @@ app_true(){
 	
 	}
 ADS_START(){
-	local ads_link=https://payoffyes.com/fbz37smn33?key=a6ae3c4640a1737a2a572d122c10794c
+	local ads_link=https://payoffyes.com/b9p0mwvwgs?key=c882ea866d79e457f018e720ee79a171
 	
 	if $(app_true com.android.chrome); then
 	am start -n com.android.chrome/com.google.android.apps.chrome.Main -a android.intent.action.VIEW -d $ads_link >> $log
@@ -634,7 +634,15 @@ MODULE_INSTALL(){
 	local packagesize=`getp package.size $MODULE_TMP/litegapps-prop`
 	cdir $DIR_BACKUP
 	
-	# fix bootloop partisi /data tidak di clean flash atau mode systemless
+	# litegapps config enable dan disable
+	if [ $FCONFIG ]; then
+		if [ $(getp $packageid $FCONFIG) = false ]; then
+			printlog "[SKIP] $packagename by config"
+			return 0
+		fi
+	fi
+	
+	# fix bootloop jika partisi /data tidak di clean flash dalam mode systemless
 	local list1="
 	GoogleKeyboard
 	DeskClockGoogle
