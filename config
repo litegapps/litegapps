@@ -1,5 +1,5 @@
-version=3.2
-version.code=32
+version=3.4
+version.code=34
 codename=stable
 name.builder=wahyu6070
 #unofficial or official
@@ -16,7 +16,7 @@ zip.level=9
 zip.signer=false
 
 #Litegapps prop
-litegapps.build=truee
+litegapps.build=true
 #list-restore = lite,core,go,micro,pixel,nano,basic
 litegapps.restore=lite
 #list-type = lite,core,go,micro,pixel,nano,basic
@@ -25,8 +25,8 @@ litegapps.type=lite
 litegapps.tar=single
 
 #Litegappsx prop
-litegappsx.build=true
+litegappsx.build=truee
 #list-restore = reguler,lts,microg
 litegappsx.restore=lite
 #list-type = reguler,lts,microg
-litegappsx.type=microg
+litegappsx.type=microh

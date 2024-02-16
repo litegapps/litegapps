@@ -122,14 +122,10 @@ list_config="
 for YY in $list_config; do
 	if [ -f $YY/litegapps.config ]; then
 		FCONFIG=$YY/litegapps.config
+		printlog "- Config Detected : $FCONFIG"
 		break
 	fi
 done
-
-if [ -f $FCONFIG ]; then
-	printlog "- Config Detected $FCONFIG"
-fi
-
 
 SDK=$API
 ARCH=$ARCH

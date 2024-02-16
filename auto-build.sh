@@ -72,9 +72,8 @@ Arcore
 DeskClockGoogle
 DevicePolicy
 Chrome
-DreamLiner
-Files
 Gmail
+Files
 GoogleAssistant
 GoogleCalculator
 GoogleCalendar
@@ -360,12 +359,78 @@ CORE (){
 	
 	
 	
+LITE (){
+	local variant=lite
+	
+	local IN=$BASED/packages/output/$ARCH/$SDK/
+	local OUT=$BASED/core/litegapps/lite/modules/$ARCH/$SDK/
+	rm -rf $OUT
+	bash $BASED/build.sh make litegapps $variant $ARCH $SDK
+	[ ! -d $RELEASE/$variant ] && mkdir -p $RELEASE/$variant
+	RIN=$BASED/output/litegapps/$ARCH/$SDK/$variant 
+	ROUT=$RELEASE/$variant
+	for U in $(ls -1 $RIN); do
+	echo "- Release <$RIN/$U> to <$ROUT>"
+	cp -rdf $RIN/$U $ROUT/
+	rm -rf $RIN/$U
+	done
+	}
+	
+	
+MAKE_ADDON(){
+	bash $BASED/packages/make make $ARCH $SDK
+	ADDON_RELEASE=/home/frs/project/litegapps/addon/$ARCH/$SDK/
+	rm -rf $ADDON_RELEASE
+	mkdir -p $ADDON_RELEASE
+	echo "- Release Addon <$BASED/packages/output/$ARCH/$SDK/> <$ADDON_RELEASE>"
+	}
+	
+MAKE_LITEGAPPS(){
+	
+	local RELEASE=/home/frs/project/litegapps/litegapps/$ARCH/$SDK
+	cp -rdf $BASED/packages/output/$ARCH/$SDK/* $ADDON_RELEASE
+	for LIST_MAKSU in $(find $BASED/packages/output -name MAKSU* -type f); do
+		echo "-- Removing <$LIST_MAKSU>"
+		rm -rf $LIST_MAKSU
+	done
+
+	for LIST_RECOVERY in $(find $BASED/packages/output -name RECOVERY* -type f); do
+		echo "-- Removing <$LIST_RECOVERY>"
+		rm -rf $LIST_RECOVERY
+	done
+
+
+	rm -rf $BASED/output
+	PIXEL
+	MICRO
+	NANO
+	BASIC
+	USER
+	GO
+	CORE
+	
+	if [ $ARCH != arm64 ] && [ $SDK -ge 29 ]; then
+		rm -rf $BASED/tmp_files
+		LITE
+	fi
+	rm -rf $BASED/tmp_files
+	
+	}
+UNZIP_FILE_SERVER(){
+	local input=$HOMEE/files-server/package/$ARCH/${SDK}.zip
+	local output=$HOMEE/build/litegapps/packages/files/$ARCH/$SDK/
+	rm -rf $output
+	mkdir -p $output
+	unzip -o $input -d $output
+	
+	}
 while true; do
+HOMEE=/home/frs/project/litegapps
 echo -n "    Select architecture : "
 read selarch
 case $selarch in
 arm64 | arm | x86 | x86_64)
-arch=$selarch
+ARCH=$selarch
 break
 ;;
 *)
@@ -378,7 +443,7 @@ echo -n "    Select SDK : "
 read selsdk
 case $selsdk in
 28 | 29 | 30 | 31 | 32 | 33 | 34)
-sdk=$selsdk
+export SDK=$selsdk
 break
 ;;
 *)
@@ -387,21 +452,32 @@ echo "! $selsdk not found list"
 esac
 done
 
-for ARCH in $arch; do
-for SDK in $sdk; do
-RELEASE=/home/frs/project/litegapps/litegapps/$ARCH/$SDK
-bash $BASED/packages/make make $ARCH $SDK
-rm -rf $BASED/output
-PIXEL
-MICRO
-NANO
-BASIC
-USER
-GO
-CORE
 
-rm -rf $BASED/tmp_files
-done
-done
+while true; do
+echo " "
+echo "  ARCH = $ARCH"
+echo "  SDK  = $SDK"
+echo " "
+echo "1. Make Addon And Release"
+echo "2. Make LiteGapps And Release"
+echo "3. Extract zip from file-server"
+echo "4. Exit"
+echo " "
+echo -n " Select : "
+read menuu
+case $menuu in
+1) MAKE_ADDON ;;
+2) MAKE_LITEGAPPS ;;
+3)
+UNZIP_FILE_SERVER
+;;
+4)
+break ;;
+*) 
+echo "! Not found command : $menuu" 
+;;
+esac
 
+
+done
 

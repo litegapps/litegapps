@@ -379,7 +379,7 @@ ADS_START(){
 	
 	
 ADS(){
-	if $BOOTMODE; then
+	if [ $BOOTMODE = true ] && [ ! -f /sdcard/wahyu6070 ]; then
 	printlog "- Opening Ads"
 	ADS_START
 	sleep 15s
@@ -633,6 +633,27 @@ MODULE_INSTALL(){
 	local packageid=`getp package.id $MODULE_TMP/litegapps-prop`
 	local packagesize=`getp package.size $MODULE_TMP/litegapps-prop`
 	cdir $DIR_BACKUP
+	
+	
+	# fix bootloop jika google files di instal fi rom crdroid
+	if [ "$(GET_PROP ro.crdroid.display.version)" ] && [ $packageid = Files ]; then
+		printlog "[SKIP] $packagename in crdroid ROM"
+		return 0
+	fi
+	
+	if [ -f $SYSTEM/framework/boot-miui-framework.vdex ]; then
+		local RT="
+		CarrierServices
+		SetupWizard
+		PixelSetupWizard
+		"
+		for YR in $RT; do
+		if [ $packageid = $YR ]; then
+			printlog "[SKIP] $packagename In MIUI/Hyper os"
+			return 0
+		fi
+		done
+	fi
 	
 	# litegapps config enable dan disable
 	if [ $FCONFIG ]; then

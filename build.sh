@@ -349,15 +349,15 @@ if [ $2 = $2 ]; then
 PRODUCT=$2
 fi
 
-if [ $3 == $3 ]; then
+if [ $3 = $3 ]; then
 VARIANT=$3
 fi
 
-if [ $4 == $4 ]; then
+if [ $4 = $4 ]; then
 ARCH_IN=$4
 fi
 
-if [ $5 == $5 ]; then
+if [ $5 = $5 ]; then
 SDK_IN=$5
 fi
 
