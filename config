@@ -1,5 +1,5 @@
-version=3.4
-version.code=34
+version=3.5
+version.code=35
 codename=stable
 name.builder=wahyu6070
 #unofficial or official
@@ -22,7 +22,7 @@ litegapps.restore=lite
 #list-type = lite,core,go,micro,pixel,nano,basic
 litegapps.type=lite
 # litegapps multi or single files.tar archive
-litegapps.tar=single
+litegapps.tar=multi
 
 #Litegappsx prop
 litegappsx.build=truee

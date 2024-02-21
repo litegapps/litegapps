@@ -83,14 +83,19 @@ make_flashable_litegapps(){
 		local MODULE_DESC=`read_config desc`
 		local MODULE_UPDATE=https://raw.githubusercontent.com/litegapps/updater/main/core/litegapps/$VARIANT/${W_ARCH}/${W_SDK}/$WFL/update.json
 		SED "$(getp litegapps_type $MODULE_PROP)" "litegapps_regular" $MODULE_PROP
+		if [ $VARIANT = lite ]; then
 		SED "$(getp name $MODULE_PROP)" "$NAME $W_ARCH $(get_android_version $W_SDK) $PROP_STATUS" $MODULE_PROP
+		else
+		SED "$(getp name $MODULE_PROP)" "$NAME $VARIANT $W_ARCH $(get_android_version $W_SDK) $PROP_STATUS" $MODULE_PROP
+		fi
 		SED "$(getp id $MODULE_PROP)" "litegapps" $MODULE_PROP
 		SED "$(getp author $MODULE_PROP)" "$PROP_BUILDER" $MODULE_PROP
 		SED "$(getp version $MODULE_PROP)" "v${PROP_VERSION}" $MODULE_PROP
 		SED "$(getp versionCode $MODULE_PROP)" "$PROP_VERSIONCODE" $MODULE_PROP
 		SED "$(getp date $MODULE_PROP)" "$(date +%d-%m-%Y)" $MODULE_PROP
 		SED "$(getp description $MODULE_PROP)" "$MODULE_DESC" $MODULE_PROP
-		sed -i 's,'"$(getp updateJson $MODULE_PROP)"','"${MODULE_UPDATE}"',g' $MODULE_PROP
+		SED "$(getp litegapps_varint $MODULE_PROP)" "$VARIANT" $MODULE_PROP
+		SED "$(getp updateJson $MODULE_PROP)"','"${MODULE_UPDATE}"',g' $MODULE_PROP
 		
 		#set time stamp
 		set_time_stamp $tmp/$WFL

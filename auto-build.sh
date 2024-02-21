@@ -409,7 +409,7 @@ MAKE_LITEGAPPS(){
 	GO
 	CORE
 	
-	if [ $ARCH != arm64 ] && [ $SDK -ge 29 ]; then
+	if [ $ARCH != arm64 ] && [ ! $SDK -ge 29 ]; then
 		rm -rf $BASED/tmp_files
 		LITE
 	fi
@@ -442,7 +442,7 @@ while true; do
 echo -n "    Select SDK : "
 read selsdk
 case $selsdk in
-28 | 29 | 30 | 31 | 32 | 33 | 34)
+25 | 26 | 27 | 28 | 29 | 30 | 31 | 32 | 33 | 34 | 35)
 export SDK=$selsdk
 break
 ;;

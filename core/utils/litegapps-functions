@@ -307,6 +307,7 @@ get_android_version(){
 		32) echo 12.1 ;;
 		33) echo 13.0 ;;
 		34) echo 14.0 ;;
+		35) echo 15.0 ;;
 		*) echo null ;;
 	 esac
 	}
@@ -725,6 +726,7 @@ MODULE_INSTALL(){
                cp -rdf $Y/$G/$P/* $DIR_BACKUP${Y}/$G/$P/
                printlog "-+ Removing  $Y/$G/$P"
                echo "$Y/$G/$P" >> $DIR_BACKUP/list-debloat
+               echo "$Y/$G/$P" >> $KOPIMOD/list-debloat
                rm -rf $Y/$G/$P
              fi
            fi
