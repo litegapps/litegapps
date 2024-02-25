@@ -94,8 +94,8 @@ make_flashable_litegapps(){
 		SED "$(getp versionCode $MODULE_PROP)" "$PROP_VERSIONCODE" $MODULE_PROP
 		SED "$(getp date $MODULE_PROP)" "$(date +%d-%m-%Y)" $MODULE_PROP
 		SED "$(getp description $MODULE_PROP)" "$MODULE_DESC" $MODULE_PROP
-		SED "$(getp litegapps_varint $MODULE_PROP)" "$VARIANT" $MODULE_PROP
-		SED "$(getp updateJson $MODULE_PROP)"','"${MODULE_UPDATE}"',g' $MODULE_PROP
+		SED "$(getp litegapps_variant $MODULE_PROP)" "$VARIANT" $MODULE_PROP
+		sed -i 's,'"$(getp updateJson $MODULE_PROP)"','"${MODULE_UPDATE}"',g' $MODULE_PROP
 		
 		#set time stamp
 		set_time_stamp $tmp/$WFL

@@ -383,12 +383,12 @@ MAKE_ADDON(){
 	rm -rf $ADDON_RELEASE
 	mkdir -p $ADDON_RELEASE
 	echo "- Release Addon <$BASED/packages/output/$ARCH/$SDK/> <$ADDON_RELEASE>"
+	cp -rdf $BASED/packages/output/$ARCH/$SDK/* $ADDON_RELEASE
 	}
 	
 MAKE_LITEGAPPS(){
 	
 	local RELEASE=/home/frs/project/litegapps/litegapps/$ARCH/$SDK
-	cp -rdf $BASED/packages/output/$ARCH/$SDK/* $ADDON_RELEASE
 	for LIST_MAKSU in $(find $BASED/packages/output -name MAKSU* -type f); do
 		echo "-- Removing <$LIST_MAKSU>"
 		rm -rf $LIST_MAKSU
@@ -399,8 +399,14 @@ MAKE_LITEGAPPS(){
 		rm -rf $LIST_RECOVERY
 	done
 
-
 	rm -rf $BASED/output
+	
+	case $ARCH in
+	arm64)
+	if [ $SDK -ge 21 ] && [ $SDK -le 25 ]; then
+	CORE
+	LITE
+	elif [ $SDK -ge 26 ] && [ $SDK -le 28 ]; then
 	PIXEL
 	MICRO
 	NANO
@@ -408,13 +414,52 @@ MAKE_LITEGAPPS(){
 	USER
 	GO
 	CORE
-	
-	if [ $ARCH != arm64 ] && [ ! $SDK -ge 29 ]; then
-		rm -rf $BASED/tmp_files
-		LITE
+	LITE
+	elif [ $SDK -ge 29 ]; then
+	PIXEL
+	MICRO
+	NANO
+	BASIC
+	USER
+	GO
+	CORE
 	fi
-	rm -rf $BASED/tmp_files
+	;;
+	arm)
+	if [ $SDK -ge 29 ] && [ $SDK -le 32 ]; then
+	PIXEL
+	MICRO
+	NANO
+	BASIC
+	USER
+	GO
+	CORE
+	LITE
+	elif [ $SDK -ge 33 ]; then
+	CORE
+	LITE
+	fi
 	
+	
+	
+	;;
+	x86_64)
+	if [ $SDK -ge 29 ]; then
+	PIXEL
+	MICRO
+	NANO
+	BASIC
+	USER
+	GO
+	CORE
+	LITE
+	else
+	CORE
+	LITE
+	fi
+	;;
+	esac
+	rm -rf $BASED/tmp_files
 	}
 UNZIP_FILE_SERVER(){
 	local input=$HOMEE/files-server/package/$ARCH/${SDK}.zip
@@ -442,7 +487,7 @@ while true; do
 echo -n "    Select SDK : "
 read selsdk
 case $selsdk in
-25 | 26 | 27 | 28 | 29 | 30 | 31 | 32 | 33 | 34 | 35)
+25 | 26 | 27 | 28 | 29 | 30 | 31 | 32 | 33 | 34 | 35 | 36)
 export SDK=$selsdk
 break
 ;;
