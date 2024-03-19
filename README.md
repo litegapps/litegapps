@@ -1,5 +1,10 @@
 ![](https://github.com/litegapps/litegapps.github.io/raw/master/pages/images/new_i.png)
 # LiteGapps
+
+# Presentation
+
+(explain what precisely changes from other popular GApps, more precisely than being "light")
+
 this is a tool for building litegapps
 
 # Cloning
