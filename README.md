@@ -16,8 +16,10 @@ this is a tool for building litegapps
 
 ``brotli``
 
+``curl``
+
 ## Termux Installation Package
-``apt update && pkg upgrade && pkg install zip tar xz unzip bash brotli``
+``apt update && pkg upgrade && pkg install zip tar xz unzip bash brotli curl``
 
 
 # Cloning
