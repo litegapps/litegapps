@@ -2,6 +2,24 @@
 # LiteGapps
 this is a tool for building litegapps
 
+
+# Requestment Packages
+``zip``
+
+``tar``
+
+``xz``
+
+``unzip``
+
+``bash``
+
+``brotli``
+
+## Termux Installation Package
+``apt update && pkg upgrade && pkg install zip tar xz unzip bash brotli``
+
+
 # Cloning
 ### https
 ``https://github.com/litegapps/litegapps.git``
@@ -10,9 +28,9 @@ this is a tool for building litegapps
 
 # Configure
 
-``version=2.9`` version litegapps
+``version=3.8`` version litegapps
  
-``version.code=29`` version code litegapps
+``version.code=38`` version code litegapps
  
 ``codename=Stable`` Codename status build``
  
