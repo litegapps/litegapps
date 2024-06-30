@@ -1,6 +1,8 @@
 ![](https://github.com/litegapps/litegapps.github.io/raw/master/pages/images/new_i.png)
 # LiteGapps
-this is a tool for building litegapps
+**LiteGapps** is a custom Google Apps on the Android operating system, an open source project that focuses on small, efficient, and comprehensive.
+
+This is a tool for building litegapps
 
 
 # Requestment Packages
@@ -83,7 +85,7 @@ sh make clean (Cleaning Directory)
 ``
 
 # Watch video building
-[<img src="https://img.youtube.com/vi/5ddkNReE2RE/maxresdefault.jpg" width="50%">](https://youtu.be/5ddkNReE2RE)
+[<img src="https://img.youtube.com/vi/5ddkNReE2RE/maxresdefault.jpg" width="50%">](https://youtu.be/NiT2qBaYFdg?si=5VyyntICvjp5iseD)
 # Download
 [Click here](https://litegapps.github.io/)
 # Social Media

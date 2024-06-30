@@ -1,9 +1,9 @@
-version=3.5
-version.code=35
+version=3.8
+version.code=38
 codename=stable
-name.builder=wahyu6070
+name.builder=soekarno
 #unofficial or official
-build.status=wahyu6070
+build.status=unofficial
 set.time.stamp=true
 date.time=202007122239
 #xz or brotli
@@ -22,7 +22,7 @@ litegapps.restore=lite
 #list-type = lite,core,go,micro,pixel,nano,basic
 litegapps.type=lite
 # litegapps multi or single files.tar archive
-litegapps.tar=multi
+litegapps.tar=single
 
 #Litegappsx prop
 litegappsx.build=truee
