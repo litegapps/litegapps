@@ -1,0 +1,32 @@
+version=3.9
+version.code=39
+codename=stable
+name.builder=soekarno
+#unofficial or official
+build.status=unofficial
+set.time.stamp=true
+date.time=202007122239
+#xz or brotli
+compression=xz
+#1-9
+compression.level=9
+#1-9
+zip.level=9
+# true/false
+zip.signer=false
+
+#Litegapps prop
+litegapps.build=true
+#list-restore = lite,core,go,micro,pixel,nano,basic
+litegapps.restore=lite
+#list-type = lite,core,go,micro,pixel,nano,basic
+litegapps.type=lite
+# litegapps multi or single files.tar archive
+litegapps.tar=single
+
+#Litegappsx prop
+litegappsx.build=truee
+#list-restore = reguler,lts,microg
+litegappsx.restore=lite
+#list-type = reguler,lts,microg
+litegappsx.type=microh

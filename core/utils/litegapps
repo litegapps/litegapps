@@ -1,0 +1,1396 @@
+#!/system/bin/sh
+#LiteGapps Controller
+#by wahyu6070 @xda-developers
+#since 08-07-2019
+#License GPL3+
+#if you copy some code here please permission to the owner
+#
+NAME=LiteGapps
+ABOUT_LINK=https://litegapps.github.io/doc/litegapps_controller.html
+propversion=v1.2
+propcode=12
+propdate=01-08-2024
+
+# Colors
+GREEN='\e[01;32m'
+RED='\e[01;31m'
+BRED='\033[0;41m'
+YELLOW='\e[01;33m'
+BLUE='\e[01;34m'
+VIOLET='\e[01;35m'
+BLACK='\e[01;30m'
+CYAN='\e[01;36m'
+WHITE='\e[01;37m'
+BGBL='\e[1;30;47m'
+NC='\033[0m'
+N='\e[0m'
+
+
+BASED=/sdcard/Android/litegapps
+LOG=$BASED/litegapps_controller.log
+DATA=$BASED/data
+FILES=$BASED/files
+CACHE=$BASED/cache
+
+
+API=`getprop ro.build.version.sdk`
+
+#Functions
+print() { echo "$1"; }
+GETPROP(){ grep "^$1" "$2" | head -n1 | cut -d = -f 2; }
+getp(){ echo $1 "$2" | head -n1 | cut -d = -f 2; }
+getp1(){ echo $1 | head -n1 | cut -d : -f 2; }
+del(){ rm -rf "$@" ; }
+cdir(){ mkdir -p "$@" ; }
+error() {
+	print
+	print "${RED}ERROR :  ${WHITE}$1${GREEN}"
+	print
+	}
+printmid() {
+  local CHAR=$(printf "$@" | sed 's|\\e[[0-9;]*m||g' | wc -m)
+  local hfCOLUMN=$((COLUMNS/2))
+  local hfCHAR=$((CHAR/2))
+  local indent=$((hfCOLUMN-hfCHAR))
+  echo "$(printf '%*s' "${indent}" '') $@"
+}
+loadings() {
+  PID=$!
+  a=0;
+  while [ -d /proc/$PID ]; do
+    b=$((+1))
+    a=$((a+1))
+    sleep 0.9s
+    printf "\r${@} [${a}Second]"
+  done
+}
+print_title(){
+	clear
+	printmid "${YELLOW}$1${GREEN}"
+	print " "
+	}
+
+spinner() {
+  set +x
+  PID=$!
+  h=0; anim='-\|/';
+  while [ -d /proc/$PID ]; do
+    h=$(((h+1)%4))
+    sleep 0.02
+    printf "\r${@} [${anim:$h:1}]"
+  done
+  set -x 2>>$VERLOG
+}
+end_menu(){
+	print " "
+	print "${YELLOW}1. Back"
+	print " "
+	echo -n "${VIOLET} Select Menu : ${CYAN}"
+	read lol
+	}
+SELECT(){
+	print
+	echo -n "${YELLOW}Choose one of the numbers : ${CYAN}"
+	read PILIH
+	}
+print_true(){
+	print "${GREEN}${1} = ${GREEN}${2}${GREEN}"
+	}
+print_false(){
+	print "${GREEN}${1} = ${WHITE}${2}${GREEN}"
+	}
+app_true(){
+	
+	pm list packages | grep -q $1
+	if [ $? -eq "0" ]; then
+	return 0
+	else
+	return 1
+	fi
+	
+	}
+OPEN_LINK(){
+	local ads_link=$1
+	
+	if $(app_true com.android.chrome); then
+	am start -n com.android.chrome/com.google.android.apps.chrome.Main -a android.intent.action.VIEW -d $ads_link
+	elif $(app_true com.chrome.canary); then
+	am start -n com.chrome.canary/com.google.android.apps.chrome.Main -a android.intent.action.VIEW -d $ads_link
+	elif $(app_true com.chrome.beta); then
+	am start -n com.chrome.beta/com.google.android.apps.chrome.Main -a android.intent.action.VIEW -d $ads_link
+	elif $(app_true com.chrome.dev); then
+	am start -n com.chrome.dev/com.google.android.apps.chrome.Main -a android.intent.action.VIEW -d $ads_link
+	else
+	am start -a android.intent.action.VIEW -d $ads_link
+	fi
+	}
+REBOOT(){
+	touch $DATA/reboot
+	
+	}
+#▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
+# LIST APPS
+#▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
+system_list="
+org.lineageos.snap
+com.android.vending
+com.google.android.calculator
+com.google.android.calendar
+com.duckduckgo.mobile.android
+com.google.android.apps.cameralite
+"
+
+blacklist_term="
+com.termux
+com.termoneplus
+jackpal.androidterm
+"
+blacklist_system="
+com.google.android.inputmethod.latin
+com.google.android.gms
+"
+blacklist_apps="
+com.google.android.inputmethod.latin
+com.mixplorer
+com.google.android.apps.messaging
+com.google.android.play.games
+ch.deletescape.lawnchair.plah
+com.topjohnwu.magisk
+"
+LIST_GAME="
+com.mobile.legends
+com.tencent.ig
+com.supercell.clashofclans
+com.neptune.domino
+com.garena.game.codm
+com.chess
+com.pubg.newstate
+com.dts.freefireth
+com.dts.freefiremax
+com.miHoYo.GenshinImpact
+com.play.rosea
+com.tencent.iglite
+com.supercell.clashroyale
+com.kompasproductions.summertimesaga
+com.vng.pubgmobile
+com.epicgames.fortnite
+com.activision.callofduty.shooter
+com.ea.gp.apexlegendsmobilefps
+com.netease.chiji
+com.netease.lztgglobal
+"
+
+
+
+black_func_1(){
+	local BLACK_LIST_GAMING_1=$DATA/black_list_gaming1
+	if [ -f $DATA/black_list_gaming1 ]; then
+		blacklist_game="$(cat $BLACK_LIST_GAMING_1)"
+	else
+		for WAHYU2345 in $LIST_GAME; do
+			echo "$WAHYU2345" >> $BLACK_LIST_GAMING_1
+		done
+		blacklist_game="$(cat $BLACK_LIST_GAMING_1)"
+	fi
+	for zzz in $blacklist_apps $blacklist_game $blacklist_system $blacklist_term; do
+		[[ "$1" == $zzz ]] && return 0
+	done
+	}
+black_func_2(){
+	BLACK_LIST_GAMING_2=$DATA/black_list_gaming2
+	if [ -f $DATA/black_list_gaming2 ]; then
+		blacklist_game="$(cat $BLACK_LIST_GAMING_2)"
+	else
+		for WAHYU2345 in $LIST_GAME; do
+			echo "$WAHYU2345" >> $BLACK_LIST_GAMING_2
+		done
+		blacklist_game="$(cat $BLACK_LIST_GAMING_2)"
+	fi
+	for zzz in $blacklist_apps $blacklist_game $blacklist_system $blacklist_term; do
+		[[ "$1" == $zzz ]] && return 0
+	done
+	}
+#▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
+#▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
+#Litegapps
+#▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
+#▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
+export PATH=/sbin:/sbin/su:/su/bin:/su/xbin:/system/bin:/system/xbin:/data/adb/litegapps_controller/xbin:/data/data/com.termux/files/usr/bin
+
+getp5(){ grep "^$1" "$2" | head -n1 | cut -d = -f 2; }
+test -f /system_root/system/build.prop && SYSDIR=/system_root/system || test -f /system/system/build.prop && SYSDIR=/system/system || SYSDIR=/system
+findarch=$(getp5 ro.product.cpu.abi $SYSDIR/build.prop | cut -d '-' -f -1)
+SDK=$(getp5 ro.build.version.sdk $SYSDIR/build.prop)
+case $findarch in
+arm64) ARCH=arm64 ;;
+armeabi) ARCH=arm ;;
+x86) ARCH=x86 ;;
+x86_64) ARCH=x86_64 ;;
+*) abort " <$findarch> Your Architecture Not Support" ;;
+esac
+
+#▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
+#▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
+is_full(){
+	local BIN9="
+	aapt
+	aapt2
+	brotli
+	busybox
+	htop
+	tar
+	unzip
+	zip
+	zipalign
+	"
+	for Y90 in $BIN9; do
+	if [ $(command -v $Y90) ]; then
+		local full_is=true
+	else
+		local full_is=false
+	fi
+	done
+	
+	if $full_is; then
+	return 0
+	else
+	print "! Untuk Mengunakan Fitur ini anda harus menginstall versi penuh"
+	return 1
+	fi
+	}
+	
+boost(){
+print "- Boost...";
+print " ";
+for z in $(pm list packages -3) $system_list; do
+boost6071=`getp1 $z`
+	for WZ in $blacklist_term; do
+		if [[ "$boost6071" = $WZ ]]; then
+			print "${YELLOW}[SKIP] •> ${WHITE}${boost6071//com.}"
+			break
+		else
+			am force-stop $boost6071 && print "${GREEN}[OK] •> ${WHITE}${boost6071//com.}" || print "${RED}[ERROR] •> ${WHITE}${boost6071//com.}" 2>/dev/null
+			break
+		fi
+	done
+done
+print "- Done ";
+}
+
+device(){
+	print
+    ROM=$(getprop ro.build.display.id | cut -d'-' -f1)
+	print "Name ROM = $ROM"
+	print "Device Codename : $(getprop ro.product.vendor.device)"
+	print "Model = $(getprop ro.product.model)"
+	print "Vendor Model = $(getprop ro.product.vendor.model)"
+	print "Brand = $(getprop ro.product.brand)"
+	print "Manufacturer = $(getprop ro.product.manufacturer)"
+	print "Architecture = $(getprop ro.product.cpu.abi)"
+	print "Arch support = $(getprop ro.product.cpu.abilist)"
+	print "Fingerprint = $(getprop ro.build.fingerprint)"
+	print "Density = $(getprop ro.sf.lcd_density)"
+	print "Android Version = $(getprop ro.build.version.release)" |  tee -a $LOG;
+	print "Android Security patch = $(getprop ro.build.version.security_patch)"
+	print "battery Status = $(cat /sys/class/power_supply/battery/status)"
+	print "battery = $(cat /sys/class/power_supply/battery/capacity)%"
+	print "battery Technology = $(cat /sys/class/power_supply/battery/technology)"
+	print "battery Health = $(cat /sys/class/power_supply/battery/health)"
+	ARM=$(getprop ro.product.cpu.abi)
+	print "Architecture = $ARM" |  tee -a $LOG;
+	selinux=$(getenforce)
+	print "Selinux = $selinux " |  tee -a $LOG;
+	print "Kernel = $(uname -r)" |  tee -a $LOG;
+	print "Chipset = $(getprop ro.product.board) " |  tee -a $LOG;
+	print "GPU = $(cat /sys/kernel/gpu/gpu_model)"
+	[ "$(command -v busybox)" ] && print "Busybox = Installed" || print "${WHITE}Busybox = Not found $GREEN"
+    if command -v magisk >/dev/null; then
+    	print "Magisk = Installed"
+    	print "Magisk version = $(magisk -v)"
+    	print "Magisk Version code = $(magisk -V)"
+    	print "Magisk path =$(magisk --path)"
+    else
+    	print "${WHITE}magisk = Not found"
+    fi
+    
+    [ "$(grep f2fs /vendor/etc/fstab.qcom)" ] && print "F2FS = This ROM supports F2FS" || print "${WHITE}F2FS = This ROM not supports F2FS${GREEN}"
+    test -f /sys/kernel/touchpanel/dclicknode && [ "$(cat /sys/kernel/touchpanel/dclicknode)" -eq 1 ] && print "DT2W = Enable" || print "${WHITE}DT2W = Disable${GREEN}"
+    [ -L /dev/block/by-name/super ] && print "Dynamic Partitions = true" || print "Dynamic Partitions = false"
+    if pm list packages -s | grep -q com.google.android.gms; then
+    print "Gapps=installed"
+    else
+    print "${WHITE}Gapps=not found"
+    fi
+    print "Web View = $(settings get global webview_provider)"
+    if [ "$(settings get secure flashlight_available)" -eq 1 ]; then
+    	print_true "Flashlight" "Supported"
+    else
+    	print_false "Flashlight" "Not Supported"
+    fi
+    
+    }
+	
+gaming1(){
+	while true; do
+	clear
+	printmid "${BRED}Gaming Mode 1${NC}$WHITE"
+	print " ";
+		for z in $(pm list packages -3) $gappslist $syslist; do
+			boost6071=`getp1 $z`
+  			 if black_func_1 $boost6071; then
+			 	  print "${YELLOW}[SKIP] •> ${WHITE}${boost6071//com.}"
+			   else	  
+			 	  am force-stop $boost6071 >/dev/null 2>&1 && print "${GREEN}[OK] •> ${WHITE}${boost6071//com.}" || print "${RED}[ERROR] •> ${WHITE}${boost6071//com.}"
+			   fi
+ 		 done
+ 	print
+ 	print "- ${GREEN}Done${WHITE}"
+     sleep 60s & loadings "- Loading ..."
+ 	done		
+}
+
+gaming2(){
+	if [ ! -f $DATA/gaming_mode_2 ]; then
+	clear
+	print
+	printmid "${CYAN}Gaming Mode 2${NC}$WHITE"
+	print " ";
+	del $DATA/gaming2_list_apps
+		for z in $(pm list packages -3) $system_list; do
+			boost6071=`getp1 $z`
+			 if black_func_2 $boost6071; then
+			 	  print "${YELLOW}[SKIP] •> ${WHITE}${boost6071//com.}"
+			 else	  
+			 	  pm disable $boost6071 >/dev/null 2>&1  && print "${GREEN}[OK] •> ${WHITE}${boost6071//com.}" || print "${GREEN}[ERROR] •> ${WHITE}${boost6071//com.}"
+			 	  echo "$boost6071" >> $DATA/gaming2_list_apps
+			 fi
+ 	   done
+ 	echo actived > $DATA/gaming_mode_2
+ 	print
+ 	print "- ${GREEN}Done${WHITE}"
+ 	end_menu
+	elif [ -f $DATA/gaming_mode_2 ]; then
+	clear
+	printmid "${BRED}Disabling Gaming Mode 2${NC}$WHITE"
+	print
+		 for gaming2_apps in $(cat $DATA/gaming2_list_apps); do
+		 	pm enable $gaming2_apps >/dev/null 2>&1 && print "${GREEN}[OK] •> ${WHITE}${gaming2_apps//com.}" || print "${RED}[ERROR] •> ${WHITE}${gaming2_apps//com.}"
+		 done
+	del $DATA/gaming2_list_apps
+	del $DATA/gaming_mode_2
+	print
+	print "- Done"
+	end_menu
+	fi
+	}
+gaming3(){
+	status_gaming3=$DATA/gaming_mode_3
+	list_gaming3=$DATA/gaming_mode_3_list
+	if [ ! -f $list_gaming3 ]; then
+		ADD_LIST_GAMING3="
+		com.android.vending
+		com.google.android.calendar
+		com.google.android.calculator
+		"
+		for WAHYU666 in $ADD_LIST_GAMING3; do
+			echo "$WAHYU666" >> $list_gaming3
+		done
+	fi
+	[ ! -f $list_gaming3 ] && [ ! $(grep . $list_gaming3) ] && error "$list_gaming3 Not found list app" && sleep 7s && return 1;
+	if [ -f $status_gaming3 ]; then
+		clear
+		printmid "${BRED}Disabling Gaming Mode 3 ${NC}$GREEN"
+		print
+		sleep 1s
+		for gaming3_list in $(cat $list_gaming3); do
+			pm enable $gaming3_list >/dev/null 2>&1 && print "${GREEN}[OK] •> ${WHITE}${gaming3_list//com.}" || print "${RED}[ERROR] •> ${WHITE}${gaming3_list//com.}"
+		done
+		
+		del $DATA/gaming_mode_3
+		print
+		print "${GREEN}- Done"
+		end_menu
+	else
+	clear
+		printmid "${BRED}Enabling Gaming Mode 3${NC}${GREEN}"
+		print
+		sleep 1s
+		for gaming3_list in $(cat $list_gaming3); do
+			pm disable $gaming3_list >/dev/null 2>&1 && print "${GREEN}[OK] •> ${WHITE}${gaming3_list//com.}" || print "${GREEN}[ERROR] •> ${WHITE}${gaming3_list//com.}"
+		done
+		echo actived > $status_gaming3
+		print
+		print "${GREEN}- Done"
+		end_menu
+	fi
+	
+	}
+	
+gaming_make_list(){
+	print_title "Select list all"
+	print "1.List apps installed"
+	print "2.List system"
+	print "3.List system and apps"
+	print "4.Exit"
+	print
+	echo -n "Select Menu : "
+	read appps
+	case $appps in
+		1)
+		print_title "Creating list apps installed"
+		del $BASED/list_apps_installed
+		for capps in $(pm list packages -3); do
+		print "••> $(getp1 $capps)"
+		print "$(getp1 $capps)" >> $BASED/list_apps_installed
+		done
+		print
+		print "${WHITE}- Check in •> $BASED/list_apps_installed $GREEN"
+		print "- done"
+		print
+		print "1.Back"
+		print " "
+		echo -n "  Select Menu : "
+		read WAHYU89
+		;;
+		2)
+		print_title "Creating list system"
+		del $BASED/list_system
+		for capps in $(pm list packages -s); do
+		print "••> $(getp1 $capps)"
+		print "$(getp1 $capps)" >> $BASED/list_system
+		done
+		print
+		print "${WHITE}- Check in •> $BASED/$base/list_system $GREEN"
+		print "- done"
+		print
+		print
+		print "1.Back"
+		print " "
+		echo -n "  Select Menu : "
+		read WAHYU88
+		;;
+		3)
+		print_title "Creating list system and apps"
+		del $BASED/list_system_apps
+		for capps in $(pm list packages); do
+		print "••> $(getp1 $capps)"
+		print "$(getp1 $capps)" >> $BASED/list_system_apps
+		done
+		print
+		print "${WHITE}- Check in •> $BASED/$base/list_system_apps $GREEN"
+		print "- done"
+		print
+		print
+		print "1.Back"
+		print " "
+		echo -n "  Select Menu : "
+		read WAHYU88
+		;;
+	esac
+	}
+gaming_edit_config(){
+	while true; do
+		print_title "Edit Config Gaming Mode"
+		print " 1. Edit Config Gaming Mode 1"
+		print " 2. Edit Config Gaming Mode 2"
+		print " 3. Edit Config Gaming Mode 3"
+		print " 4. Exit"
+		SELECT
+		case $PILIH in
+		1)
+		if [ -f $DATA/black_list_gaming1 ]; then
+		am start -a android.intent.action.VIEW -d file://$DATA/black_list_gaming1 -t text/plain > /dev/null 2>&1 
+		fi
+		;;
+		2)
+		if [ -f $DATA/black_list_gaming2 ]; then
+		am start -a android.intent.action.VIEW -d file://$DATA/black_list_gaming2 -t text/plain > /dev/null 2>&1 
+		fi
+		;;
+		3)
+		if [ -f $DATA/gaming_mode_3_list ]; then
+		am start -a android.intent.action.VIEW -d file://$DATA/gaming_mode_3_list -t text/plain > /dev/null 2>&1 
+		fi
+		;;
+		4) break ;;
+		*)    ;;
+		esac
+	done
+	}
+gaming_about(){
+	print_title "${CYAN}Gaming Mode About${GREEN}"
+	print "${YELLOW}1.Gaming Mode 1 $GREEN"
+	print "   • Every 60 seconds application installed on your device will be forced to stop.to add a blacklist app, add it here : ${WHITE}<$DATA/black_list_gaming1>${GREEN}"
+	print "${YELLOW}#.Blacklist Gaming Mode 1"
+	for WAHYU6767 in $blacklist_apps $blacklist_system $blacklist_term $(cat $DATA/black_list_gaming1); do
+		print "${CYAN}  • $WAHYU6767"
+	done
+	print "${YELLOW}#.List Apps Gaming Mode 1"
+	for z in $(pm list packages -3) $gappslist $syslist; do
+			boost6071=`getp1 $z`
+  			 if black_func_1 $boost6071; then
+			 	  shift 0
+			   else	  
+			 	  print "${CYAN}  • $boost6071"
+			   fi
+    done
+    
+	print
+	print "${YELLOW}2.Gaming Mode 2 $GREEN"
+	print "   •  Applications installed on your device will be disabled. To add a blacklist app, add it here : ${WHITE}<$DATA/black_list_gaming2>${GREEN}"
+	print "${YELLOW}#.Blacklist Gaming Mode 2"
+	for WAHYU6767 in $blacklist_apps $blacklist_system $blacklist_term $(cat $DATA/black_list_gaming2); do
+		print "${CYAN}  • $WAHYU6767"
+	done
+	print "${YELLOW}#.List Apps Gaming Mode 2"
+	for z in $(pm list packages -3) $gappslist $syslist; do
+			boost6071=`getp1 $z`
+  			 if black_func_2 $boost6071; then
+			 	  shift 0
+			   else	  
+			 	  print "${CYAN}  • $boost6071"
+			   fi
+    done
+    print
+    print "${YELLOW}3.Gaming Mode 3 $GREEN"
+	print "   • Listed Applications list ${WHITE}<$DATA/gaming_mode_3_list>${GREEN} will be deactivated."
+	print "${YELLOW}#.List Gaming Mode 3"
+    if [ ! "$(cat $DATA/gaming_mode_3_list)" ]; then
+    	print "$WHITE  • NULL"
+	elif [ -f $DATA/gaming_mode_3_list ]; then
+    	for WAHYU90 in $(cat $DATA/gaming_mode_3_list); do
+    		print "$CYAN  • $WAHYU90"
+    	done
+    else
+    	print "$WHITE  • NULL"
+    fi
+	end_menu
+	}
+gaming(){
+	while true; do
+	if [ ! -f $DATA/black_list_gaming1 ]; then
+		for WAHYU2345 in $LIST_GAME; do
+			echo "$WAHYU2345" >> $DATA/black_list_gaming1
+		done
+	fi
+	if [ ! -f $DATA/black_list_gaming2 ]; then
+		for WAHYU2345 in $LIST_GAME; do
+			echo "$WAHYU2345" >> $DATA/black_list_gaming2
+		done
+	fi
+	if [ ! -f $DATA/gaming_mode_3_list ]; then
+		touch $DATA/gaming_mode_3_list
+	fi
+	
+	clear
+	[ -f $DATA/gaming_mode_2 ] && gaming22="${VIOLET}2.Disable Gaming Mode 2${GREEN}" || gaming22="2.Gaming Mode 2"
+	[ -f $DATA/gaming_mode_3 ] && gaming23="${VIOLET}3.Disable Gaming Mode 3${GREEN}" || gaming23="3.Gaming Mode 3"
+	printmid "${YELLOW}Gaming Mode Select $GREEN"
+	print
+	print "1.Gaming Mode 1"
+	print "$gaming22"
+	print "$gaming23"
+	print "4.Make List Apps"
+	print "5.Edit config"
+	print "6.About"
+	print "7.Exit"
+	print
+	echo -n "Select Gaming Mode : "
+	read gamemodeselect
+	print
+	case $gamemodeselect in
+	1) gaming1 ;;
+	2) gaming2 ;;
+	3) gaming3 ;;
+	4) gaming_make_list ;;
+	5) gaming_edit_config ;;
+	6) gaming_about ;;
+	7) break ;;
+	*) error "Invalid selection"; sleep 2s ;;
+	esac
+	done
+	}
+battery(){
+	if [ ! -f $DATA/battery_saver ]; then
+	print "${CYAN}Enabling Battery Saving${NC}$WHITE"
+		for z in $(pm list packages -3) $gappslist $syslist; do
+		boost6071=`getp1 $z`
+   		if black_func_1 $boost6071; then
+   		   print "${CYAN}[SKIP] •> ${WHITE}${boost6071//com.}"
+   		else   
+   		   print "${GREEN}[OK] •> ${WHITE}${boost6071//com.}"
+   		   am force-stop $boost6071 2>/dev/null
+   		fi   
+		done
+		print
+		print "- Configure GMS"
+		pm disable com.google.android.gms/com.google.android.gms.mdm.receivers.MdmDeviceAdminReceiver >/dev/null
+		
+		print
+		print "${YELLOW} Configure CPU${GREEN}"
+		print "- Boost Cluster 1"
+		local cluster1=/sys/devices/system/cpu/cpu0/cpufreq
+		if grep -q powersave $cluster1/scaling_available_governors 2>/dev/null; then
+			print "• Backuping"
+			cat "$cluster1/scaling_governor" > $DATA/battery-saver-cluster1-governors
+			print "• Set governor"
+			echo powersave > $cluster1/scaling_governor
+		fi
+		if [ $(cat $cluster1/scaling_max_freq) -eq $(cat $cluster1/scaling_max_freq) ]; then
+			print "• Backuping"
+			cat "$cluster1/scaling_max_freq" > $DATA/battery-saver-cluster1-freq
+			print "• Set freq"
+			local setpowersave=`cat $cluster1/scaling_available_frequencies | tail -n 1 | tr -s ' ' | cut -d ' ' -f2`
+			echo "$setpowersave" > $cluster1/scaling_max_freq
+		fi
+		print "- Boost Cluster 2"
+		local cluster2=/sys/devices/system/cpu/cpu7/cpufreq
+		if grep -q powersave $cluster2/scaling_available_governors 2>/dev/null; then
+			print "• Backuping"
+			cat "$cluster2/scaling_governor" > $DATA/battery-saver-cluster2-governors
+			print "• Set governor"
+			echo powersave > $cluster2/scaling_governor
+		fi
+		if [ $(cat $cluster2/scaling_max_freq) -eq $(cat $cluster2/scaling_max_freq) ]; then
+			print "• Backuping"
+			cat "$cluster2/scaling_max_freq" > $DATA/battery-saver-cluster2-freq
+			print "• Set freq"
+			local setpowersave=`cat $cluster2/scaling_available_frequencies | tail -n 1 | tr -s ' ' | cut -d ' ' -f2`
+			echo "$setpowersave" > $cluster2/scaling_max_freq
+		fi
+		print "${YELLOW} Configure GPU${GREEN}"
+		local cluster1=/sys/kernel/gpu
+		if grep -q powersave $cluster1/gpu_available_governor 2>/dev/null ; then
+			print "• Backuping"
+			cat $cluster1/gpu_governor > $DATA/battery-saver-gpu-governor
+			print "• Set governor"
+			echo powersave > $cluster1/gpu_governor
+		fi
+		if [ $(cat $cluster1/gpu_max_clock) -eq $(cat $cluster1/gpu_max_clock) ]; then
+			print "• Backuping"
+			cat $cluster1/gpu_max_clock > $DATA/battery-saver-gpu-freq
+			print "• Set freq"
+			local setpowersave=`cat $cluster1/gpu_available_governor | tail -n 1 | tr -s ' ' | cut -d ' ' -f2`
+			echo "$setpowersave" > $cluster1/gpu_max_clock
+		fi
+		
+		print "actived" > $DATA/battery_saver
+		print "- Done ";
+		
+		
+	elif [ -f $DATA/battery_saver ]; then
+		print "${CYAN}Disabling Battery Saving${NC}$WHITE"
+		print
+		print "- Restoring Configure GMS"
+		pm enable com.google.android.gms/com.google.android.gms.mdm.receivers.MdmDeviceAdminReceiver >/dev/null
+		
+		
+		local cluster1=/sys/devices/system/cpu/cpu0/cpufreq
+		if [ -f $DATA/battery-saver-cluster1-governors ]; then
+			print "- Restoring cpu cluster 1 governor"
+			cat $DATA/battery-saver-cluster1-governors > $cluster1/scaling_governor
+			del $DATA/battery-saver-cluster1-governors
+		fi
+		if [ -f $DATA/battery-saver-cluster1-freq ]; then
+			print "- Restoring cpu cluster 1 freq"
+			cat $DATA/battery-saver-cluster1-freq  > $cluster1/scaling_max_freq
+			del $DATA/battery-saver-cluster1-freq
+		fi
+		
+		local cluster2=/sys/devices/system/cpu/cpu7/cpufreq
+		if [ -f $DATA/battery-saver-cluster2-governors ]; then
+			print "- Restoring cpu cluster 2 governor"
+			cat $DATA/battery-saver-cluster2-governors > $cluster2/scaling_governor
+			del $DATA/battery-saver-cluster2-governors
+		fi
+		if [ -f $DATA/battery-saver-cluster2-freq ]; then
+			print "- Restoring cpu cluster 2 freq"
+			cat $DATA/battery-saver-cluster2-freq > $cluster2/scaling_max_freq
+			del $DATA/battery-saver-cluster2-freq
+		fi
+		
+		local cluster1=/sys/kernel/gpu
+		if [ -f $DATA/battery-saver-gpu-governor ]; then
+			print "- Restoring gpu governor"
+			cat $DATA/battery-saver-gpu-governor> $cluster1/gpu_governor
+			del $DATA/battery-saver-gpu-governor
+		fi
+		if [ -f $DATA/battery-saver-gpu-freq ]; then
+			print "- Restoring gpu freq"
+			cat $DATA/battery-saver-gpu-freq > $cluster1/gpu_max_clock
+			del $DATA/battery-saver-gpu-freq
+		fi
+		del $DATA/battery_saver
+		print "- Done"
+	fi
+}
+addon_led_calerful(){
+		print_title "LED Calorfull"
+		print "1 Very Fast"
+		print "2 Fast"
+		print "3 medium"
+		print "4 slow"
+		print "5 Very slow"
+		print
+		echo -n "Selete LED scale : "
+		read scale
+		case $scale in
+			1) ledscale=" " ;;
+			2) ledscale="sleep 1s" ;;
+			3) ledscale="sleep 2s" ;;
+			4) ledscale="sleep 4s" ;;
+			5) ledscale="sleep 5s" ;;
+		  *)
+			print
+			print "select not found, set medium scale"
+			ledscale="sleep 2s"
+			sleep 2s
+			;; 
+			
+		esac
+		while true; do
+			print 0 > /sys/class/leds/red/brightness
+			cat /sys/class/leds/red/max_brightness > /sys/class/leds/red/brightness
+			$ledscale
+			print 0 > /sys/class/leds/red/brightness
+			cat /sys/class/leds/green/max_brightness > /sys/class/leds/green/brightness
+			$ledscale
+			echo 0 > /sys/class/leds/green/brightness
+		done
+	}
+addon_boot_unpacker(){
+	print_title "Boot image Unpacker"
+	if [ $(command -v magiskboot) ]; then
+		local MAGISKBOOT=magiskboot
+	elif [ -f /data/adb/magisk/magiskboot ]; then
+		local MAGISKBOOT=/data/adb/magisk/magiskboot
+	fi
+	local L_BOOT="
+	/dev/block/by-name/boot
+	/dev/block/by-name/boot_a
+	/dev/block/by-name/boot_b
+	$BASED/boot.img
+	"
+	local NUM=$NUM
+	for BI in $L_BOOT; do
+		if [ -f $BI ] || [ -L $BI ]; then 
+			local NUM=$(((NUM+1)))
+			local NAME=`basename $BI`
+			local OUT=$BASED/boot/$NAME
+			print
+			print "${NUM}. $Name"
+			print "- Input  : $BI"
+			print "- Output : $BASED/$NAME/<here>"
+			print
+			del $OUT
+			cdir $OUT
+			cd $OUT
+			print "- Unpack boot image"
+			sleep 1s
+			cat $BI > $OUT/old-boot.img
+			$MAGISKBOOT unpack -h $BI 2>/dev/null
+			print "- Repack boot image"
+			$MAGISKBOOT repack $BI 2>/dev/null
+			cd /
+			print "- Unpack boot image Done"
+			
+		fi
+	
+	done
+	end_menu
+	}
+addon_enable_all_apps(){
+	print_title "Enable All Apps"
+	for WAHYU67 in $(pm list packages -d); do
+		local APP_INPUT=`getp1 $WAHYU67`
+		for WAHYU77 in $blacklist_term; do
+			if [ $APP_INPUT != $WAHYU77 ]; then
+				pm enable $(getp1 $WAHYU67) 2>/dev/null | >/dev/null
+				if [ $? -eq 0 ]; then
+					print "${GREEN}[OK] •> $APP_INPUT"
+				else
+					print "${RED}[ERROR] •> $APP_INPUT"
+				fi
+			else
+				print "${YELLOW}[SKIP] <$APP_INPUT>"
+			fi
+		done
+	done
+	end_menu
+	}
+addon_ccg(){
+	print_title " Clean Cache Game"
+	for W2 in $LIST_GAME; do
+		if [ -d /data/data/$W2/cache ]; then
+			print "${YELLOW}[CLEAN]${GREEN} •> $W2 cache"
+			del /data/data/$W2/cache
+			del /sdcard/Android/data/$W2/cache
+		fi
+	done
+	end_menu
+	}
+addon_fake_battery(){
+	
+	print
+	echo -n "Fake Batttery Number : "
+	read fake
+	echo $fake > /sys/class/power_supply/battery/capacity 
+	
+	}
+addon_disable_led(){
+	print
+	print "- Disabling Leds"
+	echo 0 > /sys/class/leds/red/brightness
+	echo 0 > /sys/class/leds/green/brightness
+	print "- Done"
+	sleep 2s
+	}
+addon_set_all_permissions(){
+	print_title "Set All Permissions APK Installed"
+		for b in $(pm list packages -3); do
+			local package=`getp1 $b`
+			print "${GREEN}- Set permissions : ${CYAN}$package"
+			pm grant $package android.permission.READ_CALENDAR 2>/dev/null
+			pm grant $package android.permission.READ_CALL_LOG  2>/dev/null
+			pm grant $package android.permission.ACCESS_FINE_LOCATION 2>/dev/null
+			pm grant $package android.permission.READ_EXTERNAL_STORAGE 2>/dev/null
+			pm grant $package android.permission.ACCESS_COARSE_LOCATION 2>/dev/null
+			pm grant $package android.permission.READ_PHONE_STATE 2>/dev/null
+			pm grant $package android.permission.SEND_SMS 2>/dev/null
+			pm grant $package android.permission.CALL_PHONE 2>/dev/null
+			pm grant $package android.permission.WRITE_CONTACTS 2>/dev/null
+			pm grant $package android.permission.CAMERA 2>/dev/null
+			pm grant $package android.permission.WRITE_CALL_LOG 2>/dev/null
+			pm grant $package android.permission.PROCESS_OUTGOING_CALLS 2>/dev/null
+			pm grant $package android.permission.GET_ACCOUNTS 2>/dev/null
+			pm grant $package android.permission.WRITE_EXTERNAL_STORAGE 2>/dev/null
+			pm grant $package android.permission.RECORD_AUDIO 2>/dev/null
+			pm grant $package android.permission.ACCESS_MEDIA_LOCATION 2>/dev/null
+			pm grant $package android.permission.READ_CONTACTS 2>/dev/null
+		done
+		end_menu
+	
+	}
+addon_change_device_prop(){
+	print_title "Change Device Prop"
+	del $CACHE/list_prop
+	cdir $CACHE/list_prop
+	local NUM=0
+	for T97 in $(find $FILES/prop -type f -name config); do
+	local NUM=$(((NUM+1)))
+	local basedir=`dirname $T97`
+		for T98 in $(find $basedir -type f -name build.prop); do
+			cat $T98 >> $CACHE/list_prop/$NUM
+		done
+	
+	done
+	
+	for HH7 in $(ls -1 $CACHE/list_prop); do
+		local DEVICE_MODEL_PROP=`GETPROP ro.product.vendor.model $CACHE/list_prop/$HH7`
+		print "${HH7}. $DEVICE_MODEL_PROP"
+	done
+	echo
+	echo -n " Select Props 1 - $NUM : "
+	read READ78
+	if [ -f $CACHE/list_prop/$READ78 ]; then
+		local NAME_F=$CACHE/list_prop/$READ78
+		local DIRM=/data/adb/modules/${NAME}_prop
+		if [ -f $NAME_F ]; then
+		del $DIRM
+		cdir $DIRM
+		local BRAND=`GETPROP ro.product.vendor.brand $NAME_F`
+		local MANUFACTUR=`GETPROP ro.product.vendor.manufacturer $NAME_F`
+		local MARKETNAME=`GETPROP ro.product.vendor.model $NAME_F`
+		local MODEL=`GETPROP ro.product.vendor.model $NAME_F`
+		local CODENAME=`GETPROP ro.product.vendor.device $NAME_F`
+		local FINGERPRINT=`GETPROP ro.vendor.build.fingerprint $NAME_F`
+		print
+		print
+		print
+		print "  ${Y}Change device profile${G}"
+		print 
+		print " Brand = ${WHITE}$BRAND${G}"
+		print " Manufacture = ${WHITE}$MANUFACTUR${G}"
+		print " Marketname = ${WHITE}$MARKETNAME${G}"
+		print " Model = ${WHITE}$MODEL${G}"
+		print " Codename = ${WHITE}$CODENAME${G}"
+		print " Fingerprint = ${WHITE}$FINGERPRINT${G}"
+		print
+		print "- Make module"
+		local MPROPS=$DIRM/module.prop
+		echo "id=${NAME}_prop" >> $MPROPS
+		echo "name=${NAME} Prop $MODEL" >> $MPROPS
+		echo "version=$propversion" >> $MPROPS
+		echo "versionCode=$propcode" >> $MPROPS
+		echo "author=${NAME}" >> $MPROPS
+		echo "description=$NAME Controller props" >> $MPROPS
+		print "- Dump props"
+		local PROPS=$DIRM/system.prop
+		echo "ro.product.brand=$BRAND" >> $PROPS
+		echo "ro.product.manufacturer=$MANUFACTUR" >> $PROPS
+		echo "ro.product.marketname=$MARKETNAME" >> $PROPS
+		echo "ro.product.model=$MODEL" >> $PROPS
+		echo "ro.build.fingerprint=$FINGERPRINT" >> $PROPS
+		echo "ro.build.product=$CODENAME" >> $PROPS
+		echo "ro.product.device=$CODENAME" >> $PROPS
+		
+		#vendor partition prop Android 8.0+
+		if [ $API -gt 26 ]; then
+		#vendor
+		echo "ro.product.vendor.brand=$BRAND" >> $PROPS
+		echo "ro.product.vendor.manufacturer=$MANUFACTUR" >> $PROPS
+		echo "ro.product.vendor.marketname=$MARKETNAME" >> $PROPS
+		echo "ro.product.vendor.model=$MODEL" >> $PROPS
+		echo "ro.vendor.build.fingerprint=$FINGERPRINT" >> $PROPS
+		fi
+		#system and product partition prop Android 10+
+		if [ $API -gt 28 ]; then
+		#product
+		echo "ro.product.product.brand=$BRAND" >> $PROPS
+		echo "ro.product.product.manufacturer=$MANUFACTUR" >> $PROPS
+		echo "ro.product.product.marketname=$MARKETNAME" >> $PROPS
+		echo "ro.product.product.model=$MODEL" >> $PROPS
+		echo "ro.product.build.fingerprint=$FINGERPRINT" >> $PROPS
+		#system
+		echo "ro.product.system.brand=$BRAND" >> $PROPS
+		echo "ro.product.system.manufacturer=$MANUFACTUR" >> $PROPS
+		echo "ro.product.system.marketname=$MARKETNAME" >> $PROPS
+		echo "ro.product.system.model=$MODEL" >> $PROPS
+		echo "ro.product.system.device=$CODENAME" >> $PROPS
+		echo "ro.system.build.fingerprint=$FINGERPRINT" >> $PROPS
+		#vendor
+		echo "ro.product.vendor.device=$CODENAME" >> $PROPS
+		#odm
+		echo "ro.product.odm.device=$CODENAME" >> $PROPS
+		fi
+
+		#system_ext and odm partition prop Android 11+
+		if [ $API -gt 29 ]; then
+		#system_ext
+		echo "ro.product.system_ext.brand=$BRAND" >> $PROPS
+		echo "ro.product.system_ext.manufacturer=$MANUFACTUR" >> $PROPS
+		echo "ro.product.system_ext.marketname=$MARKETNAME" >> $PROPS
+		echo "ro.product.system_ext.model=$MODEL" >> $PROPS
+		echo "ro.system_ext.build.fingerprint=$FINGERPRINT" >> $PROPS
+		#odm
+		echo "ro.product.odm.brand=$BRAND" >> $PROPS
+		echo "ro.product.odm.manufacturer=$MANUFACTUR" >> $PROPS
+		echo "ro.product.odm.marketname=$MARKETNAME" >> $PROPS
+		echo "ro.product.odm.model=$MODEL" >> $PROPS
+		echo "ro.odm.build.fingerprint=$FINGERPRINT" >> $PROPS
+		fi
+		print 
+		print "${Y}+ Note${G}"
+		print "To restore original device prop, you can delete it from magisk or delete directory ${WHITE}<${DIRM}>${G}"
+	
+		else
+			error "! Device fingerprint <$FINGERPRINT_D/$NAME> not found"
+		fi
+	fi
+	
+	end_menu
+	}
+addon(){
+	while true; do
+	print_title "Add-on"
+	print "1. Fake Battery Set"
+	print "2. Led Calerful"
+	print "3. Disable Led"
+	print "4. Boot Unpacker"
+	print "5. Set all permissions apk installed"
+	print "6. Enable All Apps"
+	print "7. Clean Cache Game"
+	print "8. Change Device Prop"
+	print "9. Exit"
+	print " "
+	echo -n "Select Menu : "
+	read addons
+	case $addons in
+	1)addon_fake_battery ;;
+	2)addon_led_calerful ;;
+	3)addon_disable_led ;;
+	4)addon_boot_unpacker ;;
+	5)addon_set_all_permissions ;;
+	6)addon_enable_all_apps ;;
+	7)addon_ccg;;
+	8)addon_change_device_prop ;;
+	9) break ;;
+	*)
+		error "Invalid selection"; sleep 2s ;;
+	esac
+	done
+	}
+
+testping(){
+	print_title "Test Ping Signal"
+	local SERVER=google.com
+	print " Server : $SERVER"
+	print " "
+	for ping_loop in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 ; do
+		coreping=`ping -w 3s $SERVER | tail -5 | grep time= | cut -d' ' -f8 | cut -d = -f2 | cut -d . -f1`
+			if [ ! "$coreping" ] && [ "$coreping" = *"unknown host"* ]; then
+				print "${RED} PING ${WHITE}•> ${RED}Server unknown host"
+				break
+			elif [ ! "$coreping" ]; then
+				print "${RED} PING ${WHITE}•> ${RED}Server not respon"
+				break
+			elif [ "$coreping" -lt 30 ]; then
+				print "${GREEN} PING ${WHITE}•>${GREEN} $coreping STATUS •> Very Good"
+			elif [ "$coreping" -lt 70 ]; then
+				print "${GREEN} PING ${WHITE}•>${GREEN} $coreping STATUS •> Good"
+			elif [ "$coreping" -lt 100 ]; then
+				print "${YELLOW} PING ${WHITE}•>${YELLOW} $coreping STATUS •> Medium"
+			elif [ "$coreping" -lt 120 ]; then
+				print "${VIOLET} PING ${WHITE}•>${VIOLET} $coreping STATUS •> Unstable"
+			else
+			 print "${RED} PING •> $coreping STATUS •> very unstable"
+			fi 
+	done
+	}
+	
+meminfo(){
+	print "${BLUE}____________________________________________${GREEN}"
+	print
+	print "RAM Free = $(free -h | grep Mem | tr -s ' ' | cut -d' ' -f4)"
+	print "RAM Used = $(free -h | grep Mem | tr -s ' ' | cut -d' ' -f3)"
+	print "RAM Total = $(free -h | grep Mem | tr -s ' ' | cut -d' ' -f2)"
+	print
+	print "${BLUE}____________________________________________${GREEN}"
+	print
+	for W897 in /data /sdcard /system /product /system_ext /vendor /cache /dev /persist /mnt /; do
+		if [ -d $W897 ]; then
+		local FILESYSTEM=`df -h $W897 | tail -n 1 | tr -s ' ' | cut -d' ' -f1`
+		print " ${YELLOW}Partition  = $W897${GREEN}"
+		print " Filesystem = $FILESYSTEM"
+		print " Mounted on = $(df -h $W897 | tail -n 1 | tr -s ' ' | cut -d' ' -f6)"
+		print " Free       = $(df -h $W897 | tail -n 1 | tr -s ' ' | cut -d' ' -f4)"
+		print " Usage      = $(df -h $W897 | tail -n 1 | tr -s ' ' | cut -d' ' -f3)"
+		print " Total      = $(df -h $W897 | tail -n 1 | tr -s ' ' | cut -d' ' -f2)"
+		print " Used %     = $(df -h $W897 | tail -n 1 | tr -s ' ' | cut -d' ' -f5)"
+		print " Type       = $(mount | grep $FILESYSTEM | tail -n 1 | tr -s ' ' | cut -d' ' -f5)"
+		print "${BLUE}____________________________________________${GREEN}"
+		print
+		fi
+	done
+	}
+TWEAKS_boost_cpu(){
+	print_title "Boost CPU"
+	local LIST_CPU="
+	cpu0
+	cpu1
+	cpu2
+	cpu3
+	cpu4
+	cpu5
+	cpu6
+	cpu7
+	"
+	for CPU in $LIST_CPU; do
+		local CPU_D=/sys/devices/system/cpu/$CPU
+		local NUM=$NUM
+		if [ -d $CPU_D ]; then
+		local NUM=$(((NUM+1)))
+			if grep -q performance $CPU_D/cpufreq/scaling_available_governors 2>/dev/null; then
+				print "- Boost CPU $NUM"
+				echo performance > $CPU_D/cpufreq/scaling_governor
+			fi
+		fi
+	
+	done
+	
+	print
+	print "- Done"
+	print
+	print "${YELLOW}  Note : maybe your device will be hotter and consume a lot of battery consumption.  Reboot if you want to disable it :)"
+	end_menu
+	}
+TWEAKS_boost_gpu(){
+		print_title "Boost GPU"
+		print "- Boost"
+		local cluster1=/sys/kernel/gpu
+		if grep -q performance $cluster1/gpu_available_governor 2>/dev/null ; then
+			print "• Set governor"
+			echo performance > $cluster1/gpu_governor
+		fi
+		if [ $(cat $cluster1/gpu_max_clock) -eq $(cat $cluster1/gpu_max_clock) ]; then
+			print "• Set freq"
+			echo "$(cat $cluster1/gpu_max_clock)" > $cluster1/gpu_min_clock
+		fi
+		print
+		print "- Done"
+		print
+		print "${YELLOW}  Note : maybe your device will be hotter and consume a lot of battery consumption.  Reboot if you want to disable it :)"
+		end_menu
+	}
+TWEAKS_GMS_DOSE(){
+	if ! pm list package | grep -q com.google.android.gms >/dev/null; then
+		print "${RED} ! Gms is not installed ${GREEN}"
+		sleep 3s
+		return 0
+	fi
+	print_title "Gms Dose"
+	local LIST_GMS="
+	com.google.android.gms/com.google.android.gms.auth.managed.admin.DeviceAdminReceiver
+	com.google.android.gms/com.google.android.gms.mdm.receivers.MdmDeviceAdminReceiver
+	"
+	if [ ! -f $DATA/tweaks_gms_dose ]; then
+		print "- Enable Gms Dose"
+		echo "active" > $DATA/tweaks_gms_dose
+		for GMS6 in $LIST_GMS; do
+			pm disable $GMS6 >/dev/null
+		done
+	else
+		print "- Disable Gms Dose"
+		del $DATA/tweaks_gms_dose
+		for GMS6 in $LIST_GMS; do
+			pm enable $GMS6 >/dev/null
+		done
+	fi
+	print "- Done"
+	end_menu
+	}
+TWEAKS_DISABLE_GAPPS(){
+	local LIST_GAPPS="
+	com.google.android.settings.intelligence
+	com.android.vending
+	com.google.android.gms
+	com.google.android.gm
+	com.google.android.youtube
+	com.google.android.play.games
+	com.google.android.apps.youtube.creator
+	"
+	if [ ! -f $DATA/tweaks_disable_gapps ]; then
+		print_title "Enable Gapps"
+		echo "active" > $DATA/tweaks_disable_gapps
+		for GMS5 in $LIST_GAPPS; do
+			pm disable $GMS5 >/dev/null && print "${GREEN}[OK] •> ${WHITE}${GMS5//com.}" || print "${RED}[ERROR] •> ${WHITE}${GMS5//com.}" 2>/dev/null
+		done
+	else
+		print_title "Disable Gapps"
+		del $DATA/tweaks_disable_gapps
+		for GMS5 in $LIST_GAPPS; do
+			pm enable $GMS5 >/dev/null && print "${GREEN}[OK] •> ${WHITE}${GMS5//com.}" || print "${RED}[ERROR] •> ${WHITE}${GMS5//com.}" 2>/dev/null
+		done
+	fi
+	print "- Done"
+	end_menu
+	}
+TWEAKS(){
+	while true; do
+		print_title "Tweaks"
+		print "1. Boost CPU"
+		print "2. Boost GPU"
+		if [ ! -f $DATA/tweaks_gms_dose ]; then
+		print "3. GMS Dose"
+		else
+		print "${VIOLET}3. GMS Dose${GREEN}"
+		fi
+		if [ ! -f $DATA/tweaks_disable_gapps ]; then
+		print "4. Disable Gapps"
+		else
+		print "${VIOLET}4. Disable Gapps${GREEN}"
+		fi
+		print "5. Exit"
+		SELECT
+		case $PILIH in
+		1)
+		TWEAKS_boost_cpu
+		;;
+		2)
+		TWEAKS_boost_gpu
+		;;
+		3)
+		TWEAKS_GMS_DOSE
+		;;
+		4)
+		TWEAKS_DISABLE_GAPPS
+		;;
+		5 | exit)
+		break
+		;;
+		*) error "Invalid selection" ; sleep 2s ;;
+		esac
+	done
+	}
+GAPPS(){
+	while true; do
+	clear
+	printmid "${C}Litegapps Tweaks${G}"
+	print
+	print " 1. Fix Notification Delay" 
+	print " 2. Back"
+	print
+	echo -n "  Select Menu : "
+	read perm33
+	case $perm33 in
+		1)
+			clear
+			printmid "Fix Notification Delay"
+			print
+			local NUM=$NUM
+			for GF in $(find /data/data -type f -name *gms*); do
+			local NUM=$(((NUM+1)))
+			print "${NUM}. Removing ${WHITE}${GF}${G}"
+			done
+			menu_end
+		;;
+		2)
+		break
+			;;
+		*)
+			error "please select menu"
+			sleep 2s
+			;;
+	esac
+	
+   done
+}
+
+SETTINGS(){
+	while true; do
+		print_title "Settings"
+		if [ "$(settings get global development_settings_enabled)" -eq 1 ]; then
+			print_true "1. Mode development settings" "ON"
+		else
+			print_false "1. Mode development settings" "OFF"
+		fi
+		if [ "$(settings get system show_touches)" -eq 1 ]; then
+			print_true "2. Show touches" "ON"
+		else
+			print_false "2. Show touches" "OFF"
+		fi
+		if [ "$(settings get global zram_enabled)" -eq 1 ]; then
+			print_true "3. Zram" "ON"
+		else
+			print_false "3. Zram" "OFF"
+		fi
+		print "4. Exit"
+		SELECT
+		case $PILIH in
+		1)
+		if [ "$(settings get global development_settings_enabled)" -eq 1 ]; then
+			settings put global development_settings_enabled 0
+		else
+			settings put global development_settings_enabled 1
+		fi
+		;;
+		2)
+			if [ "$(settings get system show_touches)" -eq 1 ]; then
+				settings put system show_touches 0
+			else
+				settings put system show_touches 1
+			fi
+		;;
+		3)
+			if [ "$(settings get global zram_enabled)" -eq 1 ]; then
+				settings put global zram_enabled 0
+			else
+				settings put global zram_enabled 1
+			fi
+		;;
+		4)
+		break
+		;;
+		*) error "Invalid selection" ; sleep 2s ;;
+		esac
+	done
+	}
+mode(){
+	if [ ! -f $DATA/mode ] || [ $(cat $DATA/mode) = normal ]; then
+	echo performance > $DATA/mode
+	elif [ -f $DATA/mode ] && [ $(cat $DATA/mode) = performance ]; then
+	echo powersave > $DATA/mode
+	else
+	echo normal > $DATA/mode
+	
+	fi
+	REBOOT
+	}
+about(){
+OPEN_LINK $ABOUT_LINK
+}
+menu(){
+	while true; do
+	print_title "$2"
+	$1
+	print
+	print "${CYAN}1.Back To Menu      ${GREEN}2.Refresh"
+	print
+	echo -n "${WHITE}Select menu : ${VIOLET}"
+	read anjay
+	if [ $anjay -eq 1 ]; then
+	break
+	elif [ $anjay -eq 2 ]; then print;
+	else
+	print
+	error "Please select 1 or 2"
+	print
+	sleep 2s
+	fi
+	done
+}
+
+#
+#Root
+id=`id`; id=`echo ${id#*=}`; id=`echo ${id%%\(*}`; id=`echo ${id%% *}`
+if [ "$id" != "0" ] && [ "$id" != "root" ]; then
+print " "
+error "Root Accest Not Found $WHITE"
+print " "
+exit 1
+fi
+
+#▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
+for WAHYU45 in $BASED $DATA; do
+	test ! -d $WAHYU45 && cdir $WAHYU45
+done
+#▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
+while true; do
+clear
+test -f $DATA/battery_saver && batterystatus="${VIOLET}3.Disable Battery... ${NC}${GREEN}" || batterystatus="3.Battery Saver      "
+if [ -f $DATA/mode ] && [ $(cat $DATA/mode) = normal ]; then
+MODE=normal
+elif [ -f $DATA/mode ] && [ $(cat $DATA/mode) = performance ]; then
+MODE=performance
+elif [ -f $DATA/mode ] && [ $(cat $DATA/mode) = powersave ]; then
+MODE=powersave
+else
+MODE=normal
+fi
+print " "
+print "                   ${YELLOW}${NAME} ${WHITE}Controller${GREEN}"
+print " "
+print " Mode = $MODE"
+if [ -f $DATA/reboot ]; then
+print " Reboot Diperlukan"
+fi
+print " "
+print " "
+print "1.Boost              5.Gapps               ${YELLOW}9.Tweaks${GREEN}"
+print "2.Gaming Mode        6.Memory Info         10.Settings"
+print "${batterystatus}7.Device Info         11.About"
+print "4.Change Mode        8.Add-on              12.Exit"
+print
+echo -n "${YELLOW}Choose one of the numbers : ${CYAN}"
+read pilih
+case $pilih in
+1) menu boost Boost ;;
+2) gaming ;;
+3) menu battery "Battery Saver" ;;
+4) mode;;
+5)GAPPS
+;;
+6) menu meminfo "Memory Info" ;;
+7) menu device "Device info" ;;
+8) addon ;;
+9) TWEAKS ;;
+10) SETTINGS ;;
+11 | about) OPEN_LINK $ABOUT_LINK;;
+12 | exit | e)  
+print " $WHITE "
+break 
+;;
+*) error "Invalid selection" ; sleep 2s ;;
+esac
+done
+

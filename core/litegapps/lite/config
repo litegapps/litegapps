@@ -1,0 +1,8 @@
+sdk=34
+arch=arm64
+restore.sdk=31
+restore.arch=arm64
+name=LiteGapps
+dir_name=lite
+modules=false
+desc=litegapps is a google apps package that supports almost all arch and android versions while maintaining lightness, saving battery and more.

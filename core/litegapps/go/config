@@ -1,0 +1,8 @@
+sdk=33
+arch=arm64
+restore.sdk=32
+restore.arch=arm64
+name=LiteGapps Go
+dir_name=go
+modules=true
+desc=LiteGapps Go is a custom gapps that provides a google go package so it's lighter.

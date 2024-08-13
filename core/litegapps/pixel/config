@@ -1,0 +1,8 @@
+sdk=33
+arch=arm64
+restore.sdk=32
+restore.arch=arm64
+name=LiteGapps Pixel
+dir_name=pixel
+modules=true
+desc=LiteGapps Pixel is a custom gapps which provides complete package from google.

@@ -1,0 +1,8 @@
+sdk=33
+arch=arm64
+restore.sdk=32
+restore.arch=arm64
+name=LiteGapps Micro
+dir_name=micro
+modules=true
+desc=LiteGapps Micro is a custom gapps that provides the most needed packages by users.
