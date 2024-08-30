@@ -202,8 +202,6 @@ for W in $LIST_CACHE ; do
 	del $W
 done
 
-ADS
-
 if [ $TYPEINSTALL = magisk ] || [ $TYPEINSTALL = ksu ]; then
 #creating log
 make_log
