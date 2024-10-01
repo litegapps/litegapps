@@ -1,4 +1,4 @@
-# Copyright 2020 - 2024 The Litegapps Project
+# Copyright 2020 - 2025 The Litegapps Project
 # Litegapps Functions
 # By wahyu6070
 #
@@ -452,7 +452,14 @@ INITIAL(){
 	TYPEINSTALL=magisk
 	elif [ $TYPEINSTALL = "ksu" ]; then
 	TYPEINSTALL=ksu
-	sedlog "- Type install KOPI installer convert to ksu module"a
+	sedlog "- Type install KOPI installer convert to ksu module"
+	elif [ ! $TYPEINSTALL ] && [ $APATCH ]; then
+	TYPEINSTALL=apatch
+	elif [ ! $TYPEINSTALL ] && [ ! $APATCH ]; then
+	TYPEINSTALL=apatch
+	elif [ $TYPEINSTALL = "apatch" ]; then
+	TYPEINSTALL=apatch
+	sedlog "- Type install KOPI installer convert to ksu module"
 	elif [ $TYPEINSTALL = "magisk" ]; then
 	TYPEINSTALL=magisk
 	sedlog "- Type install KOPI installer convert to magisk module"
@@ -514,15 +521,15 @@ if [ $TYPEINSTALL = kopi ]; then
 		MEM_PARTITION=`df -k $SYSTEM | tail -n 1 | tr -s ' ' | cut -d' ' -f3`
 		if [ "$MEM_PARTITION" -eq "$MEM_PARTITION" ] && [ "$MEM_PARTITION" -gt "$MEM_INSTALL" ]; then
 			sedlog " memory partition $SYSTEM"
-			sedlog " memory install = $MEM_INSTALL kb"
-			sedlog " memory free partition $SYSTEM : $MEM_PARTITION kb"
+			sedlog " Memory required : $(($MEM_INSTALL / 1024)) MB"
+			sedlog " Available memory on partition $SYSTEM : $(($MEM_PARTITION / 1024)) MB"
 			sedlog " free space is [OK]"
 		elif [ "$MEM_PARTITION" -eq "$MEM_PARTITION" ] && [ "$MEM_PARTITION" -le "$MEM_INSTALL" ]; then
 			printlog "! memory partition $SYSTEM"
-			printlog "! memory install = $MEM_INSTALL kb"
-			printlog "! memory free partition $SYSTEM : $MEM_PARTITION kb"
+			printlog "! Memory required : $(($MEM_INSTALL / 1024)) MB"
+			printlog "! Available memory on partition $SYSTEM : $(($MEM_PARTITION / 1024)) MB"
 			printlog "! free space is [ERROR] full memory"
-			report_bug "$SYSTEM partition memory is full"
+			report_bug "$SYSTEM Insufficient memory partition"
 		else
 			sedlog "! memory partition $SYSTEM is not detected size"
 		fi
@@ -531,16 +538,16 @@ if [ $TYPEINSTALL = kopi ]; then
 		MEM_INSTALL=`du -sk $MODPATH/system/product | cut -f1`
 		MEM_PARTITION=`df -k $PRODUCT | tail -n 1 | tr -s ' ' | cut -d' ' -f3`
 		if [ "$MEM_PARTITION" -eq "$MEM_PARTITION" ] && [ "$MEM_PARTITION" -gt $"MEM_INSTALL" ]; then
-			sedlog " memory partition $PRODUCT"
-			sedlog " memory install = $MEM_INSTALL kb"
-			sedlog " memory free partition $PRODUCT : $MEM_PARTITION kb"
+			sedlog " Partition $PRODUCT"
+			sedlog " Memory required : $(($MEM_INSTALL / 1024)) MB"
+			sedlog " Available memory on partition $PRODUCT : $(($MEM_PARTITION / 1024)) MB"
 			sedlog " free space is [OK]"
 		elif [ "$MEM_PARTITION" -eq "$MEM_PARTITION" ] && [ "$MEM_PARTITION" -le "$MEM_INSTALL" ]; then
-			printlog "! memory partition $PRODUCT"
-			printlog "! memory install = $MEM_INSTALL kb"
-			printlog "! memory free partition $PRODUCT : $MEM_PARTITION kb"
+			printlog "! Partition $PRODUCT"
+			printlog "! Memory required : $((MEM_INSTALL / 1024 )) MB"
+			printlog "! Available memory on partition $PRODUCT : $(($MEM_PARTITION / 1024)) MB"
 			printlog "! free space is [ERROR] full memory"
-			report_bug "$PRODUCT partition memory is full"
+			report_bug "$PRODUCT Insufficient memory partition"
 		else
 			sedlog "! memory partition $PRODUCT is not detected size"
 		fi
@@ -549,16 +556,16 @@ if [ $TYPEINSTALL = kopi ]; then
 		MEM_INSTALL=`du -sk $MODPATH/system/system_ext | cut -f1`
 		MEM_PARTITION=`df -k $SYSTEM_EXT | tail -n 1 | tr -s ' ' | cut -d' ' -f3`
 		if [ "$MEM_PARTITION" -eq "$MEM_PARTITION" ] && [ "$MEM_PARTITION" -gt "$MEM_INSTALL" ]; then
-			sedlog " memory partition $SYSTEM_EXT"
-			sedlog " memory install = $MEM_INSTALL kb"
-			sedlog " memory free partition $SYSTEM_EXT : $MEM_PARTITION kb"
+			sedlog " Partition $SYSTEM_EXT"
+			sedlog " Memory required : $(($MEM_INSTALL / 1024)) MB"
+			sedlog " Available memory on partition $SYSTEM_EXT : $(($MEM_PARTITION / 1024)) MB"
 			sedlog " free space is [OK]"
 		elif [ "$MEM_PARTITION" -eq "$MEM_PARTITION" ] && [ "$MEM_PARTITION" -le "$MEM_INSTALL" ]; then
-			printlog "! memory partition $SYSTEM_EXT"
-			printlog "! memory install = $MEM_INSTALL kb"
-			printlog "! memory free partition $SYSTEM_EXT : $MEM_PARTITION kb"
+			printlog "! Partition $(($SYSTEM_EXT / 1024)) MB"
+			printlog "! Memory required : $(($MEM_INSTALL / 1024)) MB"
+			printlog "! Available memory on partition $SYSTEM_EXT : $(($MEM_PARTITION / 1024)) MB"
 			printlog "! free space is [ERROR] full memory"
-			report_bug "$SYSTEM_EXT partition memory is full"
+			report_bug "$SYSTEM_EXT Insufficient memory partition"
 		else
 			sedlog "! memory partition $SYSTEM_EXT is not detected size"
 		fi
@@ -569,14 +576,14 @@ else
 		MEM_INSTALL=`du -sk $MODPATH/system | cut -f1`
 		MEM_PARTITION=`df -k /data | tail -n 1 | tr -s ' ' | cut -d' ' -f3`
 		if [ "$MEM_PARTITION" -eq "$MEM_PARTITION" ] && [ "$MEM_PARTITION" -gt "$MEM_INSTALL" ]; then
-			sedlog " memory partition /data"
-			sedlog " memory install = $MEM_INSTALL kb"
-			sedlog " memory free partition /data : $MEM_PARTITION kb"
+			sedlog " Partition /data"
+			sedlog " Memory required : $(($MEM_INSTALL / 1024)) MB"
+			sedlog " Available memory on partition /data : $(($MEM_PARTITION / 1024)) MB"
 			sedlog " free space is [OK]"
 		elif [ "$MEM_PARTITION" -eq "$MEM_PARTITION" ] && [ "$MEM_PARTITION" -le "$MEM_INSTALL" ]; then
-			printlog "! memory partition /data"
-			printlog "! memory install = $MEM_INSTALL kb"
-			printlog "! memory free partition /data : $MEM_PARTITION kb"
+			printlog "! Partition /data"
+			printlog "! Memory required : $(($MEM_INSTALL / 1024)) MB"
+			printlog "! Available memory on partition /data : $((MEM_PARTITION / 1024)) MB"
 			printlog "! free space is [ERROR] full memory"
 			report_bug "/data partition memory is full"
 		else

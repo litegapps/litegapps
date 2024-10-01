@@ -1,6 +1,7 @@
 #!/sbin/sh
-# Copyright 2020 - 2022 The Litegapps Project
+# Copyright 2020 - 2024 The Litegapps Project
 # Litegapps addon.d (running in rom installer)
+# ADDOND_VERSION=3
 # by wahyu6070
 
 log=/data/media/0/Android/litegapps/litegapps_addon.d.log
@@ -344,9 +345,18 @@ RESTORE_FILE() {
   fi
 }
 
+MOUNT2
 
+if [ $SYSTEM/etc/kopi ]; then
+	print "- Copying From $SYSTEM kopi dir"
+	mkdir -p /data/kopi
+	cp -rdf $SYSTEM/etc/kopi/* /data/kopi/
 
-[ ! -d $base ] && return 0
+fi
+if [ ! -d $base ]; then
+	print "- Can't backup litegapps"
+	return 0
+fi
 
 LIST_DIR="
 $TMP
