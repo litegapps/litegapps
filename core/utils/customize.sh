@@ -2,12 +2,6 @@
 # customize.sh 
 #
 
-#DEBUG=true
-MIN_KSU_VERSION=10940
-MIN_KSUD_VERSION=11425
-MAX_KSU_VERSION=20000
-MIN_MAGISK_VERSION=26402
-
 chmod 755 $MODPATH/bin/litegapps-functions
 #litegapps functions
 . $MODPATH/bin/litegapps-functions
@@ -202,10 +196,15 @@ for W in $LIST_CACHE ; do
 	del $W
 done
 
-if [ $TYPEINSTALL = magisk ] || [ $TYPEINSTALL = ksu ]; then
+for YJ in magisk ksu apatch; do
+
+if [ $TYPEINSTALL = $YJ ]; then
 #creating log
 make_log
+break
 fi
+done
+
 #terminal tips
 terminal_tips
 
