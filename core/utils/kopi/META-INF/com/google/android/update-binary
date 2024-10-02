@@ -476,7 +476,7 @@ export VERSIONCODE=`getp versioncode $MODULE`
 export DEVICE=`getp device $MODULE`
 export DATE=`getp date $MODULE`
 export AUTHOR=`getp author $MODULE`
-export KOPIMOD=/data/kopi/modules/"$ID"
+export KOPIMOD=$SYSTEM/etc/kopi/modules/"$ID"
 export MAGISKMOD=/data/adb/modules/$ID
 export MAGISKUP="/data/adb/modules_update/$ID"
 set_progress 0.5;

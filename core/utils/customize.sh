@@ -208,3 +208,8 @@ done
 #terminal tips
 terminal_tips
 
+if [ $TYPEINSTALL = kopi ] && [ -d $SYSTEM/addon.d ]; then
+	printlog "! Your ROM does not support addon.d ... and you must install litegapps after reinstalling or updating the ROM."
+	
+fi
+

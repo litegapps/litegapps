@@ -1,11 +1,13 @@
 #!/sbin/sh
-# Copyright 2020 - 2024 The Litegapps Project
+# Copyright 2020 - 2025 The Litegapps Project
 # Litegapps addon.d (running in rom installer)
 # ADDOND_VERSION=3
 # by wahyu6070
 
-log=/data/media/0/Android/litegapps/litegapps_addon.d.log
-base=/data/kopi/modules/litegapps
+base=/tmp/kopi/modules/litegapps
+module=$base/module.prop
+
+. /tmp/backuptool.functions
 
 if [ "$C" ]; then
 	TMP=$C
@@ -29,10 +31,12 @@ if ! $BOOTMODE; then
 print(){
 	ui_print "$1"
 	}
-sedlog(){
-	echo "[Processing]  $1 [$(date '+%d/%m/%Y %H:%M:%S')]" >> $log
-	}
+	
 #
+
+getp(){ grep "^$1" "$2" | head -n1 | cut -d = -f 2; }
+
+
 ch_con(){
 chcon -h u:object_r:system_file:s0 "$1" || sedlog "Failed chcon $1"
 }
@@ -345,18 +349,6 @@ RESTORE_FILE() {
   fi
 }
 
-MOUNT2
-
-if [ $SYSTEM/etc/kopi ]; then
-	print "- Copying From $SYSTEM kopi dir"
-	mkdir -p /data/kopi
-	cp -rdf $SYSTEM/etc/kopi/* /data/kopi/
-
-fi
-if [ ! -d $base ]; then
-	print "- Can't backup litegapps"
-	return 0
-fi
 
 LIST_DIR="
 $TMP
@@ -368,28 +360,42 @@ done
 case "$1" in
   backup)
   	MOUNT2
+  	if [ -d $SYSTEM/etc/kopi ]; then
+  		#print "- Coping $SYSTEM/etc/kopi"
+  		rm -rf /tmp/kopi
+  		mkdir -p /tmp/kopi
+  		cp -rdf $SYSTEM/etc/kopi/* /tmp/kopi/
+  	else
+  		print "- Failed Backup $SYSTEM/etc/kopi"
+  	fi
+  	
   	print "Backuping LiteGapps"
+  	
+  	## Backup 27-litegapps.sh
+  	cp -f $SYSTEM/addon.d/27-litegapps.sh $base/
+  	
   	if [ -f $base/list_install_system ]; then
+  	
   		for A in $(cat $base/list_install_system); do
   			if [ -f $SYSTEM/$A ] && [ ! -L $SYSTEM/$A ] ; then
-  				sedlog "  Backuping •> $SYSTEM/$A"
-  				BACKUP_FILE $SYSTEM/$A
+  				#print "  Backuping •> $SYSTEM/$A"
+  				backup_file $SYSTEM/$A
   			fi
     	  done
  	 fi
  	 if [ -f $base/list_install_product ]; then
  	 	for B in $(cat $base/list_install_product); do
  	 		if [ -f $PRODUCT/$B ] && [ ! -L $PRODUCT/$B ] ; then
- 	 			sedlog "  Backuping •> $PRODUCT/$B"
- 	 			BACKUP_FILE $PRODUCT/$B
+ 	 			#print "  Backuping •> $PRODUCT/$B"
+ 	 			backup_file $PRODUCT/$B
     		  fi
     	  done
   	fi
   	if [ -f $base/list_install_system_ext ]; then
   		for C in $(cat $base/list_install_system_ext); do
   			if [ -f $SYSTEM_EXT/$C ] && [ ! -L $SYSTEM_EXT/$C ] ; then
-  				sedlog "  Backuping •> $SYSTEM_EXT/$C"
-  				BACKUP_FILE $SYSTEM_EXT/$C
+  				#print "  Backuping •> $SYSTEM_EXT/$C"
+  				backup_file $SYSTEM_EXT/$C
     		  fi
     	  done
 	  fi
@@ -402,8 +408,8 @@ case "$1" in
   		for A in $(cat $base/list_install_system); do
   			if [ -f $TMP$SYSTEM/$A ] && [ ! -L $TMP$SYSTEM/$A ]; then
   				dir1=`dirname $SYSTEM/$A`
-  				sedlog "  Restoring •> $SYSTEM/$A"
-  				RESTORE_FILE $SYSTEM/$A
+  				#print "  Restoring •> $SYSTEM/$A"
+  				restore_file $SYSTEM/$A
   				ch_con $dir1
   			fi
     	  done
@@ -412,8 +418,8 @@ case "$1" in
   		for B in $(cat $base/list_install_product); do
   			if [ -f $TMP$PRODUCT/$B ] && [ ! -L $TMP$PRODUCT/$B ]; then
   				dir1=`dirname $PRODUCT/$B`
-  				sedlog "  Restoring •> $PRODUCT/$B"
-  				RESTORE_FILE $PRODUCT/$B
+  				#print "  Restoring •> $PRODUCT/$B"
+  				restore_file $PRODUCT/$B
   				ch_con $dir1
   			fi
     	  done
@@ -422,39 +428,60 @@ case "$1" in
   		for C in $(cat $base/list_install_system_ext); do
   			if [ -f $TMP$SYSTEM_EXT/$C ] && [ ! -L $TMP$SYSTEM_EXT/$C ]; then
   				dir1=`dirname $SYSTEM_EXT/$C`
-  				sedlog "  Restoring •> $SYSTEM_EXT/$C"
-  				RESTORE_FILE $SYSTEM_EXT/$C
+  				#print "  Restoring •> $SYSTEM_EXT/$C"
+  				restore_file $SYSTEM_EXT/$C
   				ch_con $dir1
   			fi
     	  done
   	fi
   	
+  	rm -rf $SYSTEM/etc/kopi/modules/litegapps
+      mkdir -p $SYSTEM/etc/kopi/modules/litegapps
+      cp -rdf $base/* $SYSTEM/etc/kopi/modules/litegapps/
+  	
+      ## litegapps addon.d
+      cp -f $base/27-litegapps.sh $SYSTEM/addon.d
+      chmod 755 $SYSTEM/addon.d/27-litegapps.sh
+      
+      ## Removing files
+      if [ -f $SYSTEM/etc/kopi/modules/litegapps/list-debloat ]; then
+      	for YT in $(cat $SYSTEM/etc/kopi/modules/litegapps/list-debloat); do
+      		if [ -f "$YT" ]; then
+      			print "- Removing $YT"
+      			rm -rf "$YT"
+      		fi
+      	done
+      
+      fi
   	UMOUNT2
     ;;
   pre-backup)
   	DIR_PARTITION
-  	test ! -d $(dirname $log) && mkdir -p $(dirname $log)
-  	test -f $log && rm -rf $log
-  	echo " " >> $log
-  	echo "Addon Version : $V" >> $log
+  	echo " "
+  	echo "Addon Version : $V"
   	echo "Tmp : $TMP"
-  	echo "LiteGapps Addon.d" >> $log
-  	echo "Started -> $(date '+%d/%m/%Y %H:%M:%S')" >> $log
-  	echo "System = $SYSTEM" >> $log
-  	echo " " >> $log
+  	echo "LiteGapps Addon.d"
+  	echo "Started -> $(date '+%d/%m/%Y %H:%M:%S')"
+  	echo "System = $SYSTEM"
+  	echo " "
   ;;
   post-backup)
     # Stub
   ;;
   pre-restore)
     # Stub
-    print "Litegapps addon.d"
-  ;;
+    print "Litegapps addon.d $V"
+    ;;
   post-restore)
-    echo " " >> $log
-	echo "# $(date '+%d/%m/%Y %H:%M:%S')" >> $log
-	echo "###########" >> $log
-	echo "#   Done  #" >> $log
-	echo "###########" >> $log
+    NAME=`getp name $module`
+    VARIANT=`getp litegapps_variant $module`
+    VERSION=`getp version $module`
+    
+    print "Variant : $VARIANT"
+	print "Restoring $NAME $VERSION Finish"
+	
+	
+	rm -rf /$base
   ;;
 esac
+

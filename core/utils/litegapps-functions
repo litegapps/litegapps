@@ -644,7 +644,7 @@ MODULE_INSTALL(){
 	cdir $DIR_BACKUP
 	
 	
-	# fix bootloop jika google files di instal fi rom crdroid
+	# fix bootloop jika google files di instal di rom crdroid
 	if [ "$(GET_PROP ro.crdroid.display.version)" ] && [ $packageid = Files ]; then
 		printlog "[SKIP] $packagename in crdroid ROM"
 		return 0
@@ -729,10 +729,13 @@ MODULE_INSTALL(){
                     mkdir -p $MODPATH/system/product/$G/$P/.replace
                 fi
              elif [ $TYPEINSTALL = kopi ]; then
+               #[ ! -d $MODPATH/system/etc/kopi/modules/litegapps ]] && mkdir -p $MODPATH/system/etc/kopi/modules/litegapps
+               [ ! -d $KOPIMOD ] && mkdir -p $KOPIMOD
                [ ! -d $DIR_BACKUP${Y}/$G/$P ] && mkdir -p $DIR_BACKUP${Y}/$G/$P
                printlog "-+ Backuping to $DIR_BACKUP${Y}/$G/$P"
                cp -rdf $Y/$G/$P/* $DIR_BACKUP${Y}/$G/$P/
                printlog "-+ Removing  $Y/$G/$P"
+               echo "$P" >> $KOPIMOD/list-package-remove
                echo "$Y/$G/$P" >> $DIR_BACKUP/list-debloat
                echo "$Y/$G/$P" >> $KOPIMOD/list-debloat
                rm -rf $Y/$G/$P
