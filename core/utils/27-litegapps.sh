@@ -361,12 +361,12 @@ case "$1" in
   backup)
   	MOUNT2
   	if [ -d $SYSTEM/etc/kopi ]; then
-  		#print "- Coping $SYSTEM/etc/kopi"
+  		#print "- Copying $SYSTEM/etc/kopi"
   		rm -rf /tmp/kopi
   		mkdir -p /tmp/kopi
   		cp -rdf $SYSTEM/etc/kopi/* /tmp/kopi/
   	else
-  		print "- Failed Backup $SYSTEM/etc/kopi"
+  		print "! Failed Backup $SYSTEM/etc/kopi"
   	fi
   	
   	print "Backuping LiteGapps"
