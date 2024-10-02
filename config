@@ -1,17 +1,17 @@
-version=3.9
-version.code=39
+version=4.3
+version.code=4.3
 codename=stable
 name.builder=soekarno
 #unofficial or official
 build.status=unofficial
 set.time.stamp=true
 date.time=202007122239
-#xz or brotli
-compression=xz
+#xz or br
+compression=br
 #1-9
-compression.level=9
+compression.level=1
 #1-9
-zip.level=9
+zip.level=1
 # true/false
 zip.signer=false
 

@@ -314,7 +314,7 @@ SED(){
 
 
 base="`dirname $(readlink -f "$0")`"
-chmod -R 755 $base/bin
+[ -d $base/bin ] && chmod -R 755 $base/bin
 
 case $(uname -m) in
 aarch32 | armv7l) ARCH=arm
@@ -719,7 +719,7 @@ update-gapps-server)
 UPDATE_GAPPS_SERVER
 ;;
 *)
-print "usage : bash make <options>"
+print "usage : bash build.sh <options>"
 print " "
 print "Options"
 print "restore              restoring files"
