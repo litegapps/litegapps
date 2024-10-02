@@ -26,15 +26,15 @@ This is a tool for building litegapps
 
 # Cloning
 ### https
-``https://github.com/litegapps/litegapps.git``
+``git clone https://github.com/litegapps/litegapps.git``
 ### ssh
 ``git clone git@github.com:litegapps/litegapps.git``
 
 # Configure
 
-``version=3.8`` version litegapps
+``version=4.3`` version litegapps
  
-``version.code=38`` version code litegapps
+``version.code=4.3`` version code litegapps
  
 ``codename=Stable`` Codename status build``
  
@@ -48,7 +48,7 @@ This is a tool for building litegapps
  
 ``apk.compress.type=litegapps_compress`` litegapps_compress or litegapps_default
 
-``compression=brotli`` support compressions ``xz,brotli``
+``compression=brotli`` support compressions ``xz,br``
  
 ``compression.level=1`` level compressions ``1 - 9``
  
