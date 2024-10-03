@@ -376,26 +376,26 @@ case "$1" in
   	
   	if [ -f $base/list_install_system ]; then
   	
-  		for A in $(cat $base/list_install_system); do
-  			if [ -f $SYSTEM/$A ] && [ ! -L $SYSTEM/$A ] ; then
-  				#print "  Backuping •> $SYSTEM/$A"
-  				backup_file $SYSTEM/$A
+  		for AAA in $(cat $base/list_install_system); do
+  			if [ -f $SYSTEM/$AAA ] && [ ! -L $SYSTEM/$AAA ] ; then
+  				#print "  Backuping •> $SYSTEM/$AAA"
+  				backup_file $SYSTEM/$AAA
   			fi
     	  done
  	 fi
  	 if [ -f $base/list_install_product ]; then
- 	 	for B in $(cat $base/list_install_product); do
- 	 		if [ -f $PRODUCT/$B ] && [ ! -L $PRODUCT/$B ] ; then
- 	 			#print "  Backuping •> $PRODUCT/$B"
- 	 			backup_file $PRODUCT/$B
+ 	 	for BBB in $(cat $base/list_install_product); do
+ 	 		if [ -f $PRODUCT/$BBB ] && [ ! -L $PRODUCT/$BBB ] ; then
+ 	 			#print "  Backuping •> $PRODUCT/$BBB"
+ 	 			backup_file $PRODUCT/$BBB
     		  fi
     	  done
   	fi
   	if [ -f $base/list_install_system_ext ]; then
-  		for C in $(cat $base/list_install_system_ext); do
-  			if [ -f $SYSTEM_EXT/$C ] && [ ! -L $SYSTEM_EXT/$C ] ; then
-  				#print "  Backuping •> $SYSTEM_EXT/$C"
-  				backup_file $SYSTEM_EXT/$C
+  		for CCC in $(cat $base/list_install_system_ext); do
+  			if [ -f $SYSTEM_EXT/$CCC ] && [ ! -L $SYSTEM_EXT/$CCC ] ; then
+  				#print "  Backuping •> $SYSTEM_EXT/$CCC"
+  				backup_file $SYSTEM_EXT/$CCC
     		  fi
     	  done
 	  fi
@@ -425,11 +425,11 @@ case "$1" in
     	  done
   	fi
   	if [ -f $base/list_install_system_ext ]; then
-  		for C in $(cat $base/list_install_system_ext); do
-  			if [ -f $TMP$SYSTEM_EXT/$C ] && [ ! -L $TMP$SYSTEM_EXT/$C ]; then
-  				dir1=`dirname $SYSTEM_EXT/$C`
-  				#print "  Restoring •> $SYSTEM_EXT/$C"
-  				restore_file $SYSTEM_EXT/$C
+  		for CCCC in $(cat $base/list_install_system_ext); do
+  			if [ -f $TMP$SYSTEM_EXT/$CCCC ] && [ ! -L $TMP$SYSTEM_EXT/$CCCC ]; then
+  				dir1=`dirname $SYSTEM_EXT/$CCCC`
+  				#print "  Restoring •> $SYSTEM_EXT/$CCCC"
+  				restore_file $SYSTEM_EXT/$CCCC
   				ch_con $dir1
   			fi
     	  done
