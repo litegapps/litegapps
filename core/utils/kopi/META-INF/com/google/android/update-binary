@@ -491,15 +491,14 @@ fi
 if [ $(getp typeinstall $MODULE) = kopi ]; then TYPEINSTALL=kopi
 elif [ -f /sdcard/force_kopi ]; then TYPEINSTALL=kopi
 elif [ -f /dev/force_kopi ]; then TYPEINSTALL=kopi
+elif [ -f /system/force_kopi ]; then TYPEINSTALL=kopi
 elif [ $(getp typeinstall $MODULE) = magisk ]; then TYPEINSTALL=magisk
 elif [ $(getp typeinstall $MODULE) = kopi ]; then TYPEINSTALL=kopi
 elif [ $(getp typeinstall $MODULE) = false ]; then TYPEINSTALL=false
 else
 
-	if [ -f /data/adb/magisk/util_functions.sh ]; then
+	if $BOOTMODE; then
 		TYPEINSTALL=magisk
-	elif $KSU; then
-		TYPEINSTALL=ksu
 	else
 		TYPEINSTALL=kopi
 	fi
@@ -528,7 +527,7 @@ else
 	[ -f customize.sh ] && chmod 0775 customize.sh && . ./customize.sh;
 	
 	case $TYPEINSTALL in
-	magisk | ksu)
+	magisk | ksu | apatch)
 	print "- Type Magisk Module"
 	[ -f /data/adb/magisk/util_functions.sh ] && [ $TYPEINSTALL = magisk ] && . /data/adb/magisk/util_functions.sh
 	for W8989 in $MAGISKMOD $MAGISKUP; do

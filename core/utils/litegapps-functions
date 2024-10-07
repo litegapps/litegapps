@@ -644,8 +644,8 @@ MODULE_INSTALL(){
 	cdir $DIR_BACKUP
 	
 	
-	# fix bootloop jika google files di instal di rom crdroid
-	if [ "$(GET_PROP ro.crdroid.display.version)" ] && [ $packageid = Files ]; then
+	 fix bootloop jika google files di instal di rom crdroid
+	if [ "$(GET_PROP ro.crdroid.display.version)" ] && [ $packageid = Files ] && [ $API -le 30 ]; then
 		printlog "[SKIP] $packagename in crdroid ROM"
 		return 0
 	fi
@@ -683,7 +683,7 @@ MODULE_INSTALL(){
 	    local blacklist=true
 	    break
 	  fi
-	done
+	 done
 	
 	if [ -f /data/system/packages.xml ] && [ $blacklist = true ]; then
 		printlog "-! Skipping $packagename"

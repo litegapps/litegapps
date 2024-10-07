@@ -367,6 +367,7 @@ case "$1" in
   		cp -rdf $SYSTEM/etc/kopi/* /tmp/kopi/
   	else
   		print "! Failed Backup $SYSTEM/etc/kopi"
+  		return 0
   	fi
   	
   	print "Backuping LiteGapps"
@@ -403,6 +404,10 @@ case "$1" in
   ;;
   restore)
   	MOUNT2
+  	if [ ! -d $base ]; then
+  		print "! Failed Restore LiteGapps"
+  		return 0
+  	fi
   	print "Restoring LiteGapps"
   	if [ -f $base/list_install_system ]; then
   		for A in $(cat $base/list_install_system); do
@@ -444,14 +449,15 @@ case "$1" in
       chmod 755 $SYSTEM/addon.d/27-litegapps.sh
       
       ## Removing files
-      if [ -f $SYSTEM/etc/kopi/modules/litegapps/list-debloat ]; then
-      	for YT in $(cat $SYSTEM/etc/kopi/modules/litegapps/list-debloat); do
+      if [ -f $base/list-debloat ]; then
+      	for YT in $(cat $base/list-debloat); do
       		if [ -f "$YT" ]; then
       			print "- Removing $YT"
       			rm -rf "$YT"
       		fi
       	done
-      
+      else
+      print "! <$base/list-debloat> is not found"
       fi
   	UMOUNT2
     ;;

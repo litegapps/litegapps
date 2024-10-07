@@ -370,9 +370,9 @@ LITE (){
 	RIN=$BASED/output/litegapps/$ARCH/$SDK/$variant 
 	ROUT=$RELEASE/$variant
 	for U in $(ls -1 $RIN); do
-	echo "- Release <$RIN/$U> to <$ROUT>"
-	cp -rdf $RIN/$U $ROUT/
-	rm -rf $RIN/$U
+		echo "- Release <$RIN/$U> to <$ROUT>"
+		cp -rdf $RIN/$U $ROUT/
+		rm -rf $RIN/$U
 	done
 	}
 	
@@ -423,6 +423,7 @@ MAKE_LITEGAPPS(){
 	USER
 	GO
 	CORE
+	LITE
 	fi
 	;;
 	arm)
@@ -469,6 +470,38 @@ UNZIP_FILE_SERVER(){
 	unzip -o $input -d $output
 	
 	}
+UNZIP_GAPPS(){
+	local input=$HOMEE/files-server/litegapps/$ARCH/$SDK/${SDK}.zip
+	local output=$HOMEE/build/litegapps/core/litegapps/pixel/gapps/$ARCH/$SDK/
+	rm -rf $output
+	mkdir -p $output
+	unzip -o $input -d $output
+	}
+CLEAN_RELEASE(){
+	echo "- Remove Old Build"
+	
+	for J in $(ls -1 $HOMEE/litegapps); do
+		for R in $(ls -1 $HOMEE/litegapps/$J); do
+		#arch
+			for H in $(ls -1 $HOMEE/litegapps/$J/$R); do
+			#sdk
+				for K in $(ls -1 $HOMEE/litegapps/$J/$R/$H); do
+				  if [ -d $HOMEE/litegapps/$J/$R/$H/$K ]; then
+					for V in $(ls -1 $HOMEE/litegapps/$J/$R/$H/$K/ | sort -n | tail -n +11); do
+					
+						echo " Remove $HOME/litegapps/$J/$R/$H/$K/$V"
+						#sort -n | tail -n +11
+					done
+					
+				  fi
+				done
+			done
+		done
+	done
+	echo "# click enter"
+	read r
+	
+	}
 while true; do
 HOMEE=/home/frs/project/litegapps
 echo -n "    Select architecture : "
@@ -500,13 +533,16 @@ done
 
 while true; do
 echo " "
+#echo "  Home Size : $(du -sh /home)"
 echo "  ARCH = $ARCH"
 echo "  SDK  = $SDK"
 echo " "
 echo "1. Make Addon And Release"
 echo "2. Make LiteGapps And Release"
 echo "3. Extract zip from file-server"
-echo "4. Exit"
+echo "4. Extract ZIP GAPPS"
+echo "5. Remove Old Build"
+echo "6. Exit"
 echo " "
 echo -n " Select : "
 read menuu
@@ -517,6 +553,12 @@ case $menuu in
 UNZIP_FILE_SERVER
 ;;
 4)
+UNZIP_GAPPS
+;;
+5)
+CLEAN_RELEASE
+;;
+6)
 break ;;
 *) 
 echo "! Not found command : $menuu" 
