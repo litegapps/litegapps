@@ -1,7 +1,7 @@
 #!/sbin/sh
-# Kopi Installer V1.9
+# Kopi Installer V2.0
 # Since 08-05-2020
-# Latest Update 21-01-2024
+# Latest Update 21-10-2024
 # by wahyu6070 (dont change)
 
 OUTFD=/proc/self/fd/$2;
@@ -477,8 +477,8 @@ export DEVICE=`getp device $MODULE`
 export DATE=`getp date $MODULE`
 export AUTHOR=`getp author $MODULE`
 export KOPIMOD=$SYSTEM/etc/kopi/modules/"$ID"
-export MAGISKMOD=/data/adb/modules/$ID
-export MAGISKUP="/data/adb/modules_update/$ID"
+export SYSTEMLESSMOD=/data/adb/modules/$ID
+export SYSTEMLESSUP="/data/adb/modules_update/$ID"
 set_progress 0.5;
 
 #req
@@ -492,13 +492,14 @@ if [ $(getp typeinstall $MODULE) = kopi ]; then TYPEINSTALL=kopi
 elif [ -f /sdcard/force_kopi ]; then TYPEINSTALL=kopi
 elif [ -f /dev/force_kopi ]; then TYPEINSTALL=kopi
 elif [ -f /system/force_kopi ]; then TYPEINSTALL=kopi
-elif [ $(getp typeinstall $MODULE) = magisk ]; then TYPEINSTALL=magisk
+elif [ $(getp typeinstall $MODULE) = magisk ]; then TYPEINSTALL=systemless
+elif [ $(getp typeinstall $MODULE) = systemless ]; then TYPEINSTALL=systemless
 elif [ $(getp typeinstall $MODULE) = kopi ]; then TYPEINSTALL=kopi
 elif [ $(getp typeinstall $MODULE) = false ]; then TYPEINSTALL=false
 else
 
 	if $BOOTMODE; then
-		TYPEINSTALL=magisk
+		TYPEINSTALL=systemless
 	else
 		TYPEINSTALL=kopi
 	fi
@@ -527,42 +528,42 @@ else
 	[ -f customize.sh ] && chmod 0775 customize.sh && . ./customize.sh;
 	
 	case $TYPEINSTALL in
-	magisk | ksu | apatch)
+	systemless)
 	print "- Type Magisk Module"
 	[ -f /data/adb/magisk/util_functions.sh ] && [ $TYPEINSTALL = magisk ] && . /data/adb/magisk/util_functions.sh
-	for W8989 in $MAGISKMOD $MAGISKUP; do
+	for W8989 in $SYSTEMLESSMOD $SYSTEMLESSUP; do
 		test -d $W8989 && del $W8989 && cdir $W8989 || cdir $W8989
 	done
-	touch "/data/adb/modules/$ID/update"
+	touch "$SYSTEMLESSMOD/update"
 	cp -pf $kopi/module.prop "/data/adb/modules/$ID/"
-	if [ -f $kopi/magisk-uninstall.sh ]; then
+	if [ -f $kopi/systemless-uninstall.sh ]; then
 		test -f $kopi/uninstall.sh && del $kopi/uninstall.sh
-		cp -pf $kopi/magisk-uninstall.sh $MAGISKUP/uninstall.sh
-		chmod 755 $MAGISKUP/uninstall.sh
-		del $kopi/magisk-uninstall.sh
+		cp -pf $kopi/systemless-uninstall.sh $SYSTEMLESSUP/uninstall.sh
+		chmod 755 $SYSTEMLESSUP/uninstall.sh
+		del $kopi/systemless-uninstall.sh
 	fi
-	if [ -f $kopi/magisk-system.prop ]; then
-		cp -pf $kopi/magisk-system.prop $MAGISKUP/system.prop
-		del $kopi/magisk-system.prop
+	if [ -f $kopi/systemless-system.prop ]; then
+		cp -pf $kopi/systemless-system.prop $SYSTEMLESSUP/system.prop
+		del $kopi/systemless-system.prop
 	fi
-	if [ -f $kopi/magisk-service.sh ]; then
-		cp -pf $kopi/magisk-service.sh $MAGISKUP/service.sh
-		chmod 755 $MAGISKUP/service.sh
-		del $kopi/magisk-service.sh
+	if [ -f $kopi/systemless-service.sh ]; then
+		cp -pf $kopi/systemless-service.sh $SYSTEMLESSUP/service.sh
+		chmod 755 $SYSTEMLESS/service.sh
+		del $kopi/SYSTEMLESS-service.sh
 	fi
-	if [ -f $kopi/magisk-post-fs-data.sh ]; then
-		cp -pf $kopi/magisk-post-fs-data.sh $MAGISKUP/post-fs-data.sh
-		chmod 755 $MAGISKUP/post-fs-data.sh
-		del $kopi/magisk-post-fs-data.sh
+	if [ -f $kopi/systemless-post-fs-data.sh ]; then
+		cp -pf $kopi/systemless-post-fs-data.sh $SYSTEMLESSUP/post-fs-data.sh
+		chmod 755 $SYSTEMLESSUP/post-fs-data.sh
+		del $kopi/systemless-post-fs-data.sh
 	fi
-	cp -rdf $kopi/* "$MAGISKUP"
+	cp -rdf $kopi/* "$SYSTEMLESSUP"
 	
 	LIST_RM="
-	$MAGISKUP/META-INF
-	$MAGISKUP/install.sh
-	$MAGISKUP/customize.sh
-	$MAGISKUP/install.zip
-	$MAGISKUP/README.md
+	$SYSTEMLESSUP/META-INF
+	$SYSTEMLESSUP/install.sh
+	$SYSTEMLESSUP/customize.sh
+	$SYSTEMLESSUP/install.zip
+	$SYSTEMLESSUP/README.md
 	"
 	for W7878 in $LIST_RM; do
 		del $W7878

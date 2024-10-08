@@ -451,6 +451,7 @@ case "$1" in
       ## Removing files
       if [ -f $base/list-debloat ]; then
       	for YT in $(cat $base/list-debloat); do
+      	print " ujicoba YT = $YT"
       		if [ -f "$YT" ]; then
       			print "- Removing $YT"
       			rm -rf "$YT"

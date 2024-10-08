@@ -1,4 +1,4 @@
-# Copyright 2020 - 2022 The Litegapps Project
+# Copyright 2020 - 2025 The Litegapps Project
 # magisk uninstaller (running by magisk in android boot)
 
 if [ -f /data/adb/service.d/litegapps-post-fs ]; then

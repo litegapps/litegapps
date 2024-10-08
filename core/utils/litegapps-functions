@@ -180,17 +180,19 @@ printlog "| Name            : $MODULENAME"
 printlog "| Version         : $MODULEVERSION"
 printlog "| Build date      : $MODULEDATE"
 printlog "| By              : $MODULEAUTHOR"
-case $TYPEINSTALL in
-magisk)
-printlog "| Install As      : systemless (Magisk Module)"
-;;
-ksu)
-printlog "| Install As      : systemless (KSU Module)"
-;;
-*)
-printlog "| Install As      : non systemless"
-;;
-esac
+if [ $TYPEINSTALL = systemless ]; then
+	if $KSU; then
+		printlog "| Install As      : systemless (KSU Module)"
+	elif $APATCH; then
+		printlog "| Install As      : systemless (APATCH Module)"
+	else)
+		printlog "| Install As      : systemless (Magisk Module)"
+	fi
+	
+else
+		printlog "| Install As      : non systemless"
+
+fi
 printlog "|___________________________________"
 printlog "|"
 printlog "| Website         : https://litegapps.github.io"
@@ -443,38 +445,15 @@ INITIAL(){
 	x86_64) ARCH=x86_64 ;;
 	*) report_bug " <$ARCH> Your Architecture Not Support" ;;
 	esac
-
-
-	#mode installation
-	if [ ! $TYPEINSTALL ] && [ $KSU ]; then
-	TYPEINSTALL=ksu
-	elif [ ! $TYPEINSTALL ] && [ ! $KSU ]; then
-	TYPEINSTALL=magisk
-	elif [ $TYPEINSTALL = "ksu" ]; then
-	TYPEINSTALL=ksu
-	sedlog "- Type install KOPI installer convert to ksu module"
-	elif [ ! $TYPEINSTALL ] && [ $APATCH ]; then
-	TYPEINSTALL=apatch
-	elif [ ! $TYPEINSTALL ] && [ ! $APATCH ]; then
-	TYPEINSTALL=apatch
-	elif [ $TYPEINSTALL = "apatch" ]; then
-	TYPEINSTALL=apatch
-	sedlog "- Type install KOPI installer convert to ksu module"
-	elif [ $TYPEINSTALL = "magisk" ]; then
-	TYPEINSTALL=magisk
-	sedlog "- Type install KOPI installer convert to magisk module"
-	elif [ $TYPEINSTALL = "kopi" ]; then
-	TYPEINSTALL=kopi
-	sedlog "- Type install KOPI installer convert to kopi module"
-	else
-	TYPEINSTALL=kopi
-	sedlog "- Type install is not found, use default to kopi module"
+	
+	if [ ! "$TYPEINSTALL" ]; then
+	TYPEINSTALL=systemless
 	fi
-
-
+	
+	
 	# Test /data rw partition
 	case $TYPEINSTALL in
-	magisk | ksu )
+	systemless)
 	DIR_TEST=/data/adb/test8989
 	cdir $DIR_TEST
 	touch $DIR_TEST/io
@@ -606,7 +585,7 @@ set_prop() {
 }
 SETUP_WIZARD(){
 	case $TYPEINSTALL in
-	magisk | ksu)
+	systemless)
 	PROP_DIR=$MODPATH/system.prop
 	touch $PROP_DIR
 	set_prop "setupwizard.feature.baseline_setupwizard_enabled" "true" "$PROP_DIR"
@@ -686,10 +665,10 @@ MODULE_INSTALL(){
 	 done
 	
 	if [ -f /data/system/packages.xml ] && [ $blacklist = true ]; then
-		printlog "-! Skipping $packagename"
+		printlog "-[!] Skipping $packagename -> This Package For Clean Flash only"
 		return 0
-	elif [ $TYPEINSTALL = magisk ] || [ $TYPEINSTALL = ksu ] && [ $blacklist = true ]; then
-		printlog "-! Skipping $packagename"
+	elif [ $TYPEINSTALL = systemless ] && [ $blacklist = true ]; then
+		printlog "-[!] Skipping $packagename -> This Package For Clean Flash Only"
 		return 0
 	else
 		printlog "- Installing $packagename"
@@ -717,17 +696,36 @@ MODULE_INSTALL(){
      for G in app priv-app; do
         for P in $(cat $MODULE_TMP/list-rm); do
            if [ -d $Y/$G/$P ]; then
-             if [ $TYPEINSTALL = magisk ]; then
-                if [ $SYSTEM = $Y ]; then
-                     printlog "- Debloating systemless $Y/$G/$P"
-                     mkdir -p $MODPATH/system/$G/$P/.replace
-                elif [ $SYSTEM_EXT = $Y ]; then
-                     printlog "- Debloating systemless $Y/$G/$P"
-                     mkdir -p $MODPATH/system/system_ext/$G/$P/.replace
-                elif [ $PRODUCT = $Y ]; then
-                    printlog "- Debloating systemless $Y/$G/$P"
-                    mkdir -p $MODPATH/system/product/$G/$P/.replace
-                fi
+             if [ $TYPEINSTALL = systemless ]; then
+             	if [ $KSU ] || [ $APATCH ]; then
+             	# debloat by ksu/apatch 
+             		if [ $SYSTEM = $Y ]; then
+             			printlog "- Debloating systemless $Y/$G/$P"
+             			mkdir -p $MODPATH/system/$G/$P
+             			touch mkdir -p $MODPATH/system/$G/$P/${P}.apk
+                	elif [ $SYSTEM_EXT = $Y ]; then
+                		printlog "- Debloating systemless $Y/$G/$P"
+                		mkdir -p $MODPATH/system/system_ext/$G/$P
+                		touch mkdir -p $MODPATH/system_ext/$G/$P/${P}.apk
+                	elif [ $PRODUCT = $Y ]; then
+                    	printlog "- Debloating systemless $Y/$G/$P"
+                    	mkdir -p $MODPATH/system/product/$G/$P
+                    	touch mkdir -p $MODPATH/product/$G/$P/${P}.apk
+                	fi
+             	
+             	else
+             	# debloat by magisk
+             		if [ $SYSTEM = $Y ]; then
+             			printlog "- Debloating systemless2 $Y/$G/$P"
+             			mkdir -p $MODPATH/system/$G/$P/.replace
+                	elif [ $SYSTEM_EXT = $Y ]; then
+                		printlog "- Debloating systemless2 $Y/$G/$P"
+                		mkdir -p $MODPATH/system/system_ext/$G/$P/.replace
+                	elif [ $PRODUCT = $Y ]; then
+                    	printlog "- Debloating systemless2 $Y/$G/$P"
+                    	mkdir -p $MODPATH/system/product/$G/$P/.replace
+                	fi
+             	fi
              elif [ $TYPEINSTALL = kopi ]; then
                #[ ! -d $MODPATH/system/etc/kopi/modules/litegapps ]] && mkdir -p $MODPATH/system/etc/kopi/modules/litegapps
                [ ! -d $KOPIMOD ] && mkdir -p $KOPIMOD
@@ -749,7 +747,7 @@ MODULE_INSTALL(){
 	sedlog "- Copying <$MODULE_TMP/system> to <$MODPATH/system>"
 	cp -rdf $MODULE_TMP/system/* $MODPATH/system/
 	listlog $MODPATH/system
-	[ $MAGISKUP ] || MAGISKUP=$MODPATH
+	[ $SYSTEMLESSUP ] || SYSTEMLESSUP=$MODPATH
 	
 	if [ $packageid = "SetupWizard" ]; then
 	#add buildprop config

@@ -1,6 +1,6 @@
-# Copyright 2020 - 2024 The Litegapps Project
+# Copyright 2020 - 2025 The Litegapps Project
 # permissions.sh
-# latest update 04-02-2024
+# latest update 04-01-2025
 
 chmod 755 $MODPATH/bin/litegapps-functions
 #litegapps functions
@@ -8,9 +8,9 @@ chmod 755 $MODPATH/bin/litegapps-functions
 LITEGAPPS=/sdcard/Android/litegapps
 
 case $TYPEINSTALL in
-magisk | ksu )
-chcon -hR u:object_r:system_file:s0 $MAGISKUP/system
-find $MAGISKUP/system -type f | while read anjay; do
+systemless )
+chcon -hR u:object_r:system_file:s0 $SYSTEMLESSUP/system
+find $SYSTEMLESSUP/system -type f | while read anjay; do
 	dir6070=$(dirname $anjay)
 	ch_con $anjay
 	chmod 644 $anjay
