@@ -163,7 +163,7 @@ cp -pf $MODPATH/bin/litegapps $MODPATH/system/bin/
 chmod 755 $MODPATH/system/bin/litegapps
 
 #Litegapps service
-if [ ! -f $LITEGAPPS/disable_post_fs ] && [ $TYPEINSTALL = magisk ] || [ $TYPEINSTALL = ksu ]; then
+if [ ! -f $LITEGAPPS/disable_post_fs ] && [ $TYPEINSTALL = systemless ]; then
 	printlog "- Installing litegapps post-fs"
 	cp -pf $MODPATH/bin/litegapps-post-fs $MODPATH/service.sh
 	chmod 755 $MODPATH/service.sh

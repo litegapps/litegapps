@@ -500,6 +500,13 @@ else
 
 	if $BOOTMODE; then
 		TYPEINSTALL=systemless
+		if [ $KSU ]; then
+			SYSTEMLESSBY=KSU
+		elif [ $APATCH ]; then
+			SYSTEMLESSBY=APATCH
+		else
+			SYSTEMLESSBY=MAGISK
+		fi
 	else
 		TYPEINSTALL=kopi
 	fi
@@ -529,8 +536,8 @@ else
 	
 	case $TYPEINSTALL in
 	systemless)
-	print "- Type Magisk Module"
-	[ -f /data/adb/magisk/util_functions.sh ] && [ $TYPEINSTALL = magisk ] && . /data/adb/magisk/util_functions.sh
+	print "- Type Systemless by $SYSTEMLESSBY Module"
+	[ -f /data/adb/magisk/util_functions.sh ] && [ $TYPEINSTALL = systemless ] && . /data/adb/magisk/util_functions.sh
 	for W8989 in $SYSTEMLESSMOD $SYSTEMLESSUP; do
 		test -d $W8989 && del $W8989 && cdir $W8989 || cdir $W8989
 	done

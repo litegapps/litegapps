@@ -181,11 +181,11 @@ printlog "| Version         : $MODULEVERSION"
 printlog "| Build date      : $MODULEDATE"
 printlog "| By              : $MODULEAUTHOR"
 if [ $TYPEINSTALL = systemless ]; then
-	if $KSU; then
+	if [ $KSU ]; then
 		printlog "| Install As      : systemless (KSU Module)"
-	elif $APATCH; then
+	elif [ $APATCH ]; then
 		printlog "| Install As      : systemless (APATCH Module)"
-	else)
+	else
 		printlog "| Install As      : systemless (Magisk Module)"
 	fi
 	
@@ -427,7 +427,7 @@ INITIAL(){
 	
 	
 	[ "TMPDIR" ] || TMPDIR=/dev/tmp
-	LITEGAPPS=/data/media/0/Android/litegapps
+	LITEGAPPS=/sdcard/Android/litegapps
 	log=$LITEGAPPS/log/litegapps.log
 	files=$MODPATH/files
 
@@ -665,10 +665,10 @@ MODULE_INSTALL(){
 	 done
 	
 	if [ -f /data/system/packages.xml ] && [ $blacklist = true ]; then
-		printlog "-[!] Skipping $packagename -> This Package For Clean Flash only"
+		printlog "-[!] Skipping $packagename -> This Package For Non Systemless only"
 		return 0
 	elif [ $TYPEINSTALL = systemless ] && [ $blacklist = true ]; then
-		printlog "-[!] Skipping $packagename -> This Package For Clean Flash Only"
+		printlog "-[!] Skipping $packagename -> This Package For Non Systemless Only"
 		return 0
 	else
 		printlog "- Installing $packagename"

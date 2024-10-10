@@ -8,7 +8,7 @@ chmod 755 $MODPATH/bin/litegapps-functions
 LITEGAPPS=/sdcard/Android/litegapps
 
 case $TYPEINSTALL in
-systemless )
+systemless)
 chcon -hR u:object_r:system_file:s0 $SYSTEMLESSUP/system
 find $SYSTEMLESSUP/system -type f | while read anjay; do
 	dir6070=$(dirname $anjay)

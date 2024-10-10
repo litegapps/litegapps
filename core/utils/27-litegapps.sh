@@ -37,6 +37,17 @@ print(){
 getp(){ grep "^$1" "$2" | head -n1 | cut -d = -f 2; }
 
 
+set_prop() {
+  local property="$1"
+  local value="$2"
+  file_location="$3"
+  if grep -q "${property}" "${file_location}"; then
+    sed -i "s/\(${property}\)=.*/\1=${value}/g" "${file_location}"
+  else
+    echo "${property}=${value}" >>"${file_location}"
+  fi
+}
+
 ch_con(){
 chcon -h u:object_r:system_file:s0 "$1" || sedlog "Failed chcon $1"
 }
@@ -349,6 +360,10 @@ RESTORE_FILE() {
   fi
 }
 
+NAME=`getp name $module`
+VARIANT=`getp litegapps_variant $module`
+VERSION=`getp version $module`
+
 
 LIST_DIR="
 $TMP
@@ -448,17 +463,36 @@ case "$1" in
       cp -f $base/27-litegapps.sh $SYSTEM/addon.d
       chmod 755 $SYSTEM/addon.d/27-litegapps.sh
       
+      if [ $VARIANT != lite ]; then
+      	print "- Patch Build.prop Config"
+      	PROP_FILE=$SYSTEM/build.prop
+		  sedlog "- Backuping $PROP_FILE TO $DIR_BACKUP/build.prop"
+		  cp -pf $PROP_FILE $DIR_BACKUP/build.prop
+		  set_prop "setupwizard.feature.baseline_setupwizard_enabled" "true" "$PROP_FILE"
+		  set_prop "ro.setupwizard.enterprise_mode" "1" "$PROP_FILE"
+		  set_prop "ro.setupwizard.rotation_locked" "true" "$PROP_FILE"
+		  set_prop "setupwizard.enable_assist_gesture_training" "true" "$PROP_FILE"
+		  set_prop "setupwizard.theme" "glif_v3_light" "$SYSTEM/product/build.prop"
+		  set_prop "setupwizard.feature.skip_button_use_mobile_data.carrier1839" "true" "$PROP_FILE"
+		  set_prop "setupwizard.feature.show_pai_screen_in_main_flow.carrier1839" "false" "$PROP_FILE"
+		  set_prop "setupwizard.feature.show_pixel_tos" "false" "$PROP_FILE"
+		  set_prop "ro.setupwizard.network_required" "false" "$PROP_FILE"
+      
+      fi
+      
       ## Removing files
       if [ -f $base/list-debloat ]; then
       	for YT in $(cat $base/list-debloat); do
-      	print " ujicoba YT = $YT"
       		if [ -f "$YT" ]; then
-      			print "- Removing $YT"
+      			print "- Removing File <${YT}>"
+      			rm -rf "$YT"
+      		elif [ -d "$YT" ]; then
+      			print "- Removing Directory <${YT}>"
       			rm -rf "$YT"
       		fi
       	done
       else
-      print "! <$base/list-debloat> is not found"
+      print "[!] <$base/list-debloat> is not found"
       fi
   	UMOUNT2
     ;;
@@ -480,14 +514,9 @@ case "$1" in
     print "Litegapps addon.d $V"
     ;;
   post-restore)
-    NAME=`getp name $module`
-    VARIANT=`getp litegapps_variant $module`
-    VERSION=`getp version $module`
-    
+  
     print "Variant : $VARIANT"
 	print "Restoring $NAME $VERSION Finish"
-	
-	
 	rm -rf /$base
   ;;
 esac
