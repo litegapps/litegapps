@@ -1,6 +1,6 @@
 # Litegapps Core Script
 #
-# Copyright 2020 - 2024 The LiteGapps Project
+# Copyright 2020 - 2025 The LiteGapps Project
 #
 
 
@@ -100,7 +100,7 @@ BIN_TEST(){
 	elif [ -f $bin/$INPUT ]; then
 		print "$bin/$INPUT"
 	else
-		abort "Executable binary nor found <$INPUT>"
+		abort "Executable binary not found <$INPUT>"
 	fi
 	}
 lgapps_unzip(){
@@ -273,7 +273,7 @@ copy_binary_flashable(){
      ;;
      esac
 	local input_arch=$1
-	for W94 in tar zip $flashable_bin; do
+	for W94 in tar zip toybox $flashable_bin; do
 		if [ -f $base/bin/$INPUT_ARCH/$W94 ]; then
 			cdir $CP_OUT
 			cp -pf $base/bin/$INPUT_ARCH/$W94 $CP_OUT/
