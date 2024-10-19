@@ -7,14 +7,14 @@ read_config(){
 	getp "$1" $CONFIG
 	}
 make_flashable_litegapps(){
-	for WFL in MAKSU RECOVERY AUTO; do
-		printlog "- Build flashable [$WFL]"
-		cdir $tmp/$WFL
-		copy_binary_flashable $BIN_ARCH $tmp/$WFL/bin/$BIN_ARCH
+		printlog "- Build flashable"
+		tmp77=$tmp
+		cdir $tmp77
+		copy_binary_flashable $BIN_ARCH $tmp77/bin/$BIN_ARCH
 			# copy core/utils/magisk or kopi installer
-			for W in 27-litegapps.sh litegapps-functions litegapps-post-fs litegapps; do
+			for W in 27-litegapps.sh litegapps-post-fs litegapps; do
 				if [ -f $base/core/utils/$W ]; then
-					cp -pf $base/core/utils/$W $tmp/$WFL/bin/
+					cp -pf $base/core/utils/$W $tmp77/bin/
 				else
 					ERROR "utils <$base/core/utils/$W> not found"
 				fi
@@ -23,53 +23,46 @@ make_flashable_litegapps(){
 			
 			# LICENSE
 			if [ -f $base/core/utils/LICENSE ]; then
-				cp -pf $base/core/utils/LICENSE $tmp/$WFL/
+				cp -pf $base/core/utils/LICENSE $tmp77/
 			else
 				ERROR "LICENSE <$base/core/utils/LICENSE> not found"
 			fi
 			# copy core/utils files
 			for W in README.md; do
 				if [ -f $BASED/utils/$W ]; then
-				cp $BASED/utils/$W $tmp/$WFL/
+				cp $BASED/utils/$W $tmp77/
 				else
 				ERROR "magisk files <$BASED/utils/$W> not found"
 				fi
 			done
-		case $WFL in
-			MAKSU)
-				cp -af $base/core/utils/maksu/* $tmp/$WFL/
-			;;
-			RECOVERY)
-				cp -af $base/core/utils/kopi/* $tmp/$WFL/
-				#kopi mode install kopi (recovery)
-				SED "$(getp typeinstall $tmp/$WFL/module.prop)" "kopi" $tmp/$WFL/module.prop
-			;;
-			AUTO)
-				cp -af $base/core/utils/kopi/* $tmp/$WFL/
-			;;
-		esac
+			cp -af $base/core/utils/kopi/* $tmp77/
+			#kopi mode install kopi (recovery)
+			SED "$(getp typeinstall $tmp77/module.prop)" "auto" $tmp77/module.prop
+			
+			cp -af $base/core/utils/kopi/* $tmp77/
+			
 		
 		# Customize.sh
 			if [ -f $base/core/utils/customize.sh ]; then
-				cp -pf $base/core/utils/customize.sh $tmp/$WFL/
+				cp -pf $base/core/utils/customize.sh $tmp77/
 			else
 				ERROR "Customize.sh <$base/core/utils/customize.sh> not found"
 			fi
 		
 		
 		# copy file.tar.(type archive) in tmp
-		cdir $tmp/$WFL/files
+		cdir $tmp77/files
 		if [ $(get_config litegapps.tar) = "multi" ] && [ -f $tmpfiles/files.tar.$(get_config compression) ]; then
-		cp -pf $tmpfiles/files.tar.$(get_config compression) $tmp/$WFL/files/
+		cp -pf $tmpfiles/files.tar.$(get_config compression) $tmp77/files/
 		else
-		cp -pf $tmp/files.tar.$(get_config compression) $tmp/$WFL/files
-		
+		cp -pf $tmp/files.tar.$(get_config compression) $tmp77/files/
+		rm -rf $tmp/files.tar.$(get_config compression)
 		fi
 		# add modules files
 		if [ $(read_config modules) = true ]; then
-			test ! -d $tmp/$WFL/modules && cdir $tmp/$WFL/modules
+			test ! -d $tmp77/modules && cdir $tmp77/modules
 			if [ -d $BASED/modules/$W_ARCH/$W_SDK ]; then
-				cp -af $BASED/modules/$W_ARCH/$W_SDK/* $tmp/$WFL/modules/
+				cp -af $BASED/modules/$W_ARCH/$W_SDK/* $tmp77/modules/
 			else
 				printlog "[ERROR] <$BASED/modules/$W_ARCH/$W_SDK> not found"
 				sleep 3s
@@ -79,9 +72,9 @@ make_flashable_litegapps(){
 			print "# Modules is disable"
 		fi
 			
-		local MODULE_PROP=$tmp/$WFL/module.prop
+		local MODULE_PROP=$tmp77/module.prop
 		local MODULE_DESC=`read_config desc`
-		local MODULE_UPDATE=https://raw.githubusercontent.com/litegapps/updater/main/core/litegapps/$VARIANT/${W_ARCH}/${W_SDK}/$WFL/update.json
+		local MODULE_UPDATE=https://raw.githubusercontent.com/litegapps/updater/main/core/litegapps/$VARIANT/${W_ARCH}/${W_SDK}/update.json
 		SED "$(getp litegapps_type $MODULE_PROP)" "litegapps_regular" $MODULE_PROP
 		if [ $VARIANT = lite ]; then
 		SED "$(getp name $MODULE_PROP)" "$NAME $W_ARCH $(get_android_version $W_SDK) $PROP_STATUS" $MODULE_PROP
@@ -98,15 +91,15 @@ make_flashable_litegapps(){
 		sed -i 's,'"$(getp updateJson $MODULE_PROP)"','"${MODULE_UPDATE}"',g' $MODULE_PROP
 		
 		#set time stamp
-		set_time_stamp $tmp/$WFL
+		set_time_stamp $tmp77
 		if [ "$VARIANT" = "lite" ]; then
-		local NAME_ZIP="${WFL}-LiteGapps-${W_ARCH}-$(get_android_version $W_SDK)-$(date +%Y%m%d)-${PROP_STATUS}.zip"
+		local NAME_ZIP="LiteGapps-${W_ARCH}-$(get_android_version $W_SDK)-$(date +%Y%m%d)-${PROP_STATUS}.zip"
 		else
-		local NAME_ZIP="${WFL}-LiteGapps-$VARIANT-${W_ARCH}-$(get_android_version $W_SDK)-$(date +%Y%m%d)-${PROP_STATUS}.zip"
+		local NAME_ZIP="LiteGapps-$VARIANT-${W_ARCH}-$(get_android_version $W_SDK)-$(date +%Y%m%d)-${PROP_STATUS}.zip"
 		fi
 		local OUT_ZIP=$out/litegapps/$W_ARCH/$W_SDK/$VARIANT/$(date +%Y-%m-%d)/$NAME_ZIP
-		make_zip $tmp/$WFL $OUT_ZIP
-	done
+		make_zip $tmp $OUT_ZIP
+	
 	}
 
 #################################################
