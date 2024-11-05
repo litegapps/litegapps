@@ -395,8 +395,10 @@ INITIAL(){
 	[ "$TMPDIR" ] || TMPDIR=/tmp
 	if [ -d /sdcard/Android ];then
 		LITEGAPPS=/sdcard/Android/litegapps
-	else
+	elif [ -d /cache ]; then
 		LITEGAPPS=/cache/litegapps
+	else
+		LITEGAPPS=/tmp/litegapps
 	fi
 	log=$LITEGAPPS/log/litegapps.log
 	files=$MODPATH/files
@@ -545,6 +547,31 @@ else
 fi
 }
 
+PAR_CHECK_MB(){
+	#check partisi mb
+	local MEM6=`df -k "$1" | tail -n 1 | tr -s ' ' | cut -d' ' -f3`
+	local MEM7=$((($MEM6 / 1024)))
+	echo "$MEM7"
+	}
+
+MEM_CHECK_TMP (){
+	local T1=`PAR_CHECK_MB $MODPATH`
+	if [ $T1 -lt 200 ]; then
+	report_bug "! Canceled -> Partition <$MODPATH> Memory Full (under 200 MB) (${T1} MB)"
+	else
+	sedlog "[+] <${MODPATH}> Partition Free Space $(PAR_CHECK_MB $MODPATH) MB"
+	fi
+	
+	T2=`PAR_CHECK_MB $TMPDIR`
+	if ! $BOOTMODE; then
+		if [ $T2 -lt "200" ]; then
+			report_bug "! Canceled -> Partition <$TMPDIR> Memory Full (under 200MB) ($(PAR_CHECK_MB $TMPDIR) MB)"
+		else
+			sedlog "[+] <${TMPDIR}> Partition Free Space $T2 MB"
+		fi
+	fi
+	}
+
 set_prop() {
   local property="$1"
   local value="$2"
@@ -596,10 +623,10 @@ MODULE_INSTALL(){
 	
 	
 	 #fix bootloop jika google files di instal di rom crdroid
-	if [ "$(GET_PROP ro.crdroid.display.version)" ] && [ $packageid = Files ] && [ $API -le 30 ]; then
-		printlog "[SKIP] $packagename in crdroid ROM"
-		return 0
-	fi
+	#if [ "$(GET_PROP ro.crdroid.display.version)" ] && [ $packageid = Files ] && [ $API -le 30 ]; then
+		#printlog "[SKIP] $packagename in crdroid ROM"
+		#return 0
+	#fi
 	
 	# skip biar gk bootlop di miui atau hyper
 	if [ -f $SYSTEM/framework/boot-miui-framework.vdex ]; then
@@ -765,6 +792,8 @@ bin=$MODPATH/bin/$ARCH
 
 chmod -R 755 $bin
 
+MEM_CHECK_TMP
+
 #checking format file
 if [ -f $files/files.tar.xz ]; then
 	format_file=xz
@@ -784,6 +813,8 @@ for W in $format_file tar zip; do
 	test ! -f $bin/$W && report_bug "Please add executable <$W> in <$bin/$W>"
 done
 
+MEM_CHECK_TMP
+
 #extracting file format
 printlog "- Extracting Gapps"
 case $format_file in
@@ -798,6 +829,8 @@ brotli)
 	listlog $files ;;
 esac
 
+MEM_CHECK_TMP
+
 #extract tar files
 printlog "- Extracting Archive"
 if [ -f $files/files.tar ]; then
@@ -808,6 +841,8 @@ else
 	report_bug "File <files.tar> not found !!!"
 fi
 
+MEM_CHECK_TMP
+
 
 #### Diference litegappsX
 if [ $(getp litegapps_type $MODPATH/module.prop) = litegappsx ]; then
@@ -817,6 +852,8 @@ else
 	sedlog "LiteGapps Type : LiteGapps Reguler"
 fi
 #### End defference litegappsX
+
+MEM_CHECK_TMP
 
 #checking sdk files
 if [ ! -d $TMPDIR/$ARCH/$API ]; then
@@ -839,12 +876,17 @@ vendirtarget=$MODPATH/system/vendor
 cdir $sysdirtarget
 #cdir $vendirtarget
 
+MEM_CHECK_TMP
+
 if [ -d $TMPDIR/$ARCH/$API/system ]; then
 	sedlog "- Copying system"
 	listlog $TMPDIR
 	cp -af $TMPDIR/$ARCH/$API/system/* $sysdirtarget/
 	del TMPDIR/$ARCH/$API/system
 fi
+
+MEM_CHECK_TMP
+
 
 if [ -d $TMPDIR/$ARCH/$API/vendor ]; then
 	sedlog "- Copying vendor"
@@ -874,6 +916,8 @@ for YY in $list_config; do
 	fi
 done
 
+MEM_CHECK_TMP
+
 SDK=$API
 ARCH=$ARCH
 MODULES=$MODPATH/modules
@@ -902,7 +946,12 @@ if [ -d $MODULES ] && ! rmdir $MODULES 2>/dev/null; then
 	done
 fi
 
+MEM_CHECK_TMP
+
 SET_PERM_PARTITION
+
+
+
 
 #addon.d
 if [ $TYPEINSTALL = kopi ]; then
@@ -939,7 +988,9 @@ done
 
 
 # Checking memory partition
+MEM_CHECK_TMP
 PARTITION_MEM_CHECK
+
 
 printlog "- Cleaning cache"
 LIST_CACHE="
@@ -950,7 +1001,6 @@ for W in $LIST_CACHE ; do
 	sedlog "- removing cache $W"
 	del $W
 done
-
 
 if [ $TYPEINSTALL = systemless ]; then
 #creating log

@@ -24,6 +24,7 @@ del(){ rm -rf "$@"; }
 delete(){ rm -rf "$@"; }
 cdir(){ mkdir -p "$@"; }
 abort(){ print "$1"; exit 1; }
+is_mounted() {  mount |  grep -q " $1 "; }
 
 
 umask 022
@@ -51,18 +52,33 @@ else
 
 
 #variable
+if is_mounted /data; then
+#gunakan partisi /data karena memiliki banyak penyimpanan
+TMPDIR6070=/data/tmp
+export TMPDIR=/data/tmp2
+else
+print "-! /data partition is not mounted"
 TMPDIR6070=/dev/tmp
+# tmp dir di taruh di /tmp agar tidak penuh (dipasah)
+export TMPDIR=/tmp
+fi
 export kopi=$TMPDIR6070/kopi
 export MODPATH=$kopi
 TYPEINSTALL=kopi
-# tmp dir di taruh di /tmp agar tidak penuh (dipasah)
-export TMPDIR=/tmp
+
 
 if [ -d $kopi ]; then
 	rm -rf $kopi
 	mkdir -p $kopi #|| abort "- failed make dir $kopi"
 else
 	mkdir -p $kopi #|| abort "- failed make dir $kopi"
+fi
+
+if [ -d $TMPDIR ]; then
+	rm -rf $TMPDIR
+	mkdir -p $TMPDIR #|| abort "- failed make dir $kopi"
+else
+	mkdir -p $TMPDIR #|| abort "- failed make dir $kopi"
 fi
 
 cd $kopi
@@ -89,6 +105,7 @@ done
 PATH=$MODPATH/xbin:/bin:/system/bin:/system/xbin:/sbin
 fi
 
+print "- TMP : <$MODPATH>"
 
 ########################################
 #   Mount Partipations
@@ -117,7 +134,7 @@ setup_mountpoint() {
      mkdir -p $1;
   fi;
 }
-is_mounted() {  mount |  grep -q " $1 "; }
+
 
 mount_all() {
   local byname mount slot system;

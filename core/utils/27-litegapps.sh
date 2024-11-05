@@ -53,7 +53,45 @@ chcon -h u:object_r:system_file:s0 "$1" || sedlog "Failed chcon $1"
 }
 
 
-SYSTEM="$S"
+#system dir
+if [ -f /system/system/build.prop ]; then
+	SYSTEM=/system/system
+elif [ -f /system_root/system/build.prop ]; then
+	SYSTEM=/system_root/system
+elif [ -f /system_root/build.prop ]; then
+	SYSTEM=/system_root
+elif [ -f /mnt/system/system/build.prop ]; then
+	SYSTEM=/mnt/system/system
+elif [ -f /mnt/system_root/system/build.prop ]; then
+	SYSTEM=/mnt/system_root/system
+elif [ -f /mnt/system_root/build.prop ]; then
+	SYSTEM=/mnt/system_root
+elif [ -f /mnt/system/build.prop ]; then
+	SYSTEM=/mnt/system
+else
+	SYSTEM=/system
+fi
+
+#vendor dir
+VENDOR=/vendor
+
+# /product dir (android 10+)
+if [ ! -L $SYSTEM/product ]; then
+	PRODUCT=$SYSTEM/product
+elif [ ! -L /mnt/product ]; then
+	PRODUCT=/mnt/product
+else
+	PRODUCT=/product
+fi
+
+# /system_ext dir (android 11+)
+if [ ! -L $SYSTEM/system_ext ]; then
+	SYSTEM_EXT=$SYSTEM/system_ext
+elif [ ! -L /mnt/system_ext ]; then
+	PRODUCT=/mnt/system_ext
+else
+	SYSTEM_EXT=/system_ext
+fi
 
 
 NAME=`getp name $module`
@@ -77,7 +115,7 @@ case "$1" in
   		mkdir -p /tmp/kopi
   		cp -rdf $SYSTEM/etc/kopi/* /tmp/kopi/
   	else
-  		print "! Failed Backup $SYSTEM/etc/kopi"
+  		print "! Failed Backup $SYSTEM/etc/kopi Not Found"
   		return 0
   	fi
   	
