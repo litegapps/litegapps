@@ -1,7 +1,7 @@
 #!/sbin/sh
-# Kopi Installer V2.0
+# Kopi Installer V2.1
 # Since 08-05-2020
-# Latest Update 21-10-2024
+# Latest Update 05-01-2025
 # by wahyu6070 (dont change)
 
 OUTFD=/proc/self/fd/$2;
@@ -57,7 +57,7 @@ if is_mounted /data; then
 TMPDIR6070=/data/tmp
 export TMPDIR=/data/tmp2
 else
-print "-! /data partition is not mounted"
+print "[!] /data partition is not mounted"
 TMPDIR6070=/dev/tmp
 # tmp dir di taruh di /tmp agar tidak penuh (dipasah)
 export TMPDIR=/tmp

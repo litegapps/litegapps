@@ -69,8 +69,9 @@ MICRO (){
 	local list="
 	AndroidAuto
 Arcore
+SettingsIntelligenceGoogle
 DeskClockGoogle
-DevicePolicy
+SoundPicker
 Chrome
 Gmail
 Files
@@ -192,13 +193,14 @@ BASIC (){
 	local variant=basic
 	local list="
 	AndroidAuto
-Arcore
-DevicePolicy
-Gmail
-LocationHistory
-MarkupGoogle
-SoundPicker
-Wellbeing
+	Arcore
+	DevicePolicy
+	GoogleDialer
+	GoogleContacts
+	LocationHistory
+	MarkupGoogle
+	SoundPicker
+	Wellbeing
 	"
 	
 	local IN=$BASED/packages/output/$ARCH/$SDK/
@@ -426,38 +428,9 @@ MAKE_LITEGAPPS(){
 	LITE
 	fi
 	;;
-	arm)
-	if [ $SDK -ge 29 ] && [ $SDK -le 32 ]; then
-	PIXEL
-	MICRO
-	NANO
-	BASIC
-	USER
-	GO
+	arm | x86 | x86_64)
 	CORE
 	LITE
-	elif [ $SDK -ge 33 ]; then
-	CORE
-	LITE
-	fi
-	
-	
-	
-	;;
-	x86_64)
-	if [ $SDK -ge 29 ]; then
-	PIXEL
-	MICRO
-	NANO
-	BASIC
-	USER
-	GO
-	CORE
-	LITE
-	else
-	CORE
-	LITE
-	fi
 	;;
 	esac
 	rm -rf $BASED/tmp_files
@@ -472,10 +445,27 @@ UNZIP_FILE_SERVER(){
 	}
 UNZIP_GAPPS(){
 	local input=$HOMEE/files-server/litegapps/$ARCH/$SDK/${SDK}.zip
-	local output=$HOMEE/build/litegapps/core/litegapps/pixel/gapps/$ARCH/$SDK/
-	rm -rf $output
-	mkdir -p $output
-	unzip -o $input -d $output
+	local input_lite=$HOMEE/files-server/litegapps/$ARCH/$SDK/${SDK}-lite.zip
+	for ON in lite core nano user go pixel micro basic; do
+		local output=$HOMEE/build/litegapps/core/litegapps/$ON/gapps/$ARCH/$SDK/
+		rm -rf $output
+		mkdir -p $output
+		if [ $ON = lite ]; then
+			if [ -f $input_lite ]; then
+			echo "- Extract <$input_lite> to <$output>"
+			unzip -o $input_lite -d $output >/dev/null
+			
+			else
+			echo "- Extract <$input> to <$output>"
+			unzip -o $input -d $output >/dev/null
+			fi
+		else
+		echo "- Extract <$input> to <$output>"
+		unzip -o $input -d $output >/dev/null
+		fi
+	done
+	
+	
 	}
 CLEAN_RELEASE(){
 	echo "- Remove Old Build"

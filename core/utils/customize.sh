@@ -546,6 +546,12 @@ else
 
 fi
 }
+PAR_CHECK_MB_TOTAL(){
+	#check partisi mb
+	local MEM6=`df -k "$1" | tail -n 1 | tr -s ' ' | cut -d' ' -f2`
+	local MEM7=$((($MEM6 / 1024)))
+	echo "$MEM7"
+	}
 
 PAR_CHECK_MB(){
 	#check partisi mb
@@ -556,18 +562,20 @@ PAR_CHECK_MB(){
 
 MEM_CHECK_TMP (){
 	local T1=`PAR_CHECK_MB $MODPATH`
+	local L1=`PAR_CHECK_MB_TOTAL $MODPATH`
 	if [ $T1 -lt 200 ]; then
-	report_bug "! Canceled -> Partition <$MODPATH> Memory Full (under 200 MB) (${T1} MB)"
+	printlog "[!] <$TMPDIR> partition under 200MB (FREE=${T1}MB TOTAL=${L1}MB)"
 	else
-	sedlog "[+] <${MODPATH}> Partition Free Space $(PAR_CHECK_MB $MODPATH) MB"
+	sedlog "[+] <${MODPATH}> Partition Free Space $T1 MB TOTAL=${L1}MB"
 	fi
 	
-	T2=`PAR_CHECK_MB $TMPDIR`
+	local T2=`PAR_CHECK_MB $TMPDIR`
+	local L2=`PAR_CHECK_MB_TOTAL $TMPDIR`
 	if ! $BOOTMODE; then
 		if [ $T2 -lt "200" ]; then
-			report_bug "! Canceled -> Partition <$TMPDIR> Memory Full (under 200MB) ($(PAR_CHECK_MB $TMPDIR) MB)"
+			printlog "[!] <$TMPDIR> partition under 200MB (FREE=${T2}MB TOTAL=${L2}MB)"
 		else
-			sedlog "[+] <${TMPDIR}> Partition Free Space $T2 MB"
+			sedlog "[+] <${TMPDIR}> Partition Free Space $T2 MB TOTAL=${L2}MB"
 		fi
 	fi
 	}
