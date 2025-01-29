@@ -551,7 +551,7 @@ RESTORE(){
        	exit 1
        fi
 	fi
-	if [ $(get_config litegapps.build) = true ]; then
+	if [ "$(get_config litegapps.build)" = true ]; then
 		for i in $(get_config litegapps.restore | sed "s/,/ /g"); do
 			if [ -f $base/core/litegapps/restore.sh ]; then
 				BASED=$base/core/litegapps/$i
@@ -562,7 +562,7 @@ RESTORE(){
 			fi
 		done
 	fi
-	if [ $(get_config litegapps++.build) = true ]; then
+	if [ "$(get_config litegapps++.build)" = true ]; then
 		for i in $(get_config litegapps++.restore | sed "s/,/ /g"); do
 			if [ -f $base/core/litegapps++/$i/restore.sh ]; then
 				BASED=$base/core/litegapps++/$i

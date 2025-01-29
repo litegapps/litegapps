@@ -973,6 +973,7 @@ fi
 cdir $MODPATH/system/bin
 cp -pf $MODPATH/bin/litegapps $MODPATH/system/bin/
 chmod 755 $MODPATH/system/bin/litegapps
+chmod 755 $MODPATH/action.sh
 
 #Litegapps service
 if [ ! -f $LITEGAPPS/disable_post_fs ] && [ $TYPEINSTALL = systemless ]; then
