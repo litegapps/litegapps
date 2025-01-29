@@ -232,8 +232,8 @@ print "--------------------"
 print "- Checking Google Services Framework"
 
 for s1 in /system/priv-app /system/product /system/system_ext; do
-	if [ -f $s1/priv-app/Phonesky/Phonesky.apk ]; then
-		app1=$s1/priv-app/Phonesky/Phonesky.apk
+	if [ -f $s1/priv-app/GoogleServicesFramework/GoogleServicesFramework.apk ]; then
+		app1=$s1/priv-app/GoogleServicesFramework/GoogleServicesFramework.apk
 		break
 	fi
 done
