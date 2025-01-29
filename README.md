@@ -78,10 +78,10 @@ This is a tool for building litegapps
 # building
 ``sh build.sh restore`` Restoring files bin,gapps files
  
-``sh  (Building)``
+``sh build.sh make (Building)``
  
 ``
-sh make clean (Cleaning Directory)
+sh build.sh clean (Cleaning Directory)
 ``
 
 # Watch video building
