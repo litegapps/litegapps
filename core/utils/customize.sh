@@ -154,6 +154,7 @@ get_android_codename(){
 		33) echo "Tiramisu" ;;
 		34) echo "Upside Down Cake" ;;
 		35) echo "Vanilla Ice Cream" ;;
+		36) echo "Baklava" ;;
 		*) echo "null" ;;
 	 esac
 	}
