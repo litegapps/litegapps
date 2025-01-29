@@ -41,7 +41,12 @@ make_flashable_litegapps(){
 			
 			cp -af $base/core/utils/kopi/* $tmp77/
 			
-		
+		# action.sh
+			if [ -f $base/core/utils/action.sh ]; then
+				cp -pf $base/core/utils/action.sh $tmp77/
+			else
+				ERROR "actio .sh <$base/core/utils/action.sh> not found"
+			fi
 		# Customize.sh
 			if [ -f $base/core/utils/customize.sh ]; then
 				cp -pf $base/core/utils/customize.sh $tmp77/
