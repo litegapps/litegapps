@@ -1,17 +1,17 @@
-version=4.5
-version.code=4.5
+version=4.6
+version.code=4.6
 codename=stable
-name.builder=soekarno
+name.builder=wahyu6060
 #unofficial or official
-build.status=unofficial
+build.status=wahyu6070
 set.time.stamp=true
 date.time=202007122239
 #xz or br
-compression=br
+compression=xz
 #1-9
-compression.level=1
+compression.level=9
 #1-9
-zip.level=1
+zip.level=9
 # true/false
 zip.signer=false
 

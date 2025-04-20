@@ -584,7 +584,7 @@ MAKE(){
 	for W in $base/bin/arm; do
 		if [ ! -d $W ]; then
 			printlog "bin or gapps files not found. please restore !"
-			printlog "usage : sh make restore"
+			printlog "usage : sh build.sh restore"
 		exit 1
 		fi
 	done

@@ -184,7 +184,10 @@ printlog "| Version         : $MODULEVERSION"
 printlog "| Build date      : $MODULEDATE"
 printlog "| By              : $MODULEAUTHOR"
 if [ $TYPEINSTALL = systemless ]; then
-	if [ $KSU = true ]; then
+	if [ $KSU_NEXT = true ]; then
+		KSUD_MOUNT=`ksud module mount | head -n1 | cut -d : -f 2`
+		printlog "| Install As      : systemless (KerneSU-Next Module $KSUD_MOUNT)"
+	elif [ $KSU = true ]; then
 		printlog "| Install As      : systemless (KSU Module)"
 	elif [ $APATCH = true ]; then
 		printlog "| Install As      : systemless (APATCH Module)"
@@ -314,6 +317,7 @@ get_android_version(){
 		33) echo 13.0 ;;
 		34) echo 14.0 ;;
 		35) echo 15.0 ;;
+		36) echo 16.0 ;;
 		*) echo null ;;
 	 esac
 	}
