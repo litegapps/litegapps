@@ -97,7 +97,7 @@ report_bug(){
 	printlog "___________________________"
 	make_log
 	printlog " Please report bug !"
-	printlog " send log : /sdcard/Android/litegapps/$NAME_LOG"
+	printlog " send log : $LITEGAPPS/$NAME_LOG"
 	printlog " send in group telegram https://t.me/litegappsgroup"
 	printlog "____________________________"
 	printlog " "
@@ -400,6 +400,8 @@ INITIAL(){
 	[ "$TMPDIR" ] || TMPDIR=/tmp
 	if [ -d /sdcard/Android ];then
 		LITEGAPPS=/sdcard/Android/litegapps
+	elif [ -d /sdcard1/Android ];then
+		LITEGAPPS=/sdcard1/Android/litegapps
 	elif [ -d /cache ]; then
 		LITEGAPPS=/cache/litegapps
 	else
