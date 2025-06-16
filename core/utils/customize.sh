@@ -712,20 +712,20 @@ MODULE_INSTALL(){
         for P in $(cat $MODULE_TMP/list-rm); do
            if [ -d $Y/$G/$P ]; then
              if [ $TYPEINSTALL = systemless ]; then
-             	if [ $KSU ] || [ $APATCH ]; then
+             	if [ "$KSU_NEXT" = true ] || [ "$KSU" = true ] || [ "$APATCH" = true ]; then
              	# debloat by ksu/apatch 
              		if [ $SYSTEM = $Y ]; then
-             			printlog "- Debloating systemless $Y/$G/$P"
+             			printlog "- Debloating KSU/APATCH $Y/$G/$P"
              			mkdir -p $MODPATH/system/$G/$P
-             			touch mkdir -p $MODPATH/system/$G/$P/${P}.apk
+             			touch $MODPATH/system/$G/$P/${P}.apk
                 	elif [ $SYSTEM_EXT = $Y ]; then
-                		printlog "- Debloating systemless $Y/$G/$P"
+                		printlog "- Debloating KSU/APATCH $Y/$G/$P"
                 		mkdir -p $MODPATH/system/system_ext/$G/$P
-                		touch mkdir -p $MODPATH/system_ext/$G/$P/${P}.apk
+                		touch $MODPATH/system/system_ext/$G/$P/${P}.apk
                 	elif [ $PRODUCT = $Y ]; then
-                    	printlog "- Debloating systemless $Y/$G/$P"
+                    	printlog "- Debloating KSU/APATCH $Y/$G/$P"
                     	mkdir -p $MODPATH/system/product/$G/$P
-                    	touch mkdir -p $MODPATH/product/$G/$P/${P}.apk
+                    	touch $MODPATH/system/product/$G/$P/${P}.apk
                 	fi
              	
              	else
