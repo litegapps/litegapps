@@ -716,18 +716,17 @@ MODULE_INSTALL(){
              	# debloat by ksu/apatch 
              		if [ $SYSTEM = $Y ]; then
              			printlog "- Debloating KSU/APATCH $Y/$G/$P"
-             			mkdir -p $MODPATH/system/$G/$P
-             			touch $MODPATH/system/$G/$P/${P}.apk
+             			mkdir -p $MODPATH/system/$G
+             			mknod $MODPATH/system/$G/$P c 0 0
                 	elif [ $SYSTEM_EXT = $Y ]; then
                 		printlog "- Debloating KSU/APATCH $Y/$G/$P"
-                		mkdir -p $MODPATH/system/system_ext/$G/$P
-                		touch $MODPATH/system/system_ext/$G/$P/${P}.apk
+                		mkdir -p $MODPATH/system/system_ext/$G
+                		mknod $MODPATH/system/product/$G/$P c 0 0
                 	elif [ $PRODUCT = $Y ]; then
                     	printlog "- Debloating KSU/APATCH $Y/$G/$P"
-                    	mkdir -p $MODPATH/system/product/$G/$P
-                    	touch $MODPATH/system/product/$G/$P/${P}.apk
+                    	mkdir -p $MODPATH/system/product/$G
+                    	mknod $MODPATH/system/product/$G/$P c 0 0
                 	fi
-             	
              	else
              	# debloat by magisk
              		if [ $SYSTEM = $Y ]; then
