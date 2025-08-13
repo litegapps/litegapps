@@ -14,8 +14,8 @@ make_flashable_litegapps(){
 			copy_binary_flashable $YR $tmp77/bin/$YR
 		done
 			# copy core/utils/magisk or kopi installer
-			for W in 27-litegapps.sh litegapps-functions litegapps-post-fs litegapps; do
-				if [ -f $base/core/utils/$tmp77 ]; then
+			for W in 27-litegapps.sh litegapps-post-fs litegapps; do
+				if [ -f $base/core/utils/$W ]; then
 					cp -pf $base/core/utils/$W $tmp77/bin/
 				else
 					ERROR "utils <$base/core/utils/$W> not found"
@@ -27,17 +27,6 @@ make_flashable_litegapps(){
 			else
 				ERROR "LICENSE <$base/core/utils/LICENSE> not found"
 			fi
-			# copy core/utils files
-			for W in README.md; do
-				if [ -f $BASED/utils/$W ]; then
-				cp $BASED/utils/$W $tmp77/
-				else
-				ERROR "magisk files <$BASED/utils/$W> not found"
-				fi
-			done
-			cp -af $base/core/utils/kopi/* $tmp77/
-			#kopi mode install kopi (recovery)
-			SED "$(getp typeinstall $tmp77/module.prop)" "auto" $tmp77/module.prop
 			
 			cp -af $base/core/utils/kopi/* $tmp77/
 			
@@ -54,12 +43,14 @@ make_flashable_litegapps(){
 				ERROR "Customize.sh <$base/core/utils/customize.sh> not found"
 			fi
 		# copy file.tar.(type archive) in tmp
-		for WD in $(ls -1 $tmp); do
-			if [ -f $tmp/$WD  ]; then
-				test ! -d $tmp77/files && cdir $tmp77/files
-				cp -pf $tmp/$WD $tmp77/files/
-			fi
-		done
+		cdir $tmp77/files
+		if [ $(get_config litegapps.tar) = "multi" ] && [ -f $tmpfiles/files.tar.$(get_config compression) ]; then
+		cp -pf $tmpfiles/files.tar.$(get_config compression) $tmp77/files/
+		else
+		cp -pf $tmp/files.tar.$(get_config compression) $tmp77/files/
+		rm -rf $tmp/files.tar.$(get_config compression)
+		fi
+		
 		# add modules files
 		if [ $(read_config modules) = true ]; then
 			test ! -d $tmp77/modules && cdir $tmp77/modules
@@ -93,40 +84,39 @@ make_flashable_litegapps(){
 		local NAME_ZIP="$(read_config name | sed "s/ /-/g")-v${PROP_VERSION}-${PROP_STATUS}.zip"
 		local OUT_ZIP=$out/litegappsx/$(read_config dir_name)/v${PROP_VERSION}/$NAME_ZIP
 		make_zip $tmp77 $OUT_ZIP
-	done
 	}
 
 #################################################
 #Core
 #################################################
 NAME=`read_config name`
-	#binary copy architecture type
-	BIN_ARCH=arm
-		clear
-		sedlog "Building $NAME"
-		printmid "Building $NAME"
-		printlog " "
-		printlog "Version : $PROP_VERSION (${PROP_VERSIONCODE})"
-		printlog "Builder : $PROP_BUILDER"
-		printlog "Status  : $PROP_STATUS"
-		printlog "Compressions : $PROP_COMPRESSION"
-		printlog "Compressions Level : $PROP_COMPRESSION_LEVEL"
-		printlog " "
-		[ -d $tmp ] && del $tmp && cdir $tmp || cdir $tmp
-		#copying gapps
-		if [ -d $BASED/gapps/$W_ARCH/$W_SDK ]; then
-			cp -af $BASED/gapps/* $tmp/
-		else
-			printlog "[ERROR] <$BASED/gapps/> not found"
-			sleep 3s
-			continue
-		fi
-		# litegapps system compress
-		if [ "$apk_compessed_type" = litegapps_compress ]; then
-			lgapps_unzip
-			make_tar
-		fi
-		make_tar_arch
-		make_archive
-		make_flashable_litegapps
-
+#binary copy architecture type
+	
+BIN_ARCH=arm
+clear
+sedlog "Building $NAME"
+printmid "Building $NAME"
+printlog " "
+printlog "Version : $PROP_VERSION (${PROP_VERSIONCODE})"
+printlog "Builder : $PROP_BUILDER"
+printlog "Status  : $PROP_STATUS"
+printlog "Compressions : $PROP_COMPRESSION"
+printlog "Compressions Level : $PROP_COMPRESSION_LEVEL"
+printlog " "
+[ -d $tmp ] && del $tmp && cdir $tmp || cdir $tmp
+#copying gapps
+if [ -d $BASED/gapps/$W_ARCH/$W_SDK ]; then
+cp -af $BASED/gapps/* $tmp/
+else
+printlog "[ERROR] <$BASED/gapps/> not found"
+sleep 3s
+continue
+fi
+# litegapps system compress
+if [ "$apk_compessed_type" = litegapps_compress ]; then
+lgapps_unzip
+make_tar
+fi
+make_tar_arch
+make_archive
+make_flashable_litegapps
