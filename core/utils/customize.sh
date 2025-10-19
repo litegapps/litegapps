@@ -54,40 +54,45 @@ find_slot() {
   [ "$slot" ] && echo "$slot";
 }
 
-make_log(){
-	#creating log
-	if [ $(getp litegapps_type $MODPATH/module.prop) = litegappsx ]; then
-		NAME_LOG=`echo "[LOG]litegappsx_$(getp version $MODPATH/module.prop).zip"`
-	else
-		NAME_LOG=`echo "[LOG]litegapps_$(getp version $MODPATH/module.prop).zip"`
-	fi
-	
-	
-	printlog "- Make log to <$LITEGAPPS/$NAME_LOG>"
-	
-	
-	getprop > $LITEGAPPS/log/get_prop
-	
-	for BLOG in $SYSTEM $PRODUCT $SYSTEM_EXT $VENDOR; do
-		local BASENAME=`basename $BLOG`
-		if [ -f $BLOG/build.prop ]; then
-			cp -pf $BLOG/build.prop $LITEGAPPS/log/${BASENAME}_build.prop
-		else
-			echo "! /${BASENAME} is not detected <$BLOG/build.prop>" >> $LITEGAPPS/log/${BASENAME}_build.prop
-		fi
-	done
-	
-	if [ -d $LITEGAPPS/log ]; then
-		for TR in $TMPDIR $MODPATH $LITEGAPPS; do
-			test -d $TR && listlog $TR
-		done
-		cd $LITEGAPPS/log
-		test -f $LITEGAPPS/$NAME_LOG && del $LITEGAPPS/$NAME_LOG
-		$bin/zip -r9 $LITEGAPPS/$NAME_LOG * >/dev/null 2>&1
-		cd /
-		del $LITEGAPPS/log
-	fi
+make_log() {
+    # Gunakan local untuk variabel
+    local log_prefix="litegapps"
+    if [ "$(getp litegapps_type "$MODPATH/module.prop")" = "litegappsx" ]; then
+        log_prefix="litegappsx"
+    fi
+    local NAME_LOG="[LOG]${log_prefix}_$(getp version "$MODPATH/module.prop").zip"
+    local LOG_DIR="$LITEGAPPS/log"
+
+    printlog "- Creating log file in <$LITEGAPPS/$NAME_LOG>"
+    mkdir -p "$LOG_DIR" # Pastikan direktori ada
+
+    getprop > "$LOG_DIR/get_prop"
+
+    for BLOG in "$SYSTEM" "$PRODUCT" "$SYSTEM_EXT" "$VENDOR"; do
+        local BASENAME=$(basename "$BLOG")
+        if [ -f "$BLOG/build.prop" ]; then
+            cp -pf "$BLOG/build.prop" "$LOG_DIR/${BASENAME}_build.prop"
+        else
+            echo "! /${BASENAME} build.prop not found at <$BLOG/build.prop>" > "$LOG_DIR/${BASENAME}_build.prop"
+        fi
+    done
+
+    for TR in "$TMPDIR" "$MODPATH" "$LITEGAPPS"; do
+        [ -d "$TR" ] && listlog "$TR"
+    done
+
+    # Hapus log lama jika ada
+    [ -f "$LITEGAPPS/$NAME_LOG" ] && rm -f "$LITEGAPPS/$NAME_LOG"
+
+    # Gunakan subshell untuk zip, ini JAUH LEBIH AMAN
+    (
+        cd "$LOG_DIR" && "$bin/zip" -r9 "$LITEGAPPS/$NAME_LOG" * >/dev/null 2>&1
+    )
+
+    # Hapus direktori log temporer
+    rm -rf "$LOG_DIR"
 }
+
 report_bug(){
 	printlog " "
 	printlog "___________________________"
