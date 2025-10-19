@@ -362,6 +362,33 @@ litegappsx(){
 	}
 	
 	
+# Inisialisasi variabel LITEGAPPS dengan lokasi yang paling andal
+INITIALIZE_LITEGAPPS_PATH() {
+    # Daftar direktori kandidat, diurutkan dari yang paling ideal ke pilihan terakhir
+    local potential_paths="
+    /external_sd
+    /sdcard1
+    /usb_otg
+    /cache
+    /tmp
+    "
+
+    for path in $potential_paths; do
+        # Cek apakah direktori ada DAN bisa ditulis
+        if [ -d "$path" ] && touch "$path/litegapps_write_test" 2>/dev/null; then
+            # Jika berhasil membuat file, berarti direktori ini adalah pilihan yang valid
+            rm "$path/litegapps_write_test" # Hapus file tes
+            LITEGAPPS="$path/litegapps"     # Set variabel global
+            printlog "- Using $LITEGAPPS for logs and files."
+            return 0 # Keluar dari fungsi setelah menemukan lokasi yang cocok
+        fi
+    done
+
+    # Jika tidak ada direktori di atas yang berfungsi (sangat jarang terjadi)
+    LITEGAPPS="/tmp/litegapps"
+    printlog "- Warning: No ideal storage found. Falling back to $LITEGAPPS (will be deleted on reboot)."
+}
+
 
 INITIAL(){
 	local mode=$1
@@ -398,15 +425,9 @@ INITIAL(){
 	
 	# menggunakan /tmp karena /dev/tmp di gunakan sebagai kopi installer... agar tidak penuh memori mengggunakan tmp tmdi bagi dua
 	[ "$TMPDIR" ] || TMPDIR=/tmp
-	if [ -d /sdcard/Android ];then
-		LITEGAPPS=/sdcard/Android/litegapps
-	elif [ -d /sdcard1/Android ];then
-		LITEGAPPS=/sdcard1/Android/litegapps
-	elif [ -d /cache ]; then
-		LITEGAPPS=/cache/litegapps
-	else
-		LITEGAPPS=/tmp/litegapps
-	fi
+	
+	INITIALIZE_LITEGAPPS_PATH
+	
 	log=$LITEGAPPS/log/litegapps.log
 	files=$MODPATH/files
 
@@ -471,88 +492,74 @@ SET_PERM_PARTITION (){
 	
 	}
 	
-PARTITION_MEM_CHECK(){
-# cheking memory partition
-# $STSTEM $PRODUCT $SYSTEM_EXT is variable in kopi installer
-if [ $TYPEINSTALL = kopi ]; then
-	printlog "- Checking Memory"
-	if [ -d $MODPATH/system ] && [ ! -d $MODPATH/system/product ] && [ ! -d $MODPATH/system/system_ext ] && [ "$(ls -A $MODPATH/system)" ]; then
-		MEM_INSTALL=`du -sk $MODPATH/system | cut -f1`
-		MEM_PARTITION=`df -k $SYSTEM | tail -n 1 | tr -s ' ' | cut -d' ' -f3`
-		if [ "$MEM_PARTITION" -eq "$MEM_PARTITION" ] && [ "$MEM_PARTITION" -gt "$MEM_INSTALL" ]; then
-			sedlog " memory partition $SYSTEM"
-			sedlog " Memory required : $(($MEM_INSTALL / 1024)) MB"
-			sedlog " Available memory on partition $SYSTEM : $(($MEM_PARTITION / 1024)) MB"
-			sedlog " free space is [OK]"
-		elif [ "$MEM_PARTITION" -eq "$MEM_PARTITION" ] && [ "$MEM_PARTITION" -le "$MEM_INSTALL" ]; then
-			printlog "! memory partition $SYSTEM"
-			printlog "! Memory required : $(($MEM_INSTALL / 1024)) MB"
-			printlog "! Available memory on partition $SYSTEM : $(($MEM_PARTITION / 1024)) MB"
-			printlog "! free space is [ERROR] full memory"
-			report_bug "$SYSTEM Insufficient memory partition"
-		else
-			sedlog "! memory partition $SYSTEM is not detected size"
-		fi
-	fi
-	if [ -d $MODPATH/system/product ] && [ "$(ls -A $MODPATH/system/product)" ]; then
-		MEM_INSTALL=`du -sk $MODPATH/system/product | cut -f1`
-		MEM_PARTITION=`df -k $PRODUCT | tail -n 1 | tr -s ' ' | cut -d' ' -f3`
-		if [ "$MEM_PARTITION" -eq "$MEM_PARTITION" ] && [ "$MEM_PARTITION" -gt $"MEM_INSTALL" ]; then
-			sedlog " Partition $PRODUCT"
-			sedlog " Memory required : $(($MEM_INSTALL / 1024)) MB"
-			sedlog " Available memory on partition $PRODUCT : $(($MEM_PARTITION / 1024)) MB"
-			sedlog " free space is [OK]"
-		elif [ "$MEM_PARTITION" -eq "$MEM_PARTITION" ] && [ "$MEM_PARTITION" -le "$MEM_INSTALL" ]; then
-			printlog "! Partition $PRODUCT"
-			printlog "! Memory required : $((MEM_INSTALL / 1024 )) MB"
-			printlog "! Available memory on partition $PRODUCT : $(($MEM_PARTITION / 1024)) MB"
-			printlog "! free space is [ERROR] full memory"
-			report_bug "$PRODUCT Insufficient memory partition"
-		else
-			sedlog "! memory partition $PRODUCT is not detected size"
-		fi
-	fi
-	if [ -d $MODPATH/system/system_ext ] && [ "$(ls -A $MODPATH/system/system_ext)" ]; then
-		MEM_INSTALL=`du -sk $MODPATH/system/system_ext | cut -f1`
-		MEM_PARTITION=`df -k $SYSTEM_EXT | tail -n 1 | tr -s ' ' | cut -d' ' -f3`
-		if [ "$MEM_PARTITION" -eq "$MEM_PARTITION" ] && [ "$MEM_PARTITION" -gt "$MEM_INSTALL" ]; then
-			sedlog " Partition $SYSTEM_EXT"
-			sedlog " Memory required : $(($MEM_INSTALL / 1024)) MB"
-			sedlog " Available memory on partition $SYSTEM_EXT : $(($MEM_PARTITION / 1024)) MB"
-			sedlog " free space is [OK]"
-		elif [ "$MEM_PARTITION" -eq "$MEM_PARTITION" ] && [ "$MEM_PARTITION" -le "$MEM_INSTALL" ]; then
-			printlog "! Partition $(($SYSTEM_EXT / 1024)) MB"
-			printlog "! Memory required : $(($MEM_INSTALL / 1024)) MB"
-			printlog "! Available memory on partition $SYSTEM_EXT : $(($MEM_PARTITION / 1024)) MB"
-			printlog "! free space is [ERROR] full memory"
-			report_bug "$SYSTEM_EXT Insufficient memory partition"
-		else
-			sedlog "! memory partition $SYSTEM_EXT is not detected size"
-		fi
-		
-	fi
-else
-	if $BOOTMODE && [ -d $MODPATH/system ] && [ "$(ls -A $MODPATH/system)" ]; then
-		MEM_INSTALL=`du -sk $MODPATH/system | cut -f1`
-		MEM_PARTITION=`df -k /data | tail -n 1 | tr -s ' ' | cut -d' ' -f3`
-		if [ "$MEM_PARTITION" -eq "$MEM_PARTITION" ] && [ "$MEM_PARTITION" -gt "$MEM_INSTALL" ]; then
-			sedlog " Partition /data"
-			sedlog " Memory required : $(($MEM_INSTALL / 1024)) MB"
-			sedlog " Available memory on partition /data : $(($MEM_PARTITION / 1024)) MB"
-			sedlog " free space is [OK]"
-		elif [ "$MEM_PARTITION" -eq "$MEM_PARTITION" ] && [ "$MEM_PARTITION" -le "$MEM_INSTALL" ]; then
-			printlog "! Partition /data"
-			printlog "! Memory required : $(($MEM_INSTALL / 1024)) MB"
-			printlog "! Available memory on partition /data : $((MEM_PARTITION / 1024)) MB"
-			printlog "! free space is [ERROR] full memory"
-			report_bug "/data partition memory is full"
-		else
-			sedlog "! memory partition /data is not detected size"
-		fi
-	fi
+# Helper function untuk memeriksa satu partisi
+# Argumen: 1=Nama Partisi, 2=Path Partisi, 3=Path Direktori Sumber
+# Helper function untuk memeriksa satu partisi (POSIX-compliant untuk TWRP)
+# Argumen: 1=Nama Partisi, 2=Path Partisi, 3=Path Direktori Sumber
+_check_space() {
+    local partition_name="$1"
+    local partition_path="$2"
+    local source_dir="$3"
 
-fi
+    # Keluar jika direktori sumber tidak ada atau kosong
+    if [ ! -d "$source_dir" ] || [ -z "$(ls -A "$source_dir")" ]; then
+        return 0
+    fi
+
+    printlog "- Checking space for $partition_name partition..."
+
+    local mem_install=$(du -sk "$source_dir" | cut -f1)
+    local mem_available=$(df -k "$partition_path" | tail -n 1 | tr -s ' ' | cut -d' ' -f4)
+
+    # Validasi apakah mem_available adalah angka, menggunakan 'case' (aman untuk TWRP)
+    case "$mem_available" in
+        # Jika variabel kosong ATAU mengandung karakter BUKAN angka
+        ''|*[!0-9]*)
+            sedlog "! Could not detect available size for $partition_path"
+            return 1
+            ;;
+        # Jika lolos (hanya berisi angka), lanjutkan
+        *)
+            ;;
+    esac
+
+    local mem_install_mb=$((mem_install / 1024))
+    local mem_available_mb=$((mem_available / 1024))
+
+    sedlog "  Path: $partition_path"
+    sedlog "  Memory required: ${mem_install_mb} MB"
+    sedlog "  Available memory: ${mem_available_mb} MB"
+
+    if [ "$mem_available" -gt "$mem_install" ]; then
+        sedlog "  Status: [OK]"
+    else
+        printlog "! Status: [ERROR] Insufficient space on $partition_name"
+        report_bug "$partition_name ($partition_path) Insufficient memory partition"
+    fi
 }
+
+PARTITION_MEM_CHECK(){
+    # cheking memory partition
+    # $STSTEM $PRODUCT $SYSTEM_EXT is variable in kopi installer
+    if [ $TYPEINSTALL = kopi ]; then
+        printlog "- Checking Memory"
+        # Cek partisi utama (jika ada file di root-nya tapi tidak ada subdir product/system_ext)
+        if [ -d $MODPATH/system ] && [ ! -d $MODPATH/system/product ] && [ ! -d $MODPATH/system/system_ext ] && [ "$(ls -A $MODPATH/system)" ]; then
+             _check_space "system" "$SYSTEM" "$MODPATH/system"
+        fi
+        
+        # Cek sub-partisi secara spesifik
+        _check_space "product" "$PRODUCT" "$MODPATH/system/product"
+        _check_space "system_ext" "$SYSTEM_EXT" "$MODPATH/system/system_ext"
+
+    else
+        # Untuk mode systemless (misal Magisk), cek di /data
+        if $BOOTMODE && [ -d $MODPATH/system ] && [ "$(ls -A $MODPATH/system)" ]; then
+            _check_space "/data" "/data" "$MODPATH/system"
+        fi
+    fi
+}
+
 PAR_CHECK_MB_TOTAL(){
 	#check partisi mb
 	local MEM6=`df -k "$1" | tail -n 1 | tr -s ' ' | cut -d' ' -f2`
