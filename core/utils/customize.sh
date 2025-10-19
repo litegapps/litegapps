@@ -366,6 +366,7 @@ litegappsx(){
 INITIALIZE_LITEGAPPS_PATH() {
     # Daftar direktori kandidat, diurutkan dari yang paling ideal ke pilihan terakhir
     local potential_paths="
+    /sdcard/Android
     /external_sd
     /sdcard1
     /usb_otg
