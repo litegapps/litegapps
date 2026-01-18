@@ -1,0 +1,415 @@
+#!/sbin/sh
+# Kopi Installer V2.0
+# Since 08-05-2020
+# Latest Update 21-10-2024
+# by wahyu6070 (dont change)
+
+OUTFD=/proc/self/fd/$2;
+ZIPFILE="$3";
+
+ps | grep zygote | grep -v grep >/dev/null && BOOTMODE=true || BOOTMODE=false;
+$BOOTMODE || ps -A 2>/dev/null | grep zygote | grep -v grep >/dev/null && BOOTMODE=true;
+$BOOTMODE && OUTFD=/proc/self/fd/0;
+########################################
+# Util Functions
+########################################
+show_progress() { echo "progress $1 $2" > $OUTFD; }
+set_progress() { echo "set_progress $1" > $OUTFD; }
+
+#Kopi functions
+ui_print(){ $BOOTMODE && echo "$1" || echo -e "ui_print $1\nui_print" >> $OUTFD; }
+print(){ $BOOTMODE && echo "$1" || echo -e "ui_print $1\nui_print" >> $OUTFD; }
+getp(){ grep "^$1" "$2" | head -n1 | cut -d = -f 2; }
+del(){ rm -rf "$@"; }
+delete(){ rm -rf "$@"; }
+cdir(){ mkdir -p "$@"; }
+abort(){ print "$1"; exit 1; }
+is_mounted() {  mount |  grep -q " $1 "; }
+
+
+umask 022
+
+
+require_new_magisk() {
+  ui_print "*******************************"
+  ui_print " Please install Magisk v20.4+! "
+  ui_print "*******************************"
+  exit 1
+}
+
+
+if $BOOTMODE; then
+mount /data 2>/dev/null
+
+[ -f /data/adb/magisk/util_functions.sh ] || require_new_magisk
+. /data/adb/magisk/util_functions.sh
+[ $MAGISK_VER_CODE -lt 20400 ] && require_new_magisk
+
+install_module
+
+else
+#Extract
+
+
+#variable
+if is_mounted /data; then
+#gunakan partisi /data karena memiliki banyak penyimpanan
+TMPDIR6070=/data/tmp
+export TMPDIR=/data/tmp2
+else
+print "-! /data partition is not mounted"
+TMPDIR6070=/dev/tmp
+# tmp dir di taruh di /tmp agar tidak penuh (dipasah)
+export TMPDIR=/tmp
+fi
+export kopi=$TMPDIR6070/kopi
+export MODPATH=$kopi
+TYPEINSTALL=kopi
+
+
+if [ -d $kopi ]; then
+	rm -rf $kopi
+	mkdir -p $kopi #|| abort "- failed make dir $kopi"
+else
+	mkdir -p $kopi #|| abort "- failed make dir $kopi"
+fi
+
+if [ -d $TMPDIR ]; then
+	rm -rf $TMPDIR
+	mkdir -p $TMPDIR #|| abort "- failed make dir $kopi"
+else
+	mkdir -p $TMPDIR #|| abort "- failed make dir $kopi"
+fi
+
+cd $kopi
+print "- Extracting ZIP File"
+unzip -o "$ZIPFILE" >&2
+
+[ ! -f module.prop ] && abort "- Module.prop Not Found"
+
+for AY in arm64 arm x86 x86_64; do
+	if $MODPATH/bin/$AY/toybox 2>/dev/null | grep -q mount; then
+		unset TOYBOX
+		export TOYBOX=$MODPATH/bin/$AY/toybox
+		chmod 755 $TOYBOX
+		break
+	fi
+done
+
+if [ "$TOYBOX" ] && [ -f $TOYBOX ]; then
+print "- Using Toybox <$TOYBOX>"
+cdir $MODPATH/xbin
+for H in $($MODPATH/bin/arm64/toybox); do
+	$TOYBOX ln -sf $TOYBOX $MODPATH/xbin/$H
+done
+PATH=$MODPATH/xbin:/bin:/system/bin:/system/xbin:/sbin
+fi
+
+print "- TMP : <$MODPATH>"
+
+########################################
+#   Mount Partipations
+########################################
+setenforce 0
+# osm0sis : https://github.com/osm0sis/AnyKernel3
+[ -d /postinstall/tmp ] && POSTINSTALL=/postinstall;
+[ "$AKHOME" ] || AKHOME=$POSTINSTALL/tmp/anykernel;
+[ "$ANDROID_ROOT" ] || ANDROID_ROOT=/system;
+
+file_getprop() {  grep "^$2=" "$1" |  tail -n1 |  cut -d= -f2-; }
+find_slot() {
+  local slot=$(getprop ro.boot.slot_suffix 2>/dev/null);
+  [ "$slot" ] || slot=$( grep -o 'androidboot.slot_suffix=.*$' /proc/cmdline |  cut -d\  -f1 |  cut -d= -f2);
+  if [ ! "$slot" ]; then
+    slot=$(getprop ro.boot.slot 2>/dev/null);
+    [ "$slot" ] || slot=$( grep -o 'androidboot.slot=.*$' /proc/cmdline |  cut -d\  -f1 |  cut -d= -f2);
+    [ "$slot" ] && slot=_$slot;
+  fi;
+  [ "$slot" ] && echo "$slot";
+}
+setup_mountpoint() {
+  [ -L $1 ] &&  mv -f $1 ${1}_link;
+  if [ ! -d $1 ]; then
+     rm -f $1;
+     mkdir -p $1;
+  fi;
+}
+
+
+mount_all() {
+  local byname mount slot system;
+  if ! is_mounted /cache; then
+     mount /cache 2>/dev/null && UMOUNT_CACHE=1;
+  fi;
+  if ! is_mounted /data; then
+     mount /data && UMOUNT_DATA=1;
+  fi;
+  (for mount in /vendor /product /system_ext /persist; do
+     mount -o ro -t auto $mount;
+  done) 2>/dev/null;
+  
+  
+  
+  setup_mountpoint $ANDROID_ROOT;
+  if ! is_mounted $ANDROID_ROOT; then
+     mount -o ro -t auto $ANDROID_ROOT 2>/dev/null;
+  fi;
+  byname=bootdevice/by-name;
+  [ -d /dev/block/$byname ] || byname=$( find /dev/block/platform -type d -name by-name 2>/dev/null |  head -n1 |  cut -d/ -f4-);
+  [ -d /dev/block/mapper ] && byname=mapper;
+  [ -e /dev/block/$byname/system ] || slot=$(find_slot);
+  case $ANDROID_ROOT in
+    /system_root) setup_mountpoint /system;;
+    /system)
+      if ! is_mounted /system && ! is_mounted /system_root; then
+        setup_mountpoint /system_root;
+         mount -o ro -t auto /system_root;
+      elif [ -f /system/system/build.prop ]; then
+        setup_mountpoint /system_root;
+         mount --move /system /system_root;
+      fi;
+      if [ $? != 0 ]; then
+        ( umount /system;
+         umount -l /system) 2>/dev/null;
+         mount -o ro -t auto /dev/block/$byname/system$slot /system_root;
+      fi;
+    ;;
+  esac;
+  [ -f /system_root/system/build.prop ] && system=/system;
+  for mount in /vendor /product /system_ext; do
+    if ! is_mounted $mount && [ -L /system$mount -o -L /system_root$system$mount ]; then
+      setup_mountpoint $mount;
+       mount -o ro -t auto /dev/block/$byname$mount$slot $mount;
+    fi;
+  done;
+  
+  if [ -d /dev/block/mapper ]; then
+    for block in system vendor product system_ext; do
+      for slot in "" _a _b; do
+        blockdev --setrw /dev/block/mapper/$block$slot 2>/dev/null
+      done
+    done
+  fi
+  for M1 in /system /product /system_ext /system_root; do
+		if is_mounted $M1; then
+			mount -o rw,remount -t auto $M1 2>/dev/null || print "! Failed mounting R/W <$M1>"
+		fi
+	done
+
+}
+umount_all() {
+  local mount;
+  (if [ ! -d /postinstall/tmp ]; then
+     umount /system;
+     umount -l /system;
+  fi) 2>/dev/null;
+  
+  (if [ ! -d /postinstall/tmp ]; then
+     umount /system_root;
+     umount -l /system_root;
+  fi);
+  umount /vendor; # busybox umount /vendor breaks recovery on some hacky devices
+  umount -l /vendor;
+  for mount in /mnt/system /mnt/vendor /product /mnt/product /system_ext /mnt/system_ext /persist; do
+     umount $mount;
+     umount -l $mount;
+  done;
+  
+}
+setup_env() {
+  $BOOTMODE && return 1;
+   mount -o bind /dev/urandom /dev/random;
+  if [ -L /etc ]; then
+    setup_mountpoint /etc;
+     cp -af /etc_link/* /etc;
+     sed -i 's; / ; /system_root ;' /etc/fstab;
+  fi;
+  umount_all;
+  mount_all;
+  OLD_LD_PATH=$LD_LIBRARY_PATH;
+  OLD_LD_PRE=$LD_PRELOAD;
+  OLD_LD_CFG=$LD_CONFIG_FILE;
+  unset LD_LIBRARY_PATH LD_PRELOAD LD_CONFIG_FILE;
+  if [ ! "$(getprop 2>/dev/null)" ]; then
+    getprop() {
+      local propdir propfile propval;
+      for propdir in / /system_root /system /vendor /product /system_ext /odm; do
+        for propfile in default.prop build.prop; do
+          if [ "$propval" ]; then
+            break 2;
+          else
+            propval="$(file_getprop $propdir/$propfile $1 2>/dev/null)";
+          fi;
+        done;
+      done;
+      if [ "$propval" ]; then
+        echo "$propval";
+      else
+        echo "";
+      fi;
+    }
+  elif [ ! "$(getprop ro.build.type 2>/dev/null)" ]; then
+    getprop() {
+      ($(which getprop) |  grep "$1" |  cut -d[ -f3 |  cut -d] -f1) 2>/dev/null;
+    }
+  fi;
+}
+restore_env() {
+  $BOOTMODE && return 1;
+  local dir;
+  unset -f getprop;
+  [ "$OLD_LD_PATH" ] && export LD_LIBRARY_PATH=$OLD_LD_PATH;
+  [ "$OLD_LD_PRE" ] && export LD_PRELOAD=$OLD_LD_PRE;
+  [ "$OLD_LD_CFG" ] && export LD_CONFIG_FILE=$OLD_LD_CFG;
+  unset OLD_LD_PATH OLD_LD_PRE OLD_LD_CFG;
+  umount_all;
+  [ -L /etc_link ] &&  rm -rf /etc/*;
+  (for dir in /etc /apex /system_root /system /vendor /product /system_ext /persist; do
+    if [ -L "${dir}_link" ]; then
+      rmdir $dir;
+       mv -f ${dir}_link $dir;
+    fi;
+  done;
+   umount -l /dev/random) 2>/dev/null;
+}
+
+setup_env
+
+#system dir
+if [ -f /system/system/build.prop ]; then
+	SYSTEM=/system/system
+elif [ -f /system_root/system/build.prop ]; then
+	SYSTEM=/system_root/system
+elif [ -f /system_root/build.prop ]; then
+	SYSTEM=/system_root
+else
+	SYSTEM=/system
+fi
+
+#vendor dir
+VENDOR=/vendor
+
+# /product dir (android 10+)
+if [ ! -L $SYSTEM/product ]; then
+	PRODUCT=$SYSTEM/product
+else
+	PRODUCT=/product
+fi
+
+# /system_ext dir (android 11+)
+if [ ! -L $SYSTEM/system_ext ]; then
+	SYSTEM_EXT=$SYSTEM/system_ext
+else
+	SYSTEM_EXT=/system_ext
+fi
+
+#prop
+prop=$SYSTEM/build.prop
+API=`getp ro.build.version.sdk $prop`
+ABI=`getp ro.product.cpu.abi $prop | cut -c-3`
+ABI2=`getp ro.product.cpu.abi2 $prop | cut -c-3`
+ABILONG=`getp ro.product.cpu.abi $prop`
+ARCH=arm
+ARCH32=arm
+IS64BIT=false
+if [ "$ABI" = "x86" ]; then ARCH=x86; ARCH32=x86; fi;
+if [ "$ABI2" = "x86" ]; then ARCH=x86; ARCH32=x86; fi;
+if [ "$ABILONG" = "arm64-v8a" ]; then ARCH=arm64; ARCH32=arm; IS64BIT=true; fi;
+if [ "$ABILONG" = "x86_64" ]; then ARCH=x64; ARCH32=x86; IS64BIT=true; fi;
+
+export MODULE=./module.prop
+export ID=`getp id $MODULE`
+export NAME=`getp name $MODULE`
+export VERSION=`getp version $MODULE`
+export VERSIONCODE=`getp versioncode $MODULE`
+export DEVICE=`getp device $MODULE`
+export DATE=`getp date $MODULE`
+export AUTHOR=`getp author $MODULE`
+export KOPIMOD=$SYSTEM/etc/kopi/modules/"$ID"
+export SYSTEMLESSMOD=/data/adb/modules/$ID
+export SYSTEMLESSUP="/data/adb/modules_update/$ID"
+set_progress 0.5;
+
+
+if [ -d $KOPIMOD ]; then
+	del $KOPIMOD
+	cdir $KOPIMOD
+else
+	cdir $KOPIMOD
+fi
+[ -f uninstall.sh ] && cp -pf uninstall.sh $KOPIMOD && chmod 775 $KOPIMOD/uninstall.sh;
+echo "$TYPEINSTALL" > $KOPIMOD/typeinstall
+[ -f module.prop ] && cp -pf module.prop $KOPIMOD;
+[ -d bin ] && chmod -R 775 $MODPATH/bin;
+[ -f customize.sh ] && chmod 0775 customize.sh && . ./customize.sh;
+
+
+	
+for MV_DIR in vendor product system_ext; do
+	if [ -d $kopi/system/$MV_DIR ] && [ "$(ls -A $kopi/system/$MV_DIR)" ]; then
+		test ! -d $kopi/$MV_DIR && cdir $kopi/$MV_DIR
+		cp -rdf $kopi/system/$MV_DIR/* $kopi/$MV_DIR/
+			del $kopi/system/$MV_DIR
+	elif [ -d $kopi/system/$MV_DIR ] && [ ! "$(ls -A $kopi/system/$MV_DIR)" ]; then
+			del $kopi/system/$MV_DIR
+	fi
+done
+	
+#Creating list file or dir installed log
+for MAKE_LIST in system vendor product system_ext; do
+	if [ -d $MODPATH/$MAKE_LIST ] && [ "$(ls -A $MODPATH/$MAKE_LIST)" ]; then
+			cd $MODPATH/$MAKE_LIST
+			for MAKE_LIST_FILE in $(find *); do
+				echo "$MAKE_LIST_FILE" >> $KOPIMOD/list_install_$MAKE_LIST
+			done
+	fi
+done
+	
+#cp system
+if [ -d $kopi/system ] && ! rmdir $kopi/system 2>/dev/null; then
+print "- Pushing $SYSTEM";
+cp -rdf $kopi/system/* $SYSTEM/;
+fi;
+#cp vendor
+	if [ -d $kopi/vendor ] && ! rmdir $kopi/vendor 2>/dev/null; then
+		print "- Pushing $VENDOR";
+		cp -rdf $kopi/vendor/* $VENDOR/;
+	fi;
+	
+#cp product
+if [ -d $kopi/product ] && ! rmdir $kopi/product 2>/dev/null; then
+		print "- Pushing $PRODUCT";
+		cp -rdf $kopi/product/* $PRODUCT/;
+fi;
+	
+#cp system_ext
+if [ -d $kopi/system_ext ] && ! rmdir $kopi/system_ext 2>/dev/null; then
+		print "- Pushing $SYSTEM_EXT";
+		cp -rdf $kopi/system_ext/* $SYSTEM_EXT/;
+fi;
+set_progress 8.1;
+	
+
+
+
+#permissions
+if [ -f $kopi/permissions.sh ] && [ ! $uninstallmode ]; then
+print "- Set Permissions"
+chmod 755 $kopi/permissions.sh
+. $kopi/permissions.sh
+fi
+
+#umount
+print "- Umounting partitions";
+if ! $BOOTMODE; then
+	restore_env
+fi
+set_progress 1.1;
+cd /;
+del $TMPDIR6070
+print "- Done";
+set_progress 0.3;
+exit 0;
+
+
+fi

@@ -231,7 +231,18 @@ make_zip(){
 	#
 	printlog "- Build Zip"
 	$ZIP -r${ZIP_LEVEL} $OUTPUT . >/dev/null
-	
+	ZIP_EXIT_CODE=$?
+
+	# Check if zip was successful (exit codes 0-2 are acceptable for zip)
+	if [ $ZIP_EXIT_CODE -gt 2 ]; then
+		ERROR "Zip creation failed with exit code $ZIP_EXIT_CODE"
+	elif [ $ZIP_EXIT_CODE -eq 1 ]; then
+		printlog "- Zip completed with warnings (exit code 1)"
+	elif [ $ZIP_EXIT_CODE -eq 2 ]; then
+		printlog "- Zip completed with minor warnings (exit code 2)"
+	else
+		printlog "- Zip completed successfully"
+	fi
 	if [ $(get_config zip.signer) = "true" ]; then
 		#cheking java
 		if [ "$(command -v java)" ];then

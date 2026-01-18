@@ -1,6 +1,8 @@
-sdk=36
+# you can combine configs 33,34,35 or arm,arm64,x86_64
+
+sdk=35
 arch=arm64
-restore.sdk=31
+restore.sdk=35
 restore.arch=arm64
 name=LiteGapps
 dir_name=lite

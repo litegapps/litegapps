@@ -95,8 +95,6 @@ make_flashable_litegapps(){
 		SED "$(getp litegapps_variant $MODULE_PROP)" "$VARIANT" $MODULE_PROP
 		sed -i 's,'"$(getp updateJson $MODULE_PROP)"','"${MODULE_UPDATE}"',g' $MODULE_PROP
 		
-		#set time stamp
-		set_time_stamp $tmp77
 		if [ "$VARIANT" = "lite" ]; then
 		local NAME_ZIP="LiteGapps-${W_ARCH}-$(get_android_version $W_SDK)-$(date +%Y%m%d)-${PROP_STATUS}.zip"
 		else
@@ -108,7 +106,7 @@ make_flashable_litegapps(){
 	}
 
 #################################################
-#Core
+# Core
 #################################################
 if [ $ARCH_IN ]; then
 CONFIG_ARCH=$ARCH_IN

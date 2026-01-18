@@ -2,7 +2,7 @@
 # customize.sh 
 #
 
-# Copyright 2020 - 2025 The Litegapps Project
+# Copyright 2020 - 2026 The Litegapps Project
 # Litegapps Functions
 # By wahyu6070
 #
@@ -226,7 +226,12 @@ printlog "| Codename        : $(GET_PROP ro.product.device)"
 else
 printlog "| Codename        : null"
 fi
-printlog "| Android Version : $(GET_PROP ro.build.version.release) ($(get_android_codename $(GET_PROP ro.build.version.sdk)))"
+# Ambil nilai ke variabel dulu agar aman
+ANDROID_VER=$(GET_PROP ro.build.version.release)
+SDK_VER=$(GET_PROP ro.build.version.sdk)
+CODENAME=$(get_android_codename "$SDK_VER")
+
+printlog "| Android Version : $ANDROID_VER ($CODENAME)"
 printlog "| Architecture    : $ARCH"
 printlog "| Api             : $(GET_PROP ro.build.version.sdk)"
 printlog "| Density         : $(GET_PROP ro.sf.lcd_density)"
@@ -567,52 +572,55 @@ _check_space() {
 #}
 
 PARTITION_MEM_CHECK(){
-    # --- [MODIFIKASI] Cek file flag untuk menonaktifkan pengecekan ---
-    local SKIP_MEM_CHECK=false
-    local flag_file_name="disable_secure" # Nama file flag
-    local check_paths="
-    /sdcard
-    /sdcard1
-    /tmp
-    /cache
-    /data
-    "
-    
-    # Loop untuk mencari file flag
-    for path in $check_paths; do
-        if [ -f "$path/$flag_file_name" ]; then
-            printlog "-! Ditemukan file flag: $path/$flag_file_name"
-            printlog "-! Pengecekan memori (secure check) akan dilewati."
-            SKIP_MEM_CHECK=true
-            break # Keluar dari loop jika sudah ditemukan
-        fi
-    done
-    # --- [MODIFIKASI SELESAI] ---
+    # --- [MODIFIKASI] Cek file flag untuk menonaktifkan pengecekan ---
+    local SKIP_MEM_CHECK=false
+    local flag_file_name="disable_secure" # Nama file flag
+    local check_paths="
+    /sdcard
+    /sdcard1
+    /tmp
+    /cache
+    /data
+    /system
+    /product
+    /system_ext
+    "
+    
+    # Loop untuk mencari file flag
+    for path in $check_paths; do
+        if [ -f "$path/$flag_file_name" ]; then
+            printlog "-! Ditemukan file flag: $path/$flag_file_name"
+            printlog "-! Pengecekan memori (secure check) akan dilewati."
+            SKIP_MEM_CHECK=true
+            break # Keluar dari loop jika sudah ditemukan
+        fi
+    done
+    # --- [MODIFIKASI SELESAI] ---
 
-    # Hanya jalankan pengecekan jika flag_file TIDAK ditemukan
-    if [ "$SKIP_MEM_CHECK" = "false" ]; then
-        # cheking memory partition
-        # $STSTEM $PRODUCT $SYSTEM_EXT is variable in kopi installer
-        if [ $TYPEINSTALL = kopi ]; then
-            printlog "- Checking Memory"
-            # Cek partisi utama (jika ada file di root-nya tapi tidak ada subdir product/system_ext)
-            if [ -d $MODPATH/system ] && [ ! -d $MODPATH/system/product ] && [ ! -d $MODPATH/system/system_ext ] && [ "$(ls -A $MODPATH/system)" ]; then
-                 _check_space "system" "$SYSTEM" "$MODPATH/system"
-            fi
-            
-            # Cek sub-partisi secara spesifik
-            _check_space "product" "$PRODUCT" "$MODPATH/system/product"
-            _check_space "system_ext" "$SYSTEM_EXT" "$MODPATH/system/system_ext"
+    # Hanya jalankan pengecekan jika flag_file TIDAK ditemukan
+    if [ "$SKIP_MEM_CHECK" = "false" ]; then
+        # cheking memory partition
+        # $STSTEM $PRODUCT $SYSTEM_EXT is variable in kopi installer
+        if [ $TYPEINSTALL = kopi ]; then
+            printlog "- Checking Memory"
+            # Cek partisi utama (jika ada file di root-nya tapi tidak ada subdir product/system_ext)
+            if [ -d $MODPATH/system ] && [ ! -d $MODPATH/system/product ] && [ ! -d $MODPATH/system/system_ext ] && [ "$(ls -A $MODPATH/system)" ]; then
+                 _check_space "system" "$SYSTEM" "$MODPATH/system"
+            fi
+            
+            # Cek sub-partisi secara spesifik
+            _check_space "product" "$PRODUCT" "$MODPATH/system/product"
+            _check_space "system_ext" "$SYSTEM_EXT" "$MODPATH/system/system_ext"
 
-        else
-            # Untuk mode systemless (misal Magisk), cek di /data
-            if $BOOTMODE && [ -d $MODPATH/system ] && [ "$(ls -A $MODPATH/system)" ]; then
-                _check_space "/data" "/data" "$MODPATH/system"
-            fi
-        fi
-    else
-        printlog "- Memory check skipped (flag override)."
-    fi
+        else
+            # Untuk mode systemless (misal Magisk), cek di /data
+            if $BOOTMODE && [ -d $MODPATH/system ] && [ "$(ls -A $MODPATH/system)" ]; then
+                _check_space "/data" "/data" "$MODPATH/system"
+            fi
+        fi
+    else
+        printlog "- Memory check skipped (flag override)."
+    fi
 }
 
 PAR_CHECK_MB_TOTAL(){

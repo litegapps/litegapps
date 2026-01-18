@@ -39,4 +39,5 @@ core/litegapps/lite/modules
 output
 tmp
 files_tmp
-
+bin
+log

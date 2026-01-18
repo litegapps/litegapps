@@ -2,10 +2,11 @@
 # LiteGapps
 **LiteGapps** is a custom Google Apps on the Android operating system, an open source project that focuses on small, efficient, and comprehensive.
 
-This is a tool for building litegapps
+This is a tool for building [litegapps](https://litegapps.github.io)
 
 
-# Requestment Packages
+## Requestment Packages
+
 ``zip``
 
 ``tar``
@@ -20,17 +21,20 @@ This is a tool for building litegapps
 
 ``curl``
 
-## Termux Installation Package
+### Termux Installation Package
 ``apt update && pkg upgrade && pkg install zip tar xz unzip bash brotli curl``
 
+### Ubuntu Installation Package
+``sudo apt update && sudo apt upgrade -y && sudo apt install -y zip tar xz-utils unzip bash brotli curl``
 
-# Cloning
+
+## Cloning
 ### https
 ``git clone https://github.com/litegapps/litegapps.git``
 ### ssh
 ``git clone git@github.com:litegapps/litegapps.git``
 
-# Configure
+## Configure
 
 ``version=4.3`` version litegapps
  
@@ -58,14 +62,14 @@ This is a tool for building litegapps
  
 ``litegapps_apk_compress_level=5`` level compressions apk in zip/customize.sh ``1 - 9``
  
-#Litegapps prop
+## Litegapps prop
 ``litegapps.build=true`` true/false
  
 ``litegapps.restore=lite`` list-restore = lite,core,go,micro,pixel,nano,basic
  
 ``litegapps.type=lite`` list-type = lite,core,go,micro,pixel,nano,basic
  
-#Litegapps++ prop
+## Litegapps++ prop
 ``litegapps++.build=true`` true/false
  
 ``litegapps++.restore=reguler`` list-restore = ``reguler,lts,microg``
@@ -73,29 +77,38 @@ This is a tool for building litegapps
 ``litegapps++.type=microg`` list-type = ``reguler,lts,microg``
  
 
-### compression benchmark
+## compression benchmark
 ![Benchmark](https://github.com/wahyu6070/Cloud/raw/main/project/litegapps/images/compres_lvl.jpg)
-# building
+
+## building
+### Restoring
+You have to restore the binary and some of the gapps files that are needed first.
+
 ``sh build.sh restore`` Restoring files bin,gapps files
  
-``sh build.sh make (Building)``
+### Make Gapps
+``sh build.sh make`` (Building)
  
+### Cleaning
 ``
 sh build.sh clean (Cleaning Directory)
 ``
 
-# Watch video building
+## Watch video building
 [<img src="https://img.youtube.com/vi/5ddkNReE2RE/maxresdefault.jpg" width="50%">](https://youtu.be/NiT2qBaYFdg?si=5VyyntICvjp5iseD)
-# Download
+
+## Download
 [Click here](https://litegapps.github.io/)
-# Social Media
+
+## Social Media
 [Telegram](https://t.me/litegapps)
  
-[xda](https://forum.xda-developers.com/t/litegapps-systemless.4146013/)
-# CREDIT
-[opengapps](https://opengapps.org/)
+[XDA](https://forum.xda-developers.com/t/litegapps-systemless.4146013/)
+
+## CREDIT
+[OpenGapps](https://opengapps.org/)
  
-[apkpure](https://apkpure.com/)
+[ApkPure](https://apkpure.com/)
  
-[kopi installer](https://github.com/wahyu6070/Kopi-installer)
+[Kopi installer](https://github.com/wahyu6070/Kopi-installer)
  
