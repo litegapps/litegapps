@@ -77,10 +77,10 @@ This is a tool for building [litegapps](https://litegapps.github.io)
 ``litegapps++.type=microg`` list-type = ``reguler,lts,microg``
  
 
-## compression benchmark
+## Compression benchmark
 ![Benchmark](https://github.com/wahyu6070/Cloud/raw/main/project/litegapps/images/compres_lvl.jpg)
 
-## building
+## Building
 ### Restoring
 You have to restore the binary and some of the gapps files that are needed first.
 
@@ -88,11 +88,15 @@ You have to restore the binary and some of the gapps files that are needed first
  
 ### Make Gapps
 ``sh build.sh make`` (Building)
+
+bash $BASED/build.sh make litegapps $variant $ARCH $SDK
  
+```bash
+bash $BASED/build.sh make litegapps lite arm64 36
+
+```
 ### Cleaning
-``
-sh build.sh clean (Cleaning Directory)
-``
+``sh build.sh clean`` (Cleaning Directory)
 
 ## Watch video building
 [<img src="https://img.youtube.com/vi/5ddkNReE2RE/maxresdefault.jpg" width="50%">](https://youtu.be/NiT2qBaYFdg?si=5VyyntICvjp5iseD)
