@@ -133,7 +133,7 @@ fi
 
 
 for W_ARCH in $CONFIG_ARCH; do
-	#binary copy architecture type
+	# binary copy architecture type
 	BIN_ARCH=$W_ARCH
 	for W_SDK in $CONFIG_SDK; do
 		sedlog "Building $NAME"
@@ -150,7 +150,7 @@ for W_ARCH in $CONFIG_ARCH; do
 		printlog "Android Target : $(get_android_version $W_SDK)"
 		printlog " "
 		[ -d $tmp ] && del $tmp && cdir $tmp || cdir $tmp
-		#copying gapps
+		# copying gapps
 		tmpfiles=$base/tmp_files/litegapps/$W_ARCH/$W_SDK
 		
 		if [ $(get_config litegapps.tar) = "multi" ] && [ -f $tmpfiles/files.tar.$(get_config compression) ]; then
@@ -164,6 +164,7 @@ for W_ARCH in $CONFIG_ARCH; do
 			continue
 		fi
 		
+		# This function is used to create a single .tar file and is used for many variants. This speeds up the build process for many variants of pixel, micro, core, and lite.
 		if [ $(get_config litegapps.tar) = "multi" ] && [ ! -f $tmpfiles/files.tar.$(get_config compression) ]; then
 		printlog "- make archive files.tar <multi config is active>"
 		make_tar_arch
