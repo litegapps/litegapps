@@ -1,11 +1,7 @@
-#
+# Copyright 2020 - 2026 The Litegapps Project
 # customize.sh 
 #
 
-# Copyright 2020 - 2026 The Litegapps Project
-# Litegapps Functions
-# By wahyu6070
-#
 print(){ ui_print "$1"; }
 del (){ rm -rf "$@"; }
 cdir (){ mkdir -p "$@"; }
@@ -285,7 +281,7 @@ terminal_tips(){
 	print " "
 	print "  Thanks for using litegapps 😁"
 	print " "
-	printlog "*Tips"
+	print "*Tips"
 	print "- Open Terminal"
 	print "- su"
 	print "- litegapps"
@@ -295,20 +291,21 @@ terminal_tips(){
 
 	
 partition_check(){
-	printlog "- Checking Partition"
-	mount > $LITEGAPPS/log/mount.txt
-	for R in $SYSTEM $PRODUCT $SYSTEM_EXT; do
-		if [ -d $R ] && [ "$(ls -A $R)" ]; then
-			touch $R/litegapps_4678
-			if [ -f $R/litegapps_4678 ]; then
-				sedlog "<$R> is mount RW"
-				del $R/litegapps_4678
-			else
-				sedlog "<$R> is mount RO"
-			fi
-		fi
-	done
-	}
+    printlog "- Checking Partition"
+    mount > "$LITEGAPPS/log/mount.txt"
+    for R in $SYSTEM $PRODUCT $SYSTEM_EXT; do
+        if [ -d "$R" ] && [ "$(ls -A "$R")" ]; then
+            # Supress error message dengan 2>/dev/null
+            if touch "$R/litegapps_4678" 2>/dev/null; then
+                sedlog "<$R> is mount RW"
+                del "$R/litegapps_4678"
+            else
+                sedlog "<$R> is mount RO"
+            fi
+        fi
+    done
+}
+
 get_android_version(){
 	local input=$1
 	case $input in
@@ -372,10 +369,10 @@ litegappsx(){
 	}
 	
 	
-# Inisialisasi variabel LITEGAPPS dengan lokasi yang paling andal
 INITIALIZE_LITEGAPPS_PATH() {
-    # Daftar direktori kandidat, diurutkan dari yang paling ideal ke pilihan terakhir
+    # Tambahkan /data/media/0 (Path asli internal storage) agar lebih kuat
     local potential_paths="
+    /data/media/0/Android
     /sdcard/Android
     /external_sd
     /sdcard1
@@ -387,100 +384,90 @@ INITIALIZE_LITEGAPPS_PATH() {
     for path in $potential_paths; do
         # Cek apakah direktori ada DAN bisa ditulis
         if [ -d "$path" ] && touch "$path/litegapps_write_test" 2>/dev/null; then
-            # Jika berhasil membuat file, berarti direktori ini adalah pilihan yang valid
             rm "$path/litegapps_write_test" # Hapus file tes
-            LITEGAPPS="$path/litegapps"     # Set variabel global
-            printlog "- Using $LITEGAPPS for logs and files."
-            return 0 # Keluar dari fungsi setelah menemukan lokasi yang cocok
+            
+            # Set variabel global
+            LITEGAPPS="$path/litegapps"
+            log="$LITEGAPPS/log/litegapps.log"
+            
+            # Buat folder log
+            mkdir -p "$LITEGAPPS/log"
+            
+            return 0 
         fi
     done
 
-    # Jika tidak ada direktori di atas yang berfungsi (sangat jarang terjadi)
+    # Fallback terakhir
     LITEGAPPS="/tmp/litegapps"
-    printlog "- Warning: No ideal storage found. Falling back to $LITEGAPPS (will be deleted on reboot)."
+    log="$LITEGAPPS/log/litegapps.log"
+    mkdir -p "$LITEGAPPS/log"
 }
 
 
 INITIAL(){
-	local mode=$1
-	#path
-	if [ -f /system_root/system/build.prop ]; then
-		SYSTEM=/system_root/system 
-	elif [ -f /system_root/build.prop ]; then
-		SYSTEM=/system_root
-	elif [ -f /system/system/build.prop ]; then
-		SYSTEM=/system/system
-	else
-		SYSTEM=/system
-	fi
+    local mode=$1
+    #path logic
+    if [ -f /system_root/system/build.prop ]; then
+        SYSTEM=/system_root/system 
+    elif [ -f /system_root/build.prop ]; then
+        SYSTEM=/system_root
+    elif [ -f /system/system/build.prop ]; then
+        SYSTEM=/system/system
+    else
+        SYSTEM=/system
+    fi
 
-	if [ ! -L $SYSTEM/vendor ]; then
-		VENDOR=$SYSTEM/vendor
-	else
-		VENDOR=/vendor
-	fi
+    if [ ! -L $SYSTEM/vendor ]; then VENDOR=$SYSTEM/vendor; else VENDOR=/vendor; fi
+    if [ ! -L $SYSTEM/product ]; then PRODUCT=$SYSTEM/product; else PRODUCT=/product; fi
+    if [ ! -L $SYSTEM/system_ext ]; then SYSTEM_EXT=$SYSTEM/system_ext; else SYSTEM_EXT=/system_ext; fi
+    
+    [ "$TMPDIR" ] || TMPDIR=/tmp
+    
+    # 1. Cari lokasi storage
+    INITIALIZE_LITEGAPPS_PATH
+    
+    # 2. Pastikan folder log ada (Double check)
+    if [ -n "$LITEGAPPS" ]; then
+        mkdir -p "$LITEGAPPS/log" 2>/dev/null
+    fi
+    
+    # 3. Baru print lokasi log (Sekarang aman karena printlog sudah anti-crash)
+    printlog "- Using $LITEGAPPS for logs and files."
+    
+    files="$MODPATH/files"
 
-	# /product dir (android 10+)
-	if [ ! -L $SYSTEM/product ]; then
-		PRODUCT=$SYSTEM/product
-	else
-		PRODUCT=/product
-	fi
+    #detected build.prop
+    [ ! -f $SYSTEM/build.prop ] && report_bug "System build.prop not found"
 
-	# /system_ext dir (android 11+)
-	if [ ! -L $SYSTEM/system_ext ]; then
-		SYSTEM_EXT=$SYSTEM/system_ext
-	else
-		SYSTEM_EXT=/system_ext
-	fi
-	
-	# menggunakan /tmp karena /dev/tmp di gunakan sebagai kopi installer... agar tidak penuh memori mengggunakan tmp tmdi bagi dua
-	[ "$TMPDIR" ] || TMPDIR=/tmp
-	
-	INITIALIZE_LITEGAPPS_PATH
-	
-	log=$LITEGAPPS/log/litegapps.log
-	files=$MODPATH/files
+    [ $API ] || API=$(getp ro.build.version.sdk $SYSTEM/build.prop)
+    [ $ARCH ] || ARCH=$(getp ro.product.cpu.abi $SYSTEM/build.prop | cut -d '-' -f -1)
 
-	#detected build.prop
-	[ ! -f $SYSTEM/build.prop ] && report_bug "System build.prop not found"
+    case $ARCH in
+    arm64) ARCH=arm64 ;;
+    armeabi | arm) ARCH=arm ;;
+    x86) ARCH=x86 ;;
+    x86_64) ARCH=x86_64 ;;
+    *) report_bug " <$ARCH> Your Architecture Not Support" ;;
+    esac
+    
+    if [ ! "$TYPEINSTALL" ]; then TYPEINSTALL=systemless; fi
+    
+    # Test /data rw partition
+    if [ "$TYPEINSTALL" = "systemless" ]; then
+        DIR_TEST=/data/adb/test8989
+        cdir $DIR_TEST
+        touch $DIR_TEST/io
+        [ -f $DIR_TEST/io ] && del $DIR_TEST || report_bug "/data partition is encrypt or read only"
+    fi
 
+    for CCACHE in $LITEGAPPS/log; do
+        test -d $CCACHE && del $CCACHE && cdir $CCACHE || cdir $CCACHE
+    done
 
-	[ $API ] || API=$(getp ro.build.version.sdk $SYSTEM/build.prop)
-	[ $ARCH ] || ARCH=$(getp ro.product.cpu.abi $SYSTEM/build.prop | cut -d '-' -f -1)
-
-	case $ARCH in
-	arm64) ARCH=arm64 ;;
-	armeabi | arm) ARCH=arm ;;
-	x86) ARCH=x86 ;;
-	x86_64) ARCH=x86_64 ;;
-	*) report_bug " <$ARCH> Your Architecture Not Support" ;;
-	esac
-	
-	if [ ! "$TYPEINSTALL" ]; then
-	TYPEINSTALL=systemless
-	fi
-	
-	
-	# Test /data rw partition
-	case $TYPEINSTALL in
-	systemless)
-	DIR_TEST=/data/adb/test8989
-	cdir $DIR_TEST
-	touch $DIR_TEST/io
-	[ -f $DIR_TEST/io ] && del $DIR_TEST || report_bug "/data partition is encrypt or read only"
-	;;
-	esac
-
-	for CCACHE in $LITEGAPPS/log; do
-		test -d $CCACHE && del $CCACHE && cdir $CCACHE || cdir $CCACHE
-	done
-
-	#functions litegapps info module.prop and build.prop
-	INFO $mode
-	print " "
-		
+    INFO $mode
+    print " "     
 }
+
 
 SET_PERM_PARTITION (){
 	#Permissions
@@ -576,6 +563,7 @@ PARTITION_MEM_CHECK(){
     local SKIP_MEM_CHECK=false
     local flag_file_name="disable_secure" # Nama file flag
     local check_paths="
+    /data/media/0
     /sdcard
     /sdcard1
     /tmp
@@ -589,10 +577,28 @@ PARTITION_MEM_CHECK(){
     # Loop untuk mencari file flag
     for path in $check_paths; do
         if [ -f "$path/$flag_file_name" ]; then
-            printlog "-! Ditemukan file flag: $path/$flag_file_name"
-            printlog "-! Pengecekan memori (secure check) akan dilewati."
             SKIP_MEM_CHECK=true
-            break # Keluar dari loop jika sudah ditemukan
+            
+            # --- PESAN PERINGATAN BAHAYA (UI PRINT) ---
+            print " "
+            print "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+            print "!          WARNING: DANGEROUS MODE            !"
+            print "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+            print "! Memory Safety Check is DISABLED!            !"
+            print "! Trigger found at:                           !"
+            print "! $path/$flag_file_name "
+            print "!                                             !"
+            print "! Installation will proceed WITHOUT checking  !"
+            print "! available disk space.                       !"
+            print "!                                             !"
+            print "! RISK: BOOTLOOP OR SYSTEM CORRUPTION         !"
+            print "! IF PARTITION SPACE IS FULL!                 !"
+            print "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+            print " "
+            
+            # Masuk ke log juga
+            printlog "-! [WARNING] SECURE CHECK DISABLED BY USER via $path/$flag_file_name"
+            break 
         fi
     done
     # --- [MODIFIKASI SELESAI] ---
@@ -600,11 +606,10 @@ PARTITION_MEM_CHECK(){
     # Hanya jalankan pengecekan jika flag_file TIDAK ditemukan
     if [ "$SKIP_MEM_CHECK" = "false" ]; then
         # cheking memory partition
-        # $STSTEM $PRODUCT $SYSTEM_EXT is variable in kopi installer
-        if [ $TYPEINSTALL = kopi ]; then
+        if [ "$TYPEINSTALL" = "kopi" ]; then
             printlog "- Checking Memory"
             # Cek partisi utama (jika ada file di root-nya tapi tidak ada subdir product/system_ext)
-            if [ -d $MODPATH/system ] && [ ! -d $MODPATH/system/product ] && [ ! -d $MODPATH/system/system_ext ] && [ "$(ls -A $MODPATH/system)" ]; then
+            if [ -d "$MODPATH/system" ] && [ ! -d "$MODPATH/system/product" ] && [ ! -d "$MODPATH/system/system_ext" ] && [ "$(ls -A "$MODPATH/system")" ]; then
                  _check_space "system" "$SYSTEM" "$MODPATH/system"
             fi
             
@@ -614,12 +619,12 @@ PARTITION_MEM_CHECK(){
 
         else
             # Untuk mode systemless (misal Magisk), cek di /data
-            if $BOOTMODE && [ -d $MODPATH/system ] && [ "$(ls -A $MODPATH/system)" ]; then
+            if $BOOTMODE && [ -d "$MODPATH/system" ] && [ "$(ls -A "$MODPATH/system")" ]; then
                 _check_space "/data" "/data" "$MODPATH/system"
             fi
         fi
     else
-        printlog "- Memory check skipped (flag override)."
+        printlog "-! Memory check skipped (Flag override active)."
     fi
 }
 
@@ -707,7 +712,7 @@ MODULE_INSTALL(){
 	cdir $DIR_BACKUP
 	
 	
-	 #fix bootloop jika google files di instal di rom crdroid
+	#fix bootloop jika google files di instal di rom crdroid
 	#if [ "$(GET_PROP ro.crdroid.display.version)" ] && [ $packageid = Files ] && [ $API -le 30 ]; then
 		#printlog "[SKIP] $packagename in crdroid ROM"
 		#return 0
@@ -775,11 +780,16 @@ MODULE_INSTALL(){
 		printlog "! Install package $packagename Failed !!!"
 		return 1
 	fi
-
+	# Baca list remove sekali saja dan simpan ke variabel
+    local LIST_REMOVE=""
+    if [ -f "$MODULE_TMP/list-rm" ]; then
+        LIST_REMOVE=$(cat "$MODULE_TMP/list-rm")
+    fi
 	# remove file and backup
+	if [ -n "$LIST_REMOVE" ]; then
 	for Y in $SYSTEM $PRODUCT $SYSTEM_EXT; do
      for G in app priv-app; do
-        for P in $(cat $MODULE_TMP/list-rm); do
+        for P in $LIST_REMOVE; do
            if [ -d $Y/$G/$P ]; then
              if [ $TYPEINSTALL = systemless ]; then
              	if [ "$KSU_NEXT" = true ] || [ "$KSU" = true ] || [ "$APATCH" = true ]; then
@@ -791,7 +801,7 @@ MODULE_INSTALL(){
                 	elif [ $SYSTEM_EXT = $Y ]; then
                 		printlog "- Debloating KSU/APATCH $Y/$G/$P"
                 		mkdir -p $MODPATH/system/system_ext/$G
-                		mknod $MODPATH/system/product/$G/$P c 0 0
+                		mknod $MODPATH/system/system_ext/$G/$P c 0 0
                 	elif [ $PRODUCT = $Y ]; then
                     	printlog "- Debloating KSU/APATCH $Y/$G/$P"
                     	mkdir -p $MODPATH/system/product/$G
@@ -822,7 +832,8 @@ MODULE_INSTALL(){
         done
      done
 	done
-
+	fi
+	
 	# Copying files
 	sedlog "- Copying <$MODULE_TMP/system> to <$MODPATH/system>"
 	cp -rdf $MODULE_TMP/system/* $MODPATH/system/
@@ -1004,37 +1015,50 @@ MEM_CHECK_TMP
 
 SDK=$API
 ARCH=$ARCH
-MODULES=$MODPATH/modules
-MODULE_TMP=$TMPDIR/module_tmp
-listlog $MODULES
-if [ -d $MODULES ] && ! rmdir $MODULES 2>/dev/null; then
-	printlog "- Modules Detected"
-	for LIST_MODULES in $(find $MODULES -type f); do
-		if [ -f $LIST_MODULES ]; then
-		sedlog "- Extracting <$LIST_MODULES>"
-			del $MODULE_TMP
-			cdir $MODULE_TMP
-			sedlog "- Unzip <$LIST_MODULES> to <$MODULE_TMP>"
-			unzip -o $LIST_MODULES -d $MODULE_TMP >&2
-			listlog $MODULE_TMP
-			if [ -f $MODULE_TMP/litegapps-prop ]; then
-				MODULE_INSTALL
-				sedlog "- Remove $LIST_MODULES"
-				del $LIST_MODULES
-			else
-				printlog "! Failed installing module <$(basename $LIST_MODULES)> skipping"
-				continue
-			fi
-			del $MODULE_TMP
-		fi
-	done
+MODULES="$MODPATH/modules"
+MODULE_TMP="$TMPDIR/module_tmp"
+
+# [FIX 1] Cek apakah folder modules ada DAN ada isinya (tanpa mencoba menghapusnya)
+if [ -d "$MODULES" ] && [ "$(ls -A "$MODULES")" ]; then
+    printlog "- Modules Detected"
+    
+    # [FIX 2] Loop file dengan aman
+    for LIST_MODULES in $(find "$MODULES" -type f 2>/dev/null); do
+        if [ -f "$LIST_MODULES" ]; then
+            sedlog "- Extracting <$LIST_MODULES>"
+            
+            # Bersihkan tmp sebelum mulai
+            del "$MODULE_TMP"
+            cdir "$MODULE_TMP"
+            
+            sedlog "- Unzip <$LIST_MODULES> to <$MODULE_TMP>"
+            
+            # [FIX 3] Silent unzip (agar tidak terlihat error merah di log)
+            unzip -o "$LIST_MODULES" -d "$MODULE_TMP" >/dev/null 2>&1
+            
+            # listlog "$MODULE_TMP" # Opsional
+            
+            if [ -f "$MODULE_TMP/litegapps-prop" ]; then
+                MODULE_INSTALL
+                sedlog "- Remove processed: $LIST_MODULES"
+                del "$LIST_MODULES"
+            else
+                printlog "! Failed installing module <$(basename "$LIST_MODULES")> (litegapps-prop not found)"
+                # [FIX 4] Hapus 'continue' agar script tetap menjalankan pembersihan di bawah
+            fi
+            
+            # Bersihkan folder temp setelah proses (sukses maupun gagal)
+            del "$MODULE_TMP"
+        fi
+    done
+    
+    # Hapus folder modules utama jika sudah kosong
+    rmdir "$MODULES" 2>/dev/null
 fi
 
 MEM_CHECK_TMP
 
 SET_PERM_PARTITION
-
-
 
 
 #addon.d
@@ -1088,11 +1112,11 @@ for W in $LIST_CACHE ; do
 done
 
 if [ $TYPEINSTALL = systemless ]; then
-#creating log
+# creating log
 make_log
 fi
 
-#terminal tips
+# terminal tips
 terminal_tips
 
 if [ $TYPEINSTALL = kopi ] && [ ! -d $SYSTEM/addon.d ]; then
