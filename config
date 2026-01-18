@@ -8,11 +8,11 @@ build.status=wahyu6070
 set.time.stamp=true
 date.time=202007122239
 # xz or brotli
-compression=br
+compression=xz
 # 1-9
-compression.level=1
+compression.level=9
 # 1-9
-zip.level=1
+zip.level=9
 # true/false
 zip.signer=false
 
@@ -24,7 +24,7 @@ litegapps.restore=lite
 litegapps.type=lite
 # litegapps multi or single files.tar archive
 # This function is used to create a single .tar file and is used for many variants. This speeds up the build process for many variants of pixel, micro, core, and lite.
-litegapps.tar=single
+litegapps.tar=multi
 
 # Litegappsx prop
 litegappsx.build=false

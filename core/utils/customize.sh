@@ -629,38 +629,57 @@ PARTITION_MEM_CHECK(){
 }
 
 PAR_CHECK_MB_TOTAL(){
-	#check partisi mb
-	local MEM6=`df -k "$1" | tail -n 1 | tr -s ' ' | cut -d' ' -f2`
-	local MEM7=$((($MEM6 / 1024)))
-	echo "$MEM7"
-	}
+    # Check Total Partition Size (MB)
+    # $1 = Path Target
+    if [ -d "$1" ]; then
+        # Ambil kolom ke-2 (1K-blocks / Total)
+        local MEM_KB=$(df -k "$1" | tail -n 1 | tr -s ' ' | cut -d' ' -f2)
+        # Validasi: Pastikan hasil adalah angka
+        case "$MEM_KB" in ''|*[!0-9]*) MEM_KB=0 ;; esac
+        echo $((MEM_KB / 1024))
+    else
+        echo 0
+    fi
+}
 
 PAR_CHECK_MB(){
-	#check partisi mb
-	local MEM6=`df -k "$1" | tail -n 1 | tr -s ' ' | cut -d' ' -f3`
-	local MEM7=$((($MEM6 / 1024)))
-	echo "$MEM7"
-	}
+    # Check Free/Available Space (MB)
+    # $1 = Path Target
+    if [ -d "$1" ]; then
+        # [FIX] Ubah f3 (Used) jadi f4 (Available) agar akurat membaca SISA memori
+        local MEM_KB=$(df -k "$1" | tail -n 1 | tr -s ' ' | cut -d' ' -f4)
+        # Validasi: Pastikan hasil adalah angka
+        case "$MEM_KB" in ''|*[!0-9]*) MEM_KB=0 ;; esac
+        echo $((MEM_KB / 1024))
+    else
+        echo 0
+    fi
+}
 
 MEM_CHECK_TMP (){
-	local T1=`PAR_CHECK_MB $MODPATH`
-	local L1=`PAR_CHECK_MB_TOTAL $MODPATH`
-	if [ $T1 -lt 200 ]; then
-	printlog "[!] <$TMPDIR> partition under 200MB (FREE=${T1}MB TOTAL=${L1}MB)"
-	else
-	sedlog "[+] <${MODPATH}> Partition Free Space $T1 MB TOTAL=${L1}MB"
-	fi
-	
-	local T2=`PAR_CHECK_MB $TMPDIR`
-	local L2=`PAR_CHECK_MB_TOTAL $TMPDIR`
-	if ! $BOOTMODE; then
-		if [ $T2 -lt "200" ]; then
-			printlog "[!] <$TMPDIR> partition under 200MB (FREE=${T2}MB TOTAL=${L2}MB)"
-		else
-			sedlog "[+] <${TMPDIR}> Partition Free Space $T2 MB TOTAL=${L2}MB"
-		fi
-	fi
-	}
+    # 1. Cek Ruang di MODPATH (Lokasi Instalasi/Extract)
+    local T1=$(PAR_CHECK_MB "$MODPATH")
+    local L1=$(PAR_CHECK_MB_TOTAL "$MODPATH")
+    
+    if [ "$T1" -lt 200 ]; then
+        # [FIX] Koreksi typo: Log harusnya menampilkan $MODPATH, bukan $TMPDIR di sini
+        printlog "[!] <$MODPATH> partition under 200MB (FREE=${T1}MB TOTAL=${L1}MB)"
+    else
+        sedlog "[+] <$MODPATH> Partition Free Space $T1 MB TOTAL=${L1}MB"
+    fi
+    
+    # 2. Cek Ruang di TMPDIR (Hanya jika bukan mode bootmode/magisk manager)
+    if ! $BOOTMODE; then
+        local T2=$(PAR_CHECK_MB "$TMPDIR")
+        local L2=$(PAR_CHECK_MB_TOTAL "$TMPDIR")
+        
+        if [ "$T2" -lt 200 ]; then
+            printlog "[!] <$TMPDIR> partition under 200MB (FREE=${T2}MB TOTAL=${L2}MB)"
+        else
+            sedlog "[+] <$TMPDIR> Partition Free Space $T2 MB TOTAL=${L2}MB"
+        fi
+    fi
+}
 
 set_prop() {
   local property="$1"
