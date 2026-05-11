@@ -24,7 +24,7 @@ litegapps.restore=lite
 litegapps.type=lite
 # litegapps multi or single files.tar archive
 # This function is used to create a single .tar file and is used for many variants. This speeds up the build process for many variants of pixel, micro, core, and lite.
-litegapps.tar=multi
+litegapps.tar=single
 
 # Litegappsx prop
 litegappsx.build=false
