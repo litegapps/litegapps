@@ -129,11 +129,15 @@ Fork this repo and use the workflows under `.github/workflows/` to build and
 publish straight to **your fork's** GitHub Releases — no SourceForge account,
 SSH key, or VPS required:
 
-- **`build-release.yml`** — builds `lite`/`superlite` (no addon packages
-  needed, fast). Run manually from the Actions tab, or push a tag like `v1`.
 - **`build-release-full.yml`** — builds every variant (`pixel` through
-  `superlite` by default), including the `packages/` addon build. Configure
-  `variants`/`arch`/`sdk` as workflow inputs, or push a tag like `full-v1`.
+  `superlite` by default) for one arch/sdk target, including the `packages/`
+  addon build. Restores/builds/cleans one variant at a time so the runner's
+  disk never has to hold all of them at once. Configure `variants`/`arch`/`sdk`
+  as workflow inputs, or push a tag like `full-v1`.
+- **`build-release-lite.yml`** — builds `lite` only, across every SDK 29-36
+  x arch (arm/arm64/x86/x86_64) combination as a GitHub Actions matrix (32
+  parallel jobs), publishing every zip produced to one release. Run manually,
+  or push a tag like `lite-v1`.
 
 Both use the built-in `GITHUB_TOKEN`, so no secrets need to be configured.
 
