@@ -63,12 +63,17 @@ jobs:
             exit 0
           fi
           bash build.sh make litegapps lite "${{ matrix.arch }}" "${{ matrix.sdk }}" || true
+          # flatten into dist/ - upload-artifact preserves the glob's parent
+          # dirs (the date folder), which would nest zips on download instead
+          # of landing them flat next to each other.
+          mkdir -p dist
+          find output -name "*.zip" -exec cp {} dist/ \;
 
       - name: Upload zip (if any was produced)
         uses: actions/upload-artifact@v4
         with:
           name: lite-${{ matrix.arch }}-${{ matrix.sdk }}
-          path: output/litegapps/${{ matrix.arch }}/${{ matrix.sdk }}/lite/*/*.zip
+          path: dist/*.zip
           if-no-files-found: ignore
           retention-days: 1
 
