@@ -108,15 +108,33 @@ jobs:
             fi
           done
 
-          sed -i "s/^litegapps.restore=.*/litegapps.restore=${{ steps.vars.outputs.variants }}/" config
-          sed -i "s/^litegapps.type=.*/litegapps.type=${{ steps.vars.outputs.variants }}/" config
-          grep -E "^litegapps\.(restore|type)=" config
-
-      - name: Restore (bin.zip + gapps per variant)
-        run: sh build.sh restore
-
-      - name: Build (also builds packages/addon + modules automatically for variants with modules=true)
-        run: sh build.sh make
+      - name: Restore + build, one variant at a time (cleans gapps/modules between each - runner disk can't hold all 9 at once)
+        run: |
+          set -e
+          ARCH="${{ steps.vars.outputs.arch }}"
+          SDK="${{ steps.vars.outputs.sdk }}"
+          VARIANTS="${{ steps.vars.outputs.variants }}"
+          for V in $(echo "$VARIANTS" | tr ',' ' '); do
+            echo "::group::$V"
+            # restore just this variant's gapps (litegapps_restore() loops the
+            # whole litegapps.restore list, so point it at one variant at a time)
+            sed -i "s/^litegapps.restore=.*/litegapps.restore=$V/" config
+            sh build.sh restore
+            bash build.sh make litegapps "$V" "$ARCH" "$SDK"
+            # packages/output is reused across variants at the same arch/sdk
+            # (see lib/litegapps.sh's _litegapps_build_addon), so keep it -
+            # only this variant's own gapps/modules/files and scratch dirs
+            # are safe to drop before moving to the next one.
+            rm -rf "core/litegapps/$V/gapps/$ARCH/$SDK"
+            rm -rf "core/litegapps/$V/modules/$ARCH/$SDK"
+            rm -rf "core/litegapps/$V/files/$ARCH/$SDK"
+            rm -rf tmp tmp_files
+            df -h .
+            echo "::endgroup::"
+          done
+          # packages/ raw addon source is no longer needed once every
+          # variant that uses it has staged its modules.
+          rm -rf "packages/files/$ARCH/$SDK" "packages/zip-server/$ARCH/$SDK.zip" packages/output
 
       - name: Collect zips
         run: |
