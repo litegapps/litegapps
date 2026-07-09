@@ -24,7 +24,7 @@ into root `installer/` or `lib/`.
   `zip-server/`, one dir per app, each with a `build.info` (name/id) driving
   `MAKE`.
 - `zip-server/` — gitignored. Downloaded source zips (or extracted locally by
-  `auto-build.sh` when it already runs on the SourceForge VPS, skipping the
+  `sf-build.sh` when it already runs on the SourceForge VPS, skipping the
   download).
 - `output/`, `tmp/` — gitignored. Build output / scratch dirs (same pattern as
   root `output/`/`tmp/`).
@@ -49,6 +49,6 @@ bash packages/make zip-upload               # upload those zips
   arch/sdk target, before invoking `build.sh make litegapps ...` for each
   variant — addon packages must exist under `files/` before a LiteGapps zip
   can bundle them.
-- `auto-build.sh` (the legacy SourceForge-VPS script) does the same, but
+- `sf-build.sh` (the legacy SourceForge-VPS script) does the same, but
   since it already runs on the box that hosts `zip-server/`, it skips the
   download step and unzips directly.

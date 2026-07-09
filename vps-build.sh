@@ -102,7 +102,7 @@ scp_tree(){
 
 #################################################
 # Which variants to build for a given ARCH/SDK
-# (mirrors MAKE_LITEGAPPS in auto-build.sh)
+# (mirrors MAKE_LITEGAPPS in sf-build.sh)
 #################################################
 variants_for(){
 	local ARCH="$1" SDK="$2"
@@ -121,7 +121,7 @@ variants_for(){
 }
 
 #################################################
-# App whitelist per variant (verbatim from auto-build.sh)
+# App whitelist per variant (verbatim from sf-build.sh)
 #################################################
 variant_list(){
 	case "$1" in
@@ -147,7 +147,7 @@ AssistantGo GalleryGo GmailGo MapsGo NavigationGo VelvetGo" ;;
 }
 
 # Copy every core app EXCEPT the ones already shipped in the base files.tar
-# (mirrors CORE_MODULE in auto-build.sh)
+# (mirrors CORE_MODULE in sf-build.sh)
 core_module(){
 	local input="$1" output="$2"
 	local keep="GoogleServicesFramework GmsCore GoogleCalendarSyncAdapter PlayStore Phonesky GoogleContactsSyncAdapter"

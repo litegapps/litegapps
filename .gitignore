@@ -47,6 +47,9 @@ log
 .env
 vps-build-logs
 
+# sf-build.sh Build All progress state
+sf-build-progress.log
+
 # Docker SSH credentials (never commit private keys)
 docker/ssh/*
 !docker/ssh/README.md

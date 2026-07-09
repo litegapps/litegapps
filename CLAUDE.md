@@ -47,9 +47,13 @@ Logs: `log/make.log` and `log/make_live.log` — **read these first when a build
 - `core/litegappsx/` — second product, `microg` only, off by default (`litegappsx.build=false`).
 - `packages/` — addon/apk packaging tool (a vendored standalone sub-project; called as a
   black box via `bash packages/make make $ARCH $SDK`, has its own `packages/utils` installer).
-- `auto-build.sh` — legacy maintainer auto-build, runs on the **SourceForge build VPS**
+- `sf-build.sh` — legacy maintainer auto-build, runs on the **SourceForge build VPS**
   (`$HOMEE=/home/frs/project/litegapps`) which has a **4-hour job time limit**;
   builds must fit that window. Interactive. Not for casual local builds.
+  Menu option 6 ("Build All") batches through every arm64/arm/x86/x86_64 ×
+  SDK 24-37 (Android 7.0-17) combination, `$BUILD_ALL_BATCH` (4) targets per
+  run, tracked in `sf-build-progress.log` (gitignored) — stop, reboot the
+  VPS job, and re-pick option 6 to resume where it left off.
 - `vps-build.sh` — **unattended full build for a self-hosted VPS** (no time limit).
   Loops all ARCH × SDK, per target: download package source → build+upload addon →
   download gapps → build+upload every litegapps variant → **delete sources/output

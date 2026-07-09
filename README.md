@@ -46,7 +46,7 @@ git clone git@github.com:litegapps/litegapps.git
 | `core/litegappsx/microg/` | The `litegappsx` product — a microG-based build, off by default. |
 | `packages/` | Addon/apk packaging tool used by variants with `modules=true` (pixel, micro, nano, basic, user, go, core). See `packages/README.md`. |
 | `vps-build.sh` | Unattended multi-arch/sdk build + upload for a self-hosted VPS (no time limit). See [VPS / unattended builds](#vps--unattended-builds). |
-| `auto-build.sh` | Legacy interactive build script for the SourceForge build VPS (4-hour job limit). |
+| `sf-build.sh` | Legacy interactive build script for internal/maintainer use on the SourceForge build VPS. |
 | `.github/workflows/` | Build & publish to **your fork's** GitHub Releases via Actions — no VPS needed. See [Building via GitHub Actions](#building-via-github-actions). |
 
 ## Configure
@@ -144,8 +144,7 @@ Both use the built-in `GITHUB_TOKEN`, so no secrets need to be configured.
 ## VPS / unattended builds
 
 For building all arch/sdk targets and uploading to SourceForge yourself,
-`vps-build.sh` runs unattended (no time limit, unlike the SourceForge build
-VPS's 4-hour job cap):
+`vps-build.sh` runs unattended on your own VPS with no time limit:
 
 ```bash
 cp .env.example .env   # set SF_USER (SourceForge login), ARCH_LIST, SDK_LIST

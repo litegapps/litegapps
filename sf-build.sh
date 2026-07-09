@@ -363,13 +363,30 @@ CORE (){
 	
 LITE (){
 	local variant=lite
-	
+
 	local IN=$BASED/packages/output/$ARCH/$SDK/
 	local OUT=$BASED/core/litegapps/lite/modules/$ARCH/$SDK/
 	rm -rf $OUT
 	bash $BASED/build.sh make litegapps $variant $ARCH $SDK
 	[ ! -d $RELEASE/$variant ] && mkdir -p $RELEASE/$variant
-	RIN=$BASED/output/litegapps/$ARCH/$SDK/$variant 
+	RIN=$BASED/output/litegapps/$ARCH/$SDK/$variant
+	ROUT=$RELEASE/$variant
+	for U in $(ls -1 $RIN); do
+		echo "- Release <$RIN/$U> to <$ROUT>"
+		cp -rdf $RIN/$U $ROUT/
+		rm -rf $RIN/$U
+	done
+	}
+
+SUPERLITE (){
+	local variant=superlite
+
+	local IN=$BASED/packages/output/$ARCH/$SDK/
+	local OUT=$BASED/core/litegapps/superlite/modules/$ARCH/$SDK/
+	rm -rf $OUT
+	bash $BASED/build.sh make litegapps $variant $ARCH $SDK
+	[ ! -d $RELEASE/$variant ] && mkdir -p $RELEASE/$variant
+	RIN=$BASED/output/litegapps/$ARCH/$SDK/$variant
 	ROUT=$RELEASE/$variant
 	for U in $(ls -1 $RIN); do
 		echo "- Release <$RIN/$U> to <$ROUT>"
@@ -405,32 +422,22 @@ MAKE_LITEGAPPS(){
 	
 	case $ARCH in
 	arm64)
-	if [ $SDK -ge 21 ] && [ $SDK -le 25 ]; then
+	if [ $SDK -le 28 ]; then
+	# Android 9.0 (Pie) and below - core+lite only
 	CORE
 	LITE
-	elif [ $SDK -ge 26 ] && [ $SDK -le 33 ]; then
+	elif [ $SDK -ge 29 ]; then
+	# Android 10 (SDK 29) and up - pixel+lite, plus superlite (old, fixed
+	# base gapps release only makes sense from here onward)
 	PIXEL
-	MICRO
-	NANO
-	BASIC
-	USER
-	GO
-	CORE
 	LITE
-	elif [ $SDK -ge 33 ]; then
-	PIXEL
-	MICRO
-	NANO
-	BASIC
-	USER
-	GO
-	CORE
-	LITE
+	SUPERLITE
 	fi
 	;;
 	arm | x86 | x86_64)
 	CORE
-	LITE
+	# same rule as arm64: superlite only makes sense from Android 10 (SDK 29) onward
+	[ $SDK -ge 29 ] && SUPERLITE
 	;;
 	esac
 	rm -rf $BASED/tmp_files
@@ -446,7 +453,8 @@ UNZIP_FILE_SERVER(){
 UNZIP_GAPPS(){
 	local input=$HOMEE/files-server/litegapps/$ARCH/$SDK/${SDK}.zip
 	local input_lite=$HOMEE/files-server/litegapps/$ARCH/$SDK/${SDK}-lite.zip
-	for ON in lite core nano user go pixel micro basic; do
+	local input_superlite=$HOMEE/files-server/litegapps/$ARCH/$SDK/superlite.zip
+	for ON in lite core nano user go pixel micro basic superlite; do
 		local output=$HOMEE/build/litegapps/core/litegapps/$ON/gapps/$ARCH/$SDK/
 		rm -rf $output
 		mkdir -p $output
@@ -454,8 +462,17 @@ UNZIP_GAPPS(){
 			if [ -f $input_lite ]; then
 			echo "- Extract <$input_lite> to <$output>"
 			unzip -o $input_lite -d $output >/dev/null
-			
+
 			else
+			echo "- Extract <$input> to <$output>"
+			unzip -o $input -d $output >/dev/null
+			fi
+		elif [ $ON = superlite ]; then
+			if [ -f $input_superlite ]; then
+			echo "- Extract <$input_superlite> to <$output>"
+			unzip -o $input_superlite -d $output >/dev/null
+			else
+			echo "! <$input_superlite> not found - falling back to <$input>"
 			echo "- Extract <$input> to <$output>"
 			unzip -o $input -d $output >/dev/null
 			fi
@@ -464,9 +481,90 @@ UNZIP_GAPPS(){
 		unzip -o $input -d $output >/dev/null
 		fi
 	done
-	
-	
+
+
 	}
+
+#################################################
+# Build All - resumable batch build across every arch x sdk
+#
+# The SourceForge build VPS has a hard 4-hour job time limit, so this
+# cannot build everything (arm64/arm/x86/x86_64 x Android 7.0-17, i.e.
+# SDK 24-37) in one run. Instead it builds BUILD_ALL_BATCH targets per
+# invocation (arm64 first, SDK descending from 37 down to 24, then arm,
+# then x86, then x86_64), records each finished arch/sdk in a state file,
+# and stops. Reboot the VPS job, run sf-build.sh again, pick this same
+# menu option, and it resumes from whatever is not yet in the state file.
+#
+# To force a rebuild of one specific arch/sdk regardless of progress, just
+# use the normal menu (select that arch/sdk at startup, then options 1+2)
+# - Build All's progress tracking does not affect the manual menu at all.
+#################################################
+BUILD_ALL_STATE="$BASED/sf-build-progress.log"
+BUILD_ALL_ARCHES="arm64 arm x86 x86_64"
+BUILD_ALL_SDKS="37 36 35 34 33 32 31 30 29 28 27 26 25 24"
+BUILD_ALL_BATCH=4
+
+BUILD_ALL(){
+	touch "$BUILD_ALL_STATE"
+	local done_count=0
+	local BA BS
+	for BA in $BUILD_ALL_ARCHES; do
+		for BS in $BUILD_ALL_SDKS; do
+			if grep -qx "$BA $BS" "$BUILD_ALL_STATE"; then
+				continue
+			fi
+			echo " "
+			echo "==================================================="
+			echo " Build All : ARCH=$BA SDK=$BS  ($((done_count + 1))/$BUILD_ALL_BATCH this session)"
+			echo "==================================================="
+			export ARCH=$BA
+			export SDK=$BS
+			UNZIP_FILE_SERVER
+			UNZIP_GAPPS
+			MAKE_ADDON
+			MAKE_LITEGAPPS
+			echo "$BA $BS" >> "$BUILD_ALL_STATE"
+			done_count=$((done_count + 1))
+			if [ $done_count -ge $BUILD_ALL_BATCH ]; then
+				echo " "
+				echo "==================================================="
+				echo " Batch of $BUILD_ALL_BATCH done for this session."
+				echo " Reboot this VPS job now, then re-run sf-build.sh"
+				echo " and pick 'Build All (continue)' again to resume."
+				echo "==================================================="
+				echo " "
+				return 0
+			fi
+		done
+	done
+	echo " "
+	echo "Build All: every arch x sdk combination is already built - nothing left to do."
+	echo "(remove $BUILD_ALL_STATE to start over)"
+	echo " "
+	}
+
+SHOW_BUILD_ALL_PROGRESS(){
+	touch "$BUILD_ALL_STATE"
+	local total=0 left=0 BA BS
+	echo " "
+	echo "Build All progress ($BUILD_ALL_STATE):"
+	for BA in $BUILD_ALL_ARCHES; do
+		for BS in $BUILD_ALL_SDKS; do
+			total=$((total + 1))
+			if grep -qx "$BA $BS" "$BUILD_ALL_STATE"; then
+				echo "  [x] $BA $BS"
+			else
+				echo "  [ ] $BA $BS"
+				left=$((left + 1))
+			fi
+		done
+	done
+	echo " "
+	echo "  Done: $((total - left)) / $total   Remaining: $left"
+	echo " "
+	}
+
 CLEAN_RELEASE(){
 	echo "- Remove Old Build"
 	
@@ -510,7 +608,7 @@ while true; do
 echo -n "    Select SDK : "
 read selsdk
 case $selsdk in
-25 | 26 | 27 | 28 | 29 | 30 | 31 | 32 | 33 | 34 | 35 | 36)
+25 | 26 | 27 | 28 | 29 | 30 | 31 | 32 | 33 | 34 | 35 | 36 | 37)
 export SDK=$selsdk
 break
 ;;
@@ -532,7 +630,9 @@ echo "2. Make LiteGapps And Release"
 echo "3. Extract zip from file-server"
 echo "4. Extract ZIP GAPPS"
 echo "5. Remove Old Build"
-echo "6. Exit"
+echo "6. Build All (continue) - batches of $BUILD_ALL_BATCH, all arch x Android 7.0-17"
+echo "7. Show Build All progress"
+echo "8. Exit"
 echo " "
 echo -n " Select : "
 read menuu
@@ -549,9 +649,15 @@ UNZIP_GAPPS
 CLEAN_RELEASE
 ;;
 6)
+BUILD_ALL
+;;
+7)
+SHOW_BUILD_ALL_PROGRESS
+;;
+8)
 break ;;
-*) 
-echo "! Not found command : $menuu" 
+*)
+echo "! Not found command : $menuu"
 ;;
 esac
 

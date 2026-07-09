@@ -17,7 +17,7 @@ read_config(){ getp "$1" "$BASED/config"; }
 #################################################
 # Package/addon build + module prep, for variants with modules=true
 # (pixel, micro, nano, basic, user, go, core). Mirrors PIXEL()/MICRO()/etc
-# in auto-build.sh and prep_modules()/core_module()/copy_whitelist() in
+# in sf-build.sh and prep_modules()/core_module()/copy_whitelist() in
 # vps-build.sh, but lives here so `build.sh make litegapps <variant>` is
 # self-contained - no external script needed to stage modules first.
 #################################################
@@ -42,7 +42,7 @@ _litegapps_core_module(){
 	done
 }
 
-# Per-variant whitelist of extra gapps apps (verbatim from auto-build.sh)
+# Per-variant whitelist of extra gapps apps (verbatim from sf-build.sh)
 _litegapps_module_whitelist(){
 	case "$1" in
 	micro) echo "
