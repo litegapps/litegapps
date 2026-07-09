@@ -79,7 +79,20 @@ jobs:
         run: sh build.sh restore
 
       - name: Build
-        run: sh build.sh make
+        run: |
+          # Build each variant with the arch/sdk it was actually restored
+          # with (restore.arch/restore.sdk), not its config's own arch=/sdk=
+          # label - those can legitimately differ (e.g. lite's zip is
+          # labelled sdk=36 but its gapps come from restore.sdk=35), and a
+          # bare `build.sh make` only looks under arch=/sdk=.
+          VARIANTS="${{ steps.vars.outputs.variants }}"
+          for V in $(echo "$VARIANTS" | tr ',' ' '); do
+            CFG="core/litegapps/$V/config"
+            [ -f "$CFG" ] || { echo "! variant <$V> not found, skipping"; continue; }
+            R_ARCH=$(grep "^restore.arch=" "$CFG" | head -n1 | cut -d= -f2-)
+            R_SDK=$(grep "^restore.sdk=" "$CFG" | head -n1 | cut -d= -f2-)
+            bash build.sh make litegapps "$V" "$R_ARCH" "$R_SDK"
+          done
 
       - name: Collect zips
         run: |
