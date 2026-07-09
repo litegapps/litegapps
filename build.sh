@@ -21,7 +21,24 @@ sedlog(){
 	}
 	
 	
-getp(){ grep "^$1" "$2" | head -n1 | cut -d = -f 2; }
+getp(){ grep "^$1=" "$2" | head -n1 | cut -d = -f 2-; }
+
+# Append ?use_mirror=<name> to a SourceForge .../download URL when SF_MIRROR
+# is set (env var, or sf.mirror= in the top-level config). Left unset, SF's
+# own geo-based auto-selection is used (usually already near-optimal).
+# To find a faster one from your actual network:
+#   for m in master netactuate cytranet gigenet phoenixnap deac-fra pilotfiber excellmedia; do
+#     curl -o /dev/null -s -w "$m %{time_total}s %{speed_download} B/s\n" -L -r 0-3000000 \
+#       "https://$m.dl.sourceforge.net/project/litegapps/files-server/bin/bin.zip"
+#   done
+sf_url(){
+	local url="$1"
+	if [ -n "$SF_MIRROR" ]; then
+		print "${url}?use_mirror=${SF_MIRROR}"
+	else
+		print "$url"
+	fi
+}
 
 
 printmid() {
@@ -71,6 +88,19 @@ setime(){
 
 del(){ rm -rf "$@"; }
 cdir(){ mkdir -p "$@"; }
+
+# Clean the generated dirs of one product variant (gapps/files/modules/...)
+clean_variant_dirs(){
+	local BASE_V="$1" i
+	for i in gapps files modules modules_files; do
+		if [ -d "$BASE_V/$i" ]; then
+			print "- Cleaning <$BASE_V/$i>"
+			del "$BASE_V/$i"
+			cdir "$BASE_V/$i"
+			touch "$BASE_V/$i/place_holder"
+		fi
+	done
+}
 
 ch_con(){
 chcon -h u:object_r:system_file:s0 "$1" || sedlog "Failed chcon $1"
@@ -312,6 +342,7 @@ get_android_version(){
 		34) echo 14.0 ;;
 		35) echo 15.0 ;;
 		36) echo 16.0 ;;
+		37) echo 17.0 ;;
 	 esac
 	}
 	
@@ -319,7 +350,11 @@ SED(){
 	local INPUT=$1
 	local OUTPUT=$2
 	local FILE=$3
-	sed -i 's/'"${INPUT}"'/'"${OUTPUT}"'/g' $FILE
+	# escape regex metachars in the search, and & \ / in the replacement,
+	# so names/URLs/descriptions with special characters can't corrupt the sed
+	local ESC_IN=$(printf '%s' "$INPUT" | sed 's/[][\\/.*^$&]/\\&/g')
+	local ESC_OUT=$(printf '%s' "$OUTPUT" | sed 's/[\\/&]/\\&/g')
+	sed -i "s/${ESC_IN}/${ESC_OUT}/g" "$FILE"
 	}
 	
 
@@ -346,6 +381,11 @@ export bin=$base/bin/$ARCH
 export log=$base/log/make.log
 export loglive=$base/log/make_live.log
 export out=$base/output
+export utils=$base/installer
+
+# product build/restore/clean logic
+. "$base/lib/litegapps.sh"
+. "$base/lib/litegappsx.sh"
 
 
 PROP_VERSION=`get_config version`
@@ -356,23 +396,15 @@ PROP_SET_TIME=`get_config set.time.stamp`
 PROP_SET_DATE=`get_config date.time`
 PROP_COMPRESSION=`get_config compression`
 PROP_COMPRESSION_LEVEL=`get_config compression.level`
+# SF_MIRROR env var wins; otherwise read optional sf.mirror= from config
+[ -z "$SF_MIRROR" ] && SF_MIRROR=`get_config sf.mirror 2>/dev/null`
+export SF_MIRROR
 
 
-if [ $2 = $2 ]; then
-PRODUCT=$2
-fi
-
-if [ $3 = $3 ]; then
-VARIANT=$3
-fi
-
-if [ $4 = $4 ]; then
-ARCH_IN=$4
-fi
-
-if [ $5 = $5 ]; then
-SDK_IN=$5
-fi
+[ -n "$2" ] && PRODUCT=$2
+[ -n "$3" ] && VARIANT=$3
+[ -n "$4" ] && ARCH_IN=$4
+[ -n "$5" ] && SDK_IN=$5
 
 
 case $(get_config build.status) in
@@ -383,10 +415,11 @@ case $(get_config build.status) in
 esac
 
 
-#process tmp
-for P_TMP in $base/log $tmp; do
-	[ -d $P_TMP ] && del $P_TMP && cdir $P_TMP || cdir $P_TMP
-done
+#process tmp (recreated fresh each run); keep the log dir and append across runs
+[ -d "$tmp" ] && del "$tmp"
+cdir "$tmp"
+cdir "$base/log"
+echo "############ $(date '+%d/%m/%Y %H:%M:%S') : build.sh $* ############" >> "$log"
 
 #################################################
 #Cleaning dir
@@ -394,9 +427,6 @@ done
 CLEAN(){
 	list_fol="
 	$base/output
-	$base/etc/extractor/input
-	$base/etc/extractor/bin
-	$base/etc/extractor/output
 	$base/log
 	$base/tmp_files
 	"
@@ -431,20 +461,8 @@ CLEAN(){
 	 	touch $W/placeholder
 	 fi
 	done
-	for i in lite core go micro pixel nano pico basic user; do
-	if [ -f $base/core/litegapps/$i/clean.sh ]; then
-		BASED=$base/core/litegapps/$i
-		chmod 755 $base/core/litegapps/$i/clean.sh
-		. $base/core/litegapps/$i/clean.sh
-	fi
-	done
-	for i in reguler lts microg; do
-		if [ -f $base/core/litegappsx/$i/clean.sh ]; then
-			BASED=$base/core/litegappsx/$i
-			chmod 755 $base/core/litegappsx/$i/clean.sh
-			. $base/core/litegappsx/$i/clean.sh
-		fi
-	done
+	litegapps_clean
+	litegappsx_clean
 	
 	LIST_BIN="
 	$base/bin/arm
@@ -541,7 +559,7 @@ RESTORE(){
 		fi
 	else
 		printlog "1. Downloading : bin.zip"
-       curl --progress-bar -L -o $base/files/bin.zip https://sourceforge.net/projects/litegapps/files/files-server/bin/bin.zip/download
+       curl --progress-bar -L -o $base/files/bin.zip "$(sf_url https://sourceforge.net/projects/litegapps/files/files-server/bin/bin.zip/download)"
        if [  $? -eq 0 ]; then
        	printlog "     Downloading status : Successful"
        	printlog "     File size : $(du -sh $base/files/bin.zip | cut -f1)"
@@ -563,42 +581,19 @@ RESTORE(){
        	exit 1
        fi
 	fi
-	if [ "$(get_config litegapps.build)" = true ]; then
-		for i in $(get_config litegapps.restore | sed "s/,/ /g"); do
-			if [ -f $base/core/litegapps/restore.sh ]; then
-				BASED=$base/core/litegapps/$i
-				chmod 755 $base/core/litegapps/restore.sh
-				. $base/core/litegapps/restore.sh
-			else
-				printlog "! [SKIP] <$base/core/litegapps/restore.sh> Not found"
-			fi
-		done
-	fi
-	if [ "$(get_config litegapps++.build)" = true ]; then
-		for i in $(get_config litegapps++.restore | sed "s/,/ /g"); do
-			if [ -f $base/core/litegapps++/$i/restore.sh ]; then
-				BASED=$base/core/litegapps++/$i
-				chmod 755 $base/core/litegapps++/$i/restore.sh
-				. $base/core/litegapps++/$i/restore.sh
-			else
-				printlog "! [SKIP] <$base/core/litegapps++/$i/restore.sh> Not found"
-			fi
-		done
-	fi
-	
+	[ "$(get_config litegapps.build)"  = true ] && litegapps_restore
+	[ "$(get_config litegappsx.build)" = true ] && litegappsx_restore
 }
 
 #################################################
 # Make
 #################################################
 MAKE(){
-	for W in $base/bin/arm; do
-		if [ ! -d $W ]; then
-			printlog "bin or gapps files not found. please restore !"
-			printlog "usage : sh build.sh restore"
+	if [ ! -d "$base/bin/$ARCH" ]; then
+		printlog "bin or gapps files not found. please restore !"
+		printlog "usage : sh build.sh restore"
 		exit 1
-		fi
-	done
+	fi
 
 	#################################################
 	#Remove placeholder file
@@ -610,65 +605,27 @@ MAKE(){
 			del $W
 		fi
 	done
-	
+
 	#################################################
-	#Litegapps
+	# Dispatch to product(s)
 	#################################################
-	if [ "$PRODUCT" = "litegapps" ] || [ "$(get_config litegapps.build)" = "true" ]; then
-		if [ $VARIANT ]; then
-		LIST_LITEGAPPS=$VARIANT
-		else
-		LIST_LITEGAPPS=`get_config litegapps.type | sed "s/,/ /g"`
-		fi
-		
-		for i in $LIST_LITEGAPPS; do
-		export VARIANT=$i
-			if [ -f $base/core/litegapps/make.sh ]; then
-				BASED=$base/core/litegapps/$i
-				chmod 755 $base/core/litegapps/make.sh
-				. $base/core/litegapps/make.sh
-			else
-		 		ERROR "[ERROR] <$base/core/litegapps/make.sh> not found"
-			fi
-		done
+	if [ "$PRODUCT" ]; then
+		case "$PRODUCT" in
+		litegapps)  litegapps_make ;;
+		litegappsx) litegappsx_make ;;
+		*) ERROR "[ERROR] unknown product <$PRODUCT>" ;;
+		esac
+	else
+		[ "$(get_config litegapps.build)"  = true ] && litegapps_make
+		[ "$(get_config litegappsx.build)" = true ] && litegappsx_make
 	fi
-	#################################################
-	#Litegappsx
-	#################################################
-	if [ $(get_config litegappsx.build) = true ]; then
-		LIST_LITEGAPPS_PLUS=`get_config litegappsx.type | sed "s/,/ /g"`
-		for w in $LIST_LITEGAPPS_PLUS; do
-			if [ -f $base/core/litegappsx/make.sh ]; then
-				BASED=$base/core/litegappsx/$w
-				chmod 755 $base/core/litegappx/make.sh
-				. $base/core/litegappsx/make.sh
-			else
-				ERROR "[ERROR] <$base/core/litegappsx/make.sh> not found"
-			fi
-		done
-	fi
+
 	#################################################
 	#Done
 	#################################################
 	del $tmp
 }
 
-#################################################
-# Set Package litegapps variant
-#################################################
-SET_PACKAGE(){
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	echo
-	}
 UPDATE_GAPPS_SERVER(){
 	printlog "        Update Gapps Server"
 	printlog " "
@@ -724,9 +681,6 @@ CLEAN
 upload | u)
 UPLOAD
 ;;
-set-package)
-SET_PACKAGE
-;;
 update-gapps-server)
 UPDATE_GAPPS_SERVER
 ;;
@@ -738,11 +692,11 @@ print "restore              restoring files"
 print "make                 build litegapps"
 print "clean                cleaning all files"
 print "upload               upload files output"
-print "set-package          set package varian litegapps"
 print "update-gapps-server  update files server gapps"
 print " "
 print " "
 ;;
 esac
 
-test -d $tmp && del $tmp
+# cleanup tmp; keep a clean exit code (don't let a false test become exit 1)
+if [ -d "$tmp" ]; then del "$tmp"; fi

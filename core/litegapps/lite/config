@@ -4,6 +4,8 @@ sdk=36
 arch=arm64
 restore.sdk=35
 restore.arch=arm64
+# lite has its own trimmed gapps zip on the server: <sdk>-lite.zip (no extra apps)
+restore.suffix=-lite
 name=LiteGapps
 dir_name=lite
 modules=false

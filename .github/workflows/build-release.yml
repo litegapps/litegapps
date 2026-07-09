@@ -1,0 +1,107 @@
+name: Build & Release LiteGapps
+
+# Lets a fork build its own LiteGapps "lite"/"superlite" zips and publish
+# them straight to GitHub Releases. No SourceForge credentials needed -
+# gapps/bin are pulled from the public LiteGapps SourceForge mirror by
+# build.sh itself; this workflow only needs the built-in GITHUB_TOKEN to
+# create the release.
+#
+# To build your own version: edit core/litegapps/lite/config and
+# core/litegapps/superlite/config in your fork (sdk=, arch=, restore.sdk=,
+# restore.arch=, ...), then run this workflow (Actions tab -> "Build &
+# Release LiteGapps" -> Run workflow), or push a tag like "v1".
+
+on:
+  workflow_dispatch:
+    inputs:
+      variants:
+        description: "Comma-separated litegapps variants to build (must exist under core/litegapps/)"
+        required: false
+        default: "lite,superlite"
+      tag:
+        description: "Release tag (created if missing). Leave empty to auto-generate."
+        required: false
+        default: ""
+      prerelease:
+        description: "Mark the release as a pre-release"
+        type: boolean
+        required: false
+        default: true
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: build-release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Resolve variants/tag/prerelease
+        id: vars
+        run: |
+          VARIANTS="${{ inputs.variants }}"
+          [ -z "$VARIANTS" ] && VARIANTS="lite,superlite"
+
+          TAG="${{ inputs.tag }}"
+          if [ -z "$TAG" ]; then
+            if [ "${{ github.ref_type }}" = "tag" ]; then
+              TAG="${{ github.ref_name }}"
+            else
+              TAG="build-$(date +%Y%m%d)-${{ github.run_number }}"
+            fi
+          fi
+
+          PRERELEASE="${{ inputs.prerelease }}"
+          if [ -z "$PRERELEASE" ]; then
+            if [ "${{ github.ref_type }}" = "tag" ]; then PRERELEASE=false; else PRERELEASE=true; fi
+          fi
+
+          echo "variants=$VARIANTS" >> "$GITHUB_OUTPUT"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "prerelease=$PRERELEASE" >> "$GITHUB_OUTPUT"
+
+      - name: Point build at requested variants
+        run: |
+          sed -i "s/^litegapps.restore=.*/litegapps.restore=${{ steps.vars.outputs.variants }}/" config
+          sed -i "s/^litegapps.type=.*/litegapps.type=${{ steps.vars.outputs.variants }}/" config
+          grep -E "^litegapps\.(restore|type)=" config
+
+      - name: Restore (download bin.zip + gapps from SourceForge)
+        run: sh build.sh restore
+
+      - name: Build
+        run: sh build.sh make
+
+      - name: Collect zips
+        run: |
+          find output -name "*.zip" -exec cp {} . \;
+          ls -la ./*.zip
+          sha256sum ./*.zip > SHA256SUMS.txt
+
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="${{ steps.vars.outputs.tag }}"
+          NOTES="Automated LiteGapps build - variants: ${{ steps.vars.outputs.variants }}"
+          PRERELEASE_FLAG=""
+          [ "${{ steps.vars.outputs.prerelease }}" = "true" ] && PRERELEASE_FLAG="--prerelease"
+
+          if gh release view "$TAG" --repo "${{ github.repository }}" >/dev/null 2>&1; then
+            gh release upload "$TAG" ./*.zip SHA256SUMS.txt --clobber --repo "${{ github.repository }}"
+          else
+            gh release create "$TAG" ./*.zip SHA256SUMS.txt \
+              --title "$TAG" \
+              --notes "$NOTES" \
+              $PRERELEASE_FLAG \
+              --repo "${{ github.repository }}"
+          fi

@@ -7,12 +7,12 @@ name.builder=wahyu6070
 build.status=wahyu6070
 set.time.stamp=true
 date.time=202007122239
-# xz or brotli
-compression=xz
+# xz or br
+compression=br
 # 1-9
-compression.level=9
+compression.level=1
 # 1-9
-zip.level=9
+zip.level=1
 # true/false
 zip.signer=false
 
@@ -28,7 +28,7 @@ litegapps.tar=single
 
 # Litegappsx prop
 litegappsx.build=false
-# list-restore = reguler,lts,microg
-litegappsx.restore=lite
-# list-type = reguler,lts,microg
-litegappsx.type=false
+# list-restore = microg
+litegappsx.restore=microg
+# list-type = microg
+litegappsx.type=microg

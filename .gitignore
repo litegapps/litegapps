@@ -39,5 +39,18 @@ core/litegapps/lite/modules
 output
 tmp
 files_tmp
+tmp_files
 bin
 log
+
+# vps-build.sh
+.env
+vps-build-logs
+
+# Docker SSH credentials (never commit private keys)
+docker/ssh/*
+!docker/ssh/README.md
+packages/files
+packages/output
+packages/zip-server
+packages/tmp

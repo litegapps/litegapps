@@ -1,0 +1,16 @@
+# Self-contained runner. SSH keys and .env are baked into the image
+# (see Dockerfile), so no volumes/mounts are needed to upload to SourceForge.
+#
+#   docker compose up -d --build      # start detached; survives SSH logout
+#   docker compose logs -f            # follow progress
+#   docker compose down               # stop
+#
+# !!! KEEP THE BUILT IMAGE PRIVATE — it contains your SourceForge SSH key.
+services:
+  litegapps-build:
+    build: .
+    container_name: litegapps-build
+    restart: "no"
+    volumes:
+      # Persist logs on the host so they survive `docker compose down`.
+      - ./vps-build-logs:/litegapps/vps-build-logs

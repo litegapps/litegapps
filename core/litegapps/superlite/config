@@ -1,0 +1,14 @@
+# you can combine configs 33,34,35 or arm,arm64,x86_64
+
+sdk=36
+arch=arm64
+restore.sdk=36
+restore.arch=arm64
+# superlite restores a fixed gapps zip (old gapps from when this Android
+# version originally shipped) instead of the per-sdk <sdk>[.zip|-lite.zip].
+# Server path: files-server/litegapps/<arch>/<sdk>/superlite.zip
+restore.filename=superlite
+name=LiteGapps SuperLite
+dir_name=superlite
+modules=false
+desc=LiteGapps SuperLite uses the original gapps release from when this Android version first shipped, for maximum compatibility on older/lighter setups.
