@@ -30,7 +30,7 @@ listlog(){
 	echo " " >> $log
 	}
 
-getp(){ grep "^$1" "$2" | head -n1 | cut -d = -f 2; }
+getp(){ grep "^$1=" "$2" | head -n1 | cut -d = -f 2-; }
 
 abort(){
 	print " " | tee -a $log
@@ -122,8 +122,8 @@ GET_PROP(){
 	"
 	local HJ VARPROP
 	for HJ in $LIST_PROP; do
-		if [ -f $HJ ] && grep -q "$1" "$HJ" 2>/dev/null; then
-			VARPROP=`grep "^$1" "$HJ" | head -n1 | cut -d = -f 2`
+		if [ -f $HJ ] && grep -q "^$1=" "$HJ" 2>/dev/null; then
+			VARPROP=`grep "^$1=" "$HJ" | head -n1 | cut -d = -f 2-`
 			break
 		fi
 	done

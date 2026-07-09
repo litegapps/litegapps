@@ -7,7 +7,7 @@
 print(){ ui_print "$1"; }
 del (){ rm -rf "$@"; }
 cdir (){ mkdir -p "$@"; }
-getp(){ grep "^$1" "$2" | head -n1 | cut -d = -f 2; }
+getp(){ grep "^$1=" "$2" | head -n1 | cut -d = -f 2-; }
 
 GET_PROP(){
 	local LIST_PROP="

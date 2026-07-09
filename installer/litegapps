@@ -217,7 +217,7 @@ black_func_2(){
 #▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
 export PATH=/sbin:/sbin/su:/su/bin:/su/xbin:/system/bin:/system/xbin:/data/adb/litegapps_controller/xbin:/data/data/com.termux/files/usr/bin
 
-getp5(){ grep "^$1" "$2" | head -n1 | cut -d = -f 2; }
+getp5(){ grep "^$1=" "$2" | head -n1 | cut -d = -f 2-; }
 test -f /system_root/system/build.prop && SYSDIR=/system_root/system || test -f /system/system/build.prop && SYSDIR=/system/system || SYSDIR=/system
 findarch=$(getp5 ro.product.cpu.abi $SYSDIR/build.prop | cut -d '-' -f -1)
 SDK=$(getp5 ro.build.version.sdk $SYSDIR/build.prop)

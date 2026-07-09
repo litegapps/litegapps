@@ -34,7 +34,7 @@ print(){
 	
 #
 
-getp(){ grep "^$1" "$2" | head -n1 | cut -d = -f 2; }
+getp(){ grep "^$1=" "$2" | head -n1 | cut -d = -f 2-; }
 
 
 set_prop() {
