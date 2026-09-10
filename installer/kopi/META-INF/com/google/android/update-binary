@@ -52,12 +52,27 @@ else
 
 
 #variable
+# LineageOS recovery tidak me-mount /data saat sideload/install.
+# Coba mount dulu supaya ekstraksi zip tidak jatuh ke tmpfs RAM (/dev/tmp).
+if ! is_mounted /data; then
+	mount /data 2>/dev/null || mount -o rw -t auto /data 2>/dev/null
+fi
+
+TMPDIR6070=
 if is_mounted /data; then
 #gunakan partisi /data karena memiliki banyak penyimpanan
-TMPDIR6070=/data/tmp
-export TMPDIR=/data/tmp2
+# /data bisa saja ter-enkripsi (FBE) sehingga mkdir gagal, jadi diuji dulu.
+if mkdir -p /data/tmp 2>/dev/null && touch /data/tmp/.rw 2>/dev/null; then
+	rm -f /data/tmp/.rw
+	TMPDIR6070=/data/tmp
+	export TMPDIR=/data/tmp2
 else
-print "[!] /data partition is not mounted"
+	print "[!] /data is mounted but not writable"
+fi
+fi
+
+if [ -z "$TMPDIR6070" ]; then
+print "[!] Using RAM for extraction, low memory devices may fail"
 TMPDIR6070=/dev/tmp
 # tmp dir di taruh di /tmp agar tidak penuh (dipasah)
 export TMPDIR=/tmp
@@ -81,11 +96,11 @@ else
 	mkdir -p $TMPDIR #|| abort "- failed make dir $kopi"
 fi
 
-cd $kopi
+cd $kopi || abort "- Failed to enter <$kopi>"
 print "- Extracting ZIP File"
 unzip -o "$ZIPFILE" >&2
 
-[ ! -f module.prop ] && abort "- Module.prop Not Found"
+[ ! -f module.prop ] && abort "- Module.prop Not Found (out of space in <$TMPDIR6070>?)"
 
 for AY in arm64 arm x86 x86_64; do
 	if $MODPATH/bin/$AY/toybox 2>/dev/null | grep -q mount; then
@@ -99,10 +114,10 @@ done
 if [ "$TOYBOX" ] && [ -f $TOYBOX ]; then
 print "- Using Toybox <$TOYBOX>"
 cdir $MODPATH/xbin
-for H in $($MODPATH/bin/arm64/toybox); do
+for H in $($TOYBOX); do
 	$TOYBOX ln -sf $TOYBOX $MODPATH/xbin/$H
 done
-PATH=$MODPATH/xbin:/bin:/system/bin:/system/xbin:/sbin
+PATH=$MODPATH/xbin:${PATH:-/sbin:/system/bin:/system/xbin:/bin}
 fi
 
 print "- TMP : <$MODPATH>"
@@ -135,9 +150,108 @@ setup_mountpoint() {
   fi;
 }
 
+# Baca block device dari fstab recovery. LineageOS recovery memakai
+# mount point /mnt/system sehingga "mount /system" tidak pernah berhasil.
+get_block_for_mount_point() {
+  local FSTAB RES;
+  for FSTAB in /etc/recovery.fstab /etc/fstab /system/etc/recovery.fstab; do
+    [ -f "$FSTAB" ] || continue;
+    RES=$(grep -v '^#' "$FSTAB" | grep "[[:blank:]]$1[[:blank:]]" | tail -n1 | tr -s '[:blank:]' ' ' | cut -d' ' -f1);
+    [ -n "$RES" ] && echo "$RES" && return 0;
+  done;
+  return 1;
+}
+
+find_block() {
+  local name="$1" ent dev bp slot;
+  slot=$(find_slot);
+  if [ -d /dev/block/mapper ]; then
+    bp=/dev/block/mapper;
+  else
+    bp=/dev/block/bootdevice/by-name;
+  fi;
+  [ -d "$bp" ] || bp=$(find /dev/block/platform -type d -name by-name 2>/dev/null | head -n1);
+  ent=$(get_block_for_mount_point "/$name");
+  if [ -z "$ent" ] && [ "$name" = "system" ]; then
+    ent=$(get_block_for_mount_point /mnt/system);
+    [ -z "$ent" ] && ent=$(get_block_for_mount_point /system_root);
+    [ -z "$ent" ] && ent=$(get_block_for_mount_point /);
+  fi;
+  case "$ent" in
+    "" | /*) ;;
+    *) ent="$bp/$ent" ;;
+  esac;
+  for dev in "$ent$slot" "$ent" "$bp/$name$slot" "$bp/$name"; do
+    [ -n "$dev" ] && [ -b "$dev" ] && echo "$dev" && return 0;
+  done;
+  return 1;
+}
+
+# Lokasi /system yang sebenarnya (berisi build.prop)
+system_root_dir() {
+  local D;
+  for D in /system/system /system_root/system /system_root /mnt/system/system /mnt/system /system; do
+    [ -f "$D/build.prop" ] && echo "$D" && return 0;
+  done;
+  return 1;
+}
+
+system_is_writable() {
+  local D;
+  D=$(system_root_dir) || return 1;
+  touch "$D/.litegapps_rw" 2>/dev/null || return 1;
+  rm -f "$D/.litegapps_rw";
+  return 0;
+}
+
+# Jalur mount ala LineageOS recovery: block device di-setrw, di-mount rw ke
+# /mnt/system, lalu di-bind ke /system supaya sisa installer tetap jalan.
+mount_los() {
+  local SB PB EB B;
+  SB=$(find_block system) || { print "! System block device not found"; return 1; };
+  PB=$(find_block product);
+  EB=$(find_block system_ext);
+  for B in "$SB" "$PB" "$EB"; do
+    [ -n "$B" ] && blockdev --setrw "$B" 2>/dev/null;
+  done;
+  setup_mountpoint /mnt/system;
+  ( umount /mnt/system; umount -l /mnt/system ) 2>/dev/null;
+  if ! mount -o rw -t auto "$SB" /mnt/system 2>/dev/null; then
+    print "! Failed mounting <$SB> on /mnt/system";
+    return 1;
+  fi;
+  print "- Mounted <$SB> on /mnt/system";
+  if [ -f /mnt/system/system/build.prop ]; then
+    setup_mountpoint /system;
+    mount -o bind /mnt/system/system /system 2>/dev/null;
+  elif [ -f /mnt/system/build.prop ]; then
+    setup_mountpoint /system;
+    mount -o bind /mnt/system /system 2>/dev/null;
+  fi;
+  if [ -n "$PB" ] && [ ! -L /mnt/system/product ] && ! is_mounted /product; then
+    setup_mountpoint /product;
+    mount -o rw -t auto "$PB" /product 2>/dev/null && print "- Mounted <$PB> on /product";
+  fi;
+  if [ -n "$EB" ] && [ ! -L /mnt/system/system_ext ] && ! is_mounted /system_ext; then
+    setup_mountpoint /system_ext;
+    mount -o rw -t auto "$EB" /system_ext 2>/dev/null && print "- Mounted <$EB> on /system_ext";
+  fi;
+  return 0;
+}
+
 
 mount_all() {
   local byname mount slot system;
+  # Lepas proteksi read-only dynamic partition SEBELUM mount; remount rw
+  # sesudah mount sering ditolak kernel di LineageOS recovery.
+  if [ -d /dev/block/mapper ]; then
+    for block in system vendor product system_ext; do
+      for slot in "" _a _b; do
+        blockdev --setrw /dev/block/mapper/$block$slot 2>/dev/null;
+      done;
+    done;
+    slot=;
+  fi
   if ! is_mounted /cache; then
      mount /cache 2>/dev/null && UMOUNT_CACHE=1;
   fi;
@@ -190,11 +304,23 @@ mount_all() {
       done
     done
   fi
-  for M1 in /system /product /system_ext /system_root; do
+  for M1 in /system /product /system_ext /system_root /mnt/system; do
 		if is_mounted $M1; then
 			mount -o rw,remount -t auto $M1 2>/dev/null || print "! Failed mounting R/W <$M1>"
 		fi
 	done
+
+	# LineageOS recovery memakai mount point /mnt/system pada fstab-nya,
+	# jadi blok mount klasik di atas bisa tidak menghasilkan apa pun.
+	if ! system_is_writable; then
+		print "- Trying LineageOS recovery mount method"
+		mount_los
+		for M1 in /system /product /system_ext /mnt/system; do
+			if is_mounted $M1; then
+				mount -o rw,remount -t auto $M1 2>/dev/null
+			fi
+		done
+	fi
 
 }
 umount_all() {
@@ -275,16 +401,18 @@ restore_env() {
 
 setup_env
 
-#system dir
-if [ -f /system/system/build.prop ]; then
-	SYSTEM=/system/system
-elif [ -f /system_root/system/build.prop ]; then
-	SYSTEM=/system_root/system
-elif [ -f /system_root/build.prop ]; then
-	SYSTEM=/system_root
-else
-	SYSTEM=/system
+if ! $BOOTMODE && ! system_is_writable; then
+	print " "
+	print "! Failed to mount system as read-write"
+	print "! Recovery ini tidak memberi akses tulis ke /system."
+	print "! Coba TWRP/OrangeFox, atau install lewat Magisk/KernelSU."
+	print " "
+	restore_env
+	abort "- Could not mount /system R/W, aborting!"
 fi
+
+#system dir
+SYSTEM=$(system_root_dir) || SYSTEM=/system
 
 #vendor dir
 VENDOR=/vendor

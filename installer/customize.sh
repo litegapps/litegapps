@@ -408,15 +408,15 @@ INITIALIZE_LITEGAPPS_PATH() {
 INITIAL(){
     local mode=$1
     #path logic
-    if [ -f /system_root/system/build.prop ]; then
-        SYSTEM=/system_root/system 
-    elif [ -f /system_root/build.prop ]; then
-        SYSTEM=/system_root
-    elif [ -f /system/system/build.prop ]; then
-        SYSTEM=/system/system
-    else
-        SYSTEM=/system
-    fi
+    # /mnt/system dipakai LineageOS recovery, /system_root oleh TWRP lama
+    SYSTEM=
+    for SYSTEM_TRY in /system_root/system /system_root /system/system /mnt/system/system /mnt/system /system; do
+        if [ -f "$SYSTEM_TRY/build.prop" ]; then
+            SYSTEM=$SYSTEM_TRY
+            break
+        fi
+    done
+    [ -n "$SYSTEM" ] || SYSTEM=/system
 
     if [ ! -L $SYSTEM/vendor ]; then VENDOR=$SYSTEM/vendor; else VENDOR=/vendor; fi
     if [ ! -L $SYSTEM/product ]; then PRODUCT=$SYSTEM/product; else PRODUCT=/product; fi
