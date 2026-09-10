@@ -69,6 +69,10 @@ Logs: `log/make.log` and `log/make_live.log` — **read these first when a build
 
 - Match the existing shell style: tab indentation, config via `getp`/`get_config`/`read_config`,
   logging via `printlog`/`sedlog`, and `del`/`cdir` instead of raw `rm -rf`/`mkdir -p`.
+- **Write everything inside files in English** — `#` comments, `print`/`ui_print` strings,
+  log messages, commit messages. This is an English-language project. Some legacy
+  Indonesian comments exist in the tree; do not add more, and do not mirror the
+  language of the chat into the code (replying to the user in Indonesian is fine).
 - `restore` and `upload`/`update-gapps-server` hit the network (Sourceforge, GitHub).
   **Do not run `upload`/`update-gapps-server` unless explicitly asked** — they push to
   the release server and prompt for a Sourceforge username.

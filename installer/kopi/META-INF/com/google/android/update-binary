@@ -52,8 +52,8 @@ else
 
 
 #variable
-# LineageOS recovery tidak me-mount /data saat sideload/install.
-# Coba mount dulu supaya ekstraksi zip tidak jatuh ke tmpfs RAM (/dev/tmp).
+# LineageOS recovery does not mount /data when installing/sideloading.
+# Mount it first so the zip is not extracted into the small /dev/tmp RAM tmpfs.
 if ! is_mounted /data; then
 	mount /data 2>/dev/null || mount -o rw -t auto /data 2>/dev/null
 fi
@@ -61,7 +61,7 @@ fi
 TMPDIR6070=
 if is_mounted /data; then
 #gunakan partisi /data karena memiliki banyak penyimpanan
-# /data bisa saja ter-enkripsi (FBE) sehingga mkdir gagal, jadi diuji dulu.
+# /data may be FBE encrypted and refuse mkdir, so write-test it first.
 if mkdir -p /data/tmp 2>/dev/null && touch /data/tmp/.rw 2>/dev/null; then
 	rm -f /data/tmp/.rw
 	TMPDIR6070=/data/tmp
@@ -150,8 +150,8 @@ setup_mountpoint() {
   fi;
 }
 
-# Baca block device dari fstab recovery. LineageOS recovery memakai
-# mount point /mnt/system sehingga "mount /system" tidak pernah berhasil.
+# Read the block device from the recovery fstab. LineageOS recovery uses
+# the mount point /mnt/system, so "mount /system" never succeeds there.
 get_block_for_mount_point() {
   local FSTAB RES;
   for FSTAB in /etc/recovery.fstab /etc/fstab /system/etc/recovery.fstab; do
@@ -187,7 +187,7 @@ find_block() {
   return 1;
 }
 
-# Lokasi /system yang sebenarnya (berisi build.prop)
+# The real /system directory, the one holding build.prop
 system_root_dir() {
   local D;
   for D in /system/system /system_root/system /system_root /mnt/system/system /mnt/system /system; do
@@ -204,8 +204,8 @@ system_is_writable() {
   return 0;
 }
 
-# Jalur mount ala LineageOS recovery: block device di-setrw, di-mount rw ke
-# /mnt/system, lalu di-bind ke /system supaya sisa installer tetap jalan.
+# LineageOS recovery style mount: setrw the block device, mount it rw on
+# /mnt/system, then bind it to /system so the rest of the installer works.
 mount_los() {
   local SB PB EB B;
   SB=$(find_block system) || { print "! System block device not found"; return 1; };
@@ -242,8 +242,8 @@ mount_los() {
 
 mount_all() {
   local byname mount slot system;
-  # Lepas proteksi read-only dynamic partition SEBELUM mount; remount rw
-  # sesudah mount sering ditolak kernel di LineageOS recovery.
+  # Drop the read-only protection on dynamic partitions BEFORE mounting;
+  # remounting rw afterwards is often refused by the kernel in Lineage recovery.
   if [ -d /dev/block/mapper ]; then
     for block in system vendor product system_ext; do
       for slot in "" _a _b; do
@@ -310,8 +310,8 @@ mount_all() {
 		fi
 	done
 
-	# LineageOS recovery memakai mount point /mnt/system pada fstab-nya,
-	# jadi blok mount klasik di atas bisa tidak menghasilkan apa pun.
+	# LineageOS recovery lists the mount point as /mnt/system in its fstab,
+	# so the classic mount block above can end up mounting nothing.
 	if ! system_is_writable; then
 		print "- Trying LineageOS recovery mount method"
 		mount_los

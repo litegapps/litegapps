@@ -408,7 +408,7 @@ INITIALIZE_LITEGAPPS_PATH() {
 INITIAL(){
     local mode=$1
     #path logic
-    # /mnt/system dipakai LineageOS recovery, /system_root oleh TWRP lama
+    # /mnt/system is used by LineageOS recovery, /system_root by older TWRP
     SYSTEM=
     for SYSTEM_TRY in /system_root/system /system_root /system/system /mnt/system/system /mnt/system /system; do
         if [ -f "$SYSTEM_TRY/build.prop" ]; then
