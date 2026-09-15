@@ -57,3 +57,17 @@ packages/files
 packages/output
 packages/zip-server
 packages/tmp
+
+# web/ build panel (Next.js)
+web/node_modules
+web/.next
+web/job-logs
+web/next-env.d.ts
+web/tsconfig.tsbuildinfo
+web/.last_deploy_hash
+
+# The broad build-artifact names above (log, bin, output, files, tmp) have no
+# leading slash, so they match at ANY depth - including app route segments
+# like web/src/app/api/jobs/[id]/log/. Keep the panel source out of their way.
+!web/src/
+!web/src/**

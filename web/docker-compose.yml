@@ -1,0 +1,75 @@
+# LiteGapps build panel.
+#
+#   docker compose up -d --build
+#   docker compose logs -f web
+#
+# Open it at http://<VPS IP>:<WEB_PORT> (default 3020).
+#
+# The panel triggers real builds, so the container needs the repo itself and
+# the SourceForge ssh key. Both come in as mounts rather than being baked in,
+# which keeps the key out of the image and out of any tracked file.
+#
+# !!! The key grants upload access to the release server. Keep this host and
+# !!! the admin password treated accordingly.
+# Fixed project name: it prefixes the MySQL volume. Without it compose names the
+# project after the directory ("web"), which is generic enough to collide with
+# other stacks — and renaming later points at a fresh, empty volume.
+name: litegapps-web
+
+services:
+  web:
+    build: .
+    container_name: litegapps-web
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      REPO_ROOT: /litegapps
+      MYSQL_HOST: mysql
+      # Owner of the checkout on the host (`id -u` / `id -g`). Builds run as
+      # this user so the files they create stay deletable from the host.
+      PUID: ${PUID:-1001}
+      PGID: ${PGID:-1001}
+    depends_on:
+      mysql:
+        condition: service_healthy
+    volumes:
+      # The checkout the panel builds from — build.sh, packages/, core/ ...
+      # This also exposes web/.env inside the container; harmless, since it is
+      # this app's own configuration, but worth knowing it is in there.
+      - ../:/litegapps
+      # Host ssh directory, read-only. docker-entrypoint.sh imports only the
+      # SourceForge key from it at startup; nothing is baked into the image.
+      - ${SSH_DIR:-~/.ssh}:/ssh-host:ro
+      # The server page reports the HOST, but these two files inside the
+      # container describe the image (container id, Debian). /proc and the
+      # kernel version are already the host's, so only these need mounting.
+      - /etc/hostname:/host/hostname:ro
+      # Snap-installed Docker resolves /etc/os-release inside its own snap base
+      # ("Ubuntu Core 24"); set HOST_OS_RELEASE to the hostfs path there.
+      - ${HOST_OS_RELEASE:-/etc/os-release}:/host/os-release:ro
+    ports:
+      # Served directly on the VPS address, no reverse proxy. The port is
+      # configurable because other projects on this VPS already hold 3000/3010.
+      # Set WEB_BIND=127.0.0.1 (or the wg0 address) to take it off the internet.
+      - "${WEB_BIND:-0.0.0.0}:${WEB_PORT:-3020}:3000"
+
+  mysql:
+    image: mysql:8.4
+    container_name: litegapps-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-litegapps}
+      MYSQL_USER: ${MYSQL_USER:-litegapps}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?set MYSQL_PASSWORD in .env}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?set MYSQL_ROOT_PASSWORD in .env}
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-p${MYSQL_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+volumes:
+  mysql_data:

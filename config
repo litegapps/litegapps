@@ -18,9 +18,9 @@ zip.signer=false
 
 # Litegapps prop
 litegapps.build=true
-# list-restore = lite,core,go,micro,pixel,nano,basic
+# list-restore = lite,core,go,micro,pixel,nano,basic,user,superlite
 litegapps.restore=lite
-# list-type = lite,core,go,micro,pixel,nano,basic
+# list-type = lite,core,go,micro,pixel,nano,basic,user,superlite
 litegapps.type=lite
 # litegapps multi or single files.tar archive
 # This function is used to create a single .tar file and is used for many variants. This speeds up the build process for many variants of pixel, micro, core, and lite.

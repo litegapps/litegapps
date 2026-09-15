@@ -1,0 +1,73 @@
+{
+	"generated": "2026-09-15 19:17 UTC",
+	"version": { "version": "4.9", "code": "49", "codename": "stable", "status": "wahyu6070" },
+	"latest_release": "2026-05-13",
+	"archs": ["arm64", "arm", "x86", "x86_64"],
+	"sdks": [
+		{ "sdk": 27, "android": "8.1" },
+		{ "sdk": 28, "android": "9" },
+		{ "sdk": 29, "android": "10" },
+		{ "sdk": 30, "android": "11" },
+		{ "sdk": 31, "android": "12" },
+		{ "sdk": 32, "android": "12.1" },
+		{ "sdk": 33, "android": "13" },
+		{ "sdk": 34, "android": "14" },
+		{ "sdk": 35, "android": "15" },
+		{ "sdk": 36, "android": "16" },
+		{ "sdk": 37, "android": "17" }
+	],
+	"targets": {
+		"arm64": {
+			"27": { "gapps": true, "lite": false, "superlite": false, "package": true, "release": "2024-02-22", "variants": ["basic", "core", "go", "lite", "micro", "nano", "pixel", "user"] },
+			"28": { "gapps": true, "lite": false, "superlite": false, "package": true, "release": "2024-02-23", "variants": ["basic", "core", "go", "lite", "micro", "nano", "pixel", "user"] },
+			"29": { "gapps": true, "lite": true, "superlite": false, "package": true, "release": "2025-01-16", "variants": ["basic", "core", "go", "lite", "micro", "nano", "pixel", "user"] },
+			"30": { "gapps": true, "lite": true, "superlite": false, "package": true, "release": "2025-01-16", "variants": ["basic", "core", "go", "lite", "micro", "nano", "pixel", "user"] },
+			"31": { "gapps": true, "lite": true, "superlite": false, "package": true, "release": "2025-01-16", "variants": ["basic", "core", "go", "lite", "micro", "nano", "pixel", "user"] },
+			"32": { "gapps": true, "lite": true, "superlite": false, "package": true, "release": "2024-11-12", "variants": ["basic", "core", "go", "lite", "micro", "nano", "pixel", "user"] },
+			"33": { "gapps": true, "lite": true, "superlite": false, "package": true, "release": "2026-01-18", "variants": ["basic", "core", "go", "lite", "micro", "nano", "pixel", "user"] },
+			"34": { "gapps": true, "lite": false, "superlite": false, "package": true, "release": "2026-01-18", "variants": ["basic", "core", "go", "lite", "micro", "nano", "pixel", "user"] },
+			"35": { "gapps": true, "lite": true, "superlite": false, "package": true, "release": "2026-01-18", "variants": ["basic", "core", "go", "lite", "micro", "nano", "pixel", "user"] },
+			"36": { "gapps": true, "lite": true, "superlite": false, "package": true, "release": "2026-05-13", "variants": ["basic", "core", "go", "lite", "micro", "nano", "pixel", "user"] },
+			"37": { "gapps": true, "lite": true, "superlite": false, "package": true, "release": "2026-05-13", "variants": ["basic", "core", "go", "lite", "micro", "nano", "pixel", "user"] }
+		},
+		"arm": {
+			"27": { "gapps": true, "lite": false, "superlite": false, "package": false, "release": "", "variants": [] },
+			"28": { "gapps": true, "lite": false, "superlite": false, "package": false, "release": "", "variants": [] },
+			"29": { "gapps": true, "lite": false, "superlite": false, "package": true, "release": "2024-08-18", "variants": ["basic", "core", "go", "lite", "micro", "nano", "pixel", "user"] },
+			"30": { "gapps": true, "lite": false, "superlite": false, "package": true, "release": "2024-08-18", "variants": ["basic", "core", "go", "lite", "micro", "nano", "pixel", "user"] },
+			"31": { "gapps": true, "lite": false, "superlite": false, "package": false, "release": "", "variants": [] },
+			"32": { "gapps": false, "lite": false, "superlite": false, "package": true, "release": "2024-08-15", "variants": ["basic", "core", "go", "lite", "micro", "nano", "pixel", "user"] },
+			"33": { "gapps": false, "lite": false, "superlite": false, "package": true, "release": "2024-08-15", "variants": ["core", "lite"] },
+			"34": { "gapps": true, "lite": true, "superlite": false, "package": true, "release": "2024-11-03", "variants": ["core", "lite"] },
+			"35": { "gapps": true, "lite": true, "superlite": false, "package": true, "release": "2024-11-03", "variants": ["core", "lite"] },
+			"36": { "gapps": true, "lite": true, "superlite": false, "package": true, "release": "", "variants": [] },
+			"37": { "gapps": false, "lite": false, "superlite": false, "package": false, "release": "", "variants": [] }
+		},
+		"x86": {
+			"27": { "gapps": true, "lite": false, "superlite": false, "package": false, "release": "", "variants": [] },
+			"28": { "gapps": true, "lite": false, "superlite": false, "package": false, "release": "", "variants": [] },
+			"29": { "gapps": true, "lite": false, "superlite": false, "package": false, "release": "", "variants": [] },
+			"30": { "gapps": true, "lite": false, "superlite": false, "package": true, "release": "2024-10-12", "variants": ["core", "lite"] },
+			"31": { "gapps": false, "lite": false, "superlite": false, "package": false, "release": "", "variants": [] },
+			"32": { "gapps": false, "lite": false, "superlite": false, "package": true, "release": "", "variants": [] },
+			"33": { "gapps": false, "lite": false, "superlite": false, "package": false, "release": "", "variants": [] },
+			"34": { "gapps": true, "lite": false, "superlite": false, "package": true, "release": "2024-10-29", "variants": ["core", "lite"] },
+			"35": { "gapps": true, "lite": true, "superlite": false, "package": true, "release": "2024-10-27", "variants": ["core", "lite"] },
+			"36": { "gapps": false, "lite": false, "superlite": false, "package": false, "release": "", "variants": [] },
+			"37": { "gapps": false, "lite": false, "superlite": false, "package": false, "release": "", "variants": [] }
+		},
+		"x86_64": {
+			"27": { "gapps": true, "lite": false, "superlite": false, "package": false, "release": "", "variants": [] },
+			"28": { "gapps": true, "lite": false, "superlite": false, "package": false, "release": "", "variants": [] },
+			"29": { "gapps": true, "lite": false, "superlite": false, "package": false, "release": "", "variants": [] },
+			"30": { "gapps": true, "lite": false, "superlite": false, "package": true, "release": "2024-10-12", "variants": ["core", "lite"] },
+			"31": { "gapps": false, "lite": false, "superlite": false, "package": false, "release": "", "variants": [] },
+			"32": { "gapps": false, "lite": false, "superlite": false, "package": true, "release": "", "variants": [] },
+			"33": { "gapps": false, "lite": false, "superlite": false, "package": true, "release": "2024-02-24", "variants": ["basic", "core", "go", "lite", "micro", "nano", "pixel", "user"] },
+			"34": { "gapps": true, "lite": true, "superlite": false, "package": true, "release": "2024-10-29", "variants": ["core", "lite"] },
+			"35": { "gapps": true, "lite": true, "superlite": false, "package": true, "release": "2024-10-27", "variants": ["core", "lite"] },
+			"36": { "gapps": false, "lite": false, "superlite": false, "package": false, "release": "", "variants": [] },
+			"37": { "gapps": false, "lite": false, "superlite": false, "package": false, "release": "", "variants": [] }
+		}
+	}
+}
