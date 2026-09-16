@@ -441,6 +441,25 @@ MAKE_LITEGAPPS(){
 	;;
 	esac
 	rm -rf $BASED/tmp_files
+	PRUNE_RELEASES $RELEASE
+	}
+
+# Keep only the newest $SF_KEEP_RELEASES (15) dated releases (YYYY-MM-DD) in
+# every variant folder of one arch/sdk release dir; older ones are deleted.
+# Folders not named as an ISO date (old v3.0-style releases) are left alone.
+# Same rule as web/sf-prune.sh, which does this remotely for the other builds.
+PRUNE_RELEASES(){
+	local KEEP=${SF_KEEP_RELEASES:-15} VDIR DATES COUNT OLD
+	for VDIR in $1/*/; do
+		[ -d "$VDIR" ] || continue
+		DATES=$(ls -1d "$VDIR"[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9] 2>/dev/null | sort)
+		COUNT=$(printf '%s\n' "$DATES" | grep -c .)
+		[ "$COUNT" -gt "$KEEP" ] || continue
+		for OLD in $(printf '%s\n' "$DATES" | head -n $((COUNT - KEEP))); do
+			echo "- Pruning old release <$OLD> (keeping the newest $KEEP)"
+			rm -rf "$OLD"
+		done
+	done
 	}
 UNZIP_FILE_SERVER(){
 	local input=$HOMEE/files-server/package/$ARCH/${SDK}.zip

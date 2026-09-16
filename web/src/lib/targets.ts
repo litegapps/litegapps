@@ -93,6 +93,8 @@ export type JobRequest = {
 	buildAddon?: boolean;
 	/** release the addon and the zips to the SourceForge FRS afterwards */
 	upload?: boolean;
+	/** SourceForge release retention, resolved by the caller (server side only) */
+	retention?: { on: boolean; keep: number };
 };
 
 /** Backup file names are produced by web/db-backup.sh; nothing else is accepted. */

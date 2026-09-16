@@ -18,3 +18,10 @@ packages/tmp
 *.br
 *.apk
 *.log
+# the panel's secrets and state never belong in the vps-build image
+web/.env
+web/node_modules
+web/.next
+web/job-logs
+web/db-backups
+web/db-backups.json

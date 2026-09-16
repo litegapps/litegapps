@@ -229,6 +229,23 @@ Logs: `log/make.log` and `log/make_live.log` — **read these first when a build
 - Do not commit generated/gitignored artifacts.
 - Only commit or push when the user asks.
 
+## Release retention on SourceForge
+
+Each variant folder on the FRS (`litegapps/<arch>/<sdk>/<variant>/`) keeps only
+its **newest 15 dated releases** (`YYYY-MM-DD` folders, `SF_KEEP_RELEASES`
+overrides the number); after a release is published the older ones are deleted.
+Every publishing path applies it: the panel batch and `vps-build.sh` call
+`web/sf-prune.sh <arch> <sdk>` after a successful upload (remote, via
+`rsync --list-only` + an sftp `rm`/`rmdir` batch, verified by relisting, and it
+refuses to prune on a failed or empty listing), and `sf-build.sh` runs
+`PRUNE_RELEASES` locally since it writes to the FRS directly. Folders that are
+not ISO dates (old `v3.0` or `20-02-2024` releases) are neither counted nor
+deleted. `web/sf-prune.sh ... --dry-run` shows what would go.
+`SF_PRUNE=0` turns it off. In the panel both the switch and the count live in
+Build > Settings (`settings` rows `release.prune` / `release.keep`) and reach
+batch jobs as `SF_PRUNE` / `SF_KEEP_RELEASES`; `vps-build.sh` takes them from
+`.env`.
+
 ## Supported targets
 
 x86 (32-bit) is supported **up to Android 15 (SDK 35) only**; arm64, arm and

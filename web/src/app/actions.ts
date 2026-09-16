@@ -6,7 +6,14 @@ import { currentUser, logout } from "@/lib/session";
 import { startJob, runningJob, stopJob } from "@/lib/jobs";
 import { writeConfigDoc } from "@/lib/config";
 import { moveEntry, removeEntry, renameEntry } from "@/lib/files";
-import { AUTO_BACKUP, setSetting } from "@/lib/settings";
+import {
+	AUTO_BACKUP,
+	RELEASE_KEEP,
+	RELEASE_KEEP_MAX,
+	RELEASE_PRUNE,
+	readRetention,
+	setSetting,
+} from "@/lib/settings";
 import { readOverrides, writeOverrides } from "@/lib/buildtargets";
 import { PACKAGE_LISTS, readPackageLists, writePackageLists } from "@/lib/packages";
 import { readSinglePrefs, writeBatchPrefs, writeSinglePrefs } from "@/lib/formstate";
@@ -39,6 +46,7 @@ export async function startJobAction(formData: FormData) {
 			packages: kind === "build-batch" || kind === "make" ? await readPackageLists() : undefined,
 			// Identity and version come from the panel, never from the repo file.
 			config: await readPanelConfig(),
+			retention: kind === "build-batch" ? await readRetention() : undefined,
 			kind,
 			variant: String(formData.get("variant") ?? "") || undefined,
 			name: String(formData.get("name") ?? "") || undefined,
@@ -72,7 +80,7 @@ function backPath(raw: string): string {
 	if (!["/", "/restore", "/backup", "/info"].includes(url.pathname)) return "/";
 	// Keep the Build page's tab, so a job started on one tab returns to it.
 	const tab = url.searchParams.get("tab");
-	if (url.pathname === "/" && tab && !["single", "config"].includes(tab)) {
+	if (url.pathname === "/" && tab && !["single", "config", "settings"].includes(tab)) {
 		url.searchParams.delete("tab");
 	}
 	url.searchParams.delete("error");
@@ -170,6 +178,23 @@ export async function toggleAutoBackupAction(formData: FormData) {
 	await setSetting(AUTO_BACKUP, formData.get("on") ? "1" : "0");
 	revalidatePath("/backup");
 	redirect("/backup");
+}
+
+/*
+ * Build > Settings: SourceForge release retention. The switch submits on its
+ * own; the count is validated here because the form is a public endpoint.
+ */
+export async function saveRetentionAction(formData: FormData) {
+	await requireAdmin();
+	const target = "/?tab=settings";
+	const keep = Number(formData.get("keep"));
+	if (!Number.isInteger(keep) || keep < 1 || keep > RELEASE_KEEP_MAX) {
+		redirect(withParam(target, "error", `Jumlah rilis harus 1-${RELEASE_KEEP_MAX}`));
+	}
+	await setSetting(RELEASE_PRUNE, formData.get("on") ? "1" : "0");
+	await setSetting(RELEASE_KEEP, String(keep));
+	revalidatePath("/");
+	redirect(withParam(target, "done", "Pengaturan disimpan"));
 }
 
 /*

@@ -23,6 +23,8 @@ import TargetConfigForm from "@/components/TargetConfigForm";
 import PackageListsForm from "@/components/PackageListsForm";
 import PanelConfigForm from "@/components/PanelConfigForm";
 import JobTerminal from "@/components/JobTerminal";
+import RetentionForm from "@/components/RetentionForm";
+import { RELEASE_KEEP_MAX, readRetention } from "@/lib/settings";
 import Link from "next/link";
 
 // Sessions, job rows and status.json all change outside the render, so this
@@ -38,7 +40,8 @@ export default async function Page({
 	if (!user) redirect("/login");
 
 	const { error, done, tab: rawTab } = await searchParams;
-	const tab = rawTab === "config" ? "config" : rawTab === "single" ? "single" : "build";
+	const tab =
+		rawTab === "config" || rawTab === "single" || rawTab === "settings" ? rawTab : "build";
 	const kinds = tab === "single" ? KINDS_SINGLE : KINDS_BATCH;
 	const [status, jobs, running, overview, overrides] = await Promise.all([
 		readStatus(),
@@ -55,6 +58,7 @@ export default async function Page({
 	const packageLists = Object.fromEntries(
 		PACKAGE_LISTS.map((n) => [n, resolveList(n, storedPackages)]),
 	);
+	const retention = tab === "settings" ? await readRetention() : null;
 	const busy = running !== null;
 
 	// Source state for the checklist: what the release server has, and what
@@ -121,6 +125,10 @@ export default async function Page({
 						<Icon name="tune" />
 						<span>Config target</span>
 					</Link>
+					<Link href="/?tab=settings" className={`tab${tab === "settings" ? " active" : ""}`}>
+						<Icon name="settings" />
+						<span>Settings</span>
+					</Link>
 				</nav>
 
 				{tab === "single" ? (
@@ -159,6 +167,28 @@ export default async function Page({
 						<Jobs jobs={jobs} busy={busy} />
 					</section>
 					</>
+				) : tab === "settings" && retention ? (
+					<section className="card">
+						<div className="card-head">
+							<h2>
+								<Icon name="auto_delete" />
+								Retensi rilis SourceForge
+							</h2>
+							<code>web/sf-prune.sh</code>
+						</div>
+						<div className="note" style={{ margin: "0 16px" }}>
+							<Icon name="info" />
+							<div>
+								Setelah zip berhasil dirilis ke <code>litegapps/&lt;arch&gt;/&lt;sdk&gt;</code>, tiap
+								folder varian hanya menyimpan rilis bertanggal (<code>YYYY-MM-DD</code>) terbaru
+								sebanyak angka di bawah; yang lebih lama dihapus dari SourceForge. Folder rilis
+								lama yang namanya bukan tanggal (misalnya <code>v3.0</code>) tidak dihitung dan
+								tidak dihapus. Kalau dimatikan, semua rilis dibiarkan. Berlaku untuk job build
+								banyak yang dimulai setelah disimpan.
+							</div>
+						</div>
+						<RetentionForm on={retention.on} keep={retention.keep} max={RELEASE_KEEP_MAX} />
+					</section>
 				) : tab === "config" ? (
 					<>
 					<section className="card">

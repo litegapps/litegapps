@@ -19,6 +19,8 @@
 #   upload    1 = release the results to SourceForge afterwards:
 #             addon -> <FRS>/addon/<arch>/<sdk>/
 #             zips  -> <FRS>/litegapps/<arch>/<sdk>/<variant>/<date>/
+#             then only the newest 15 dated releases per variant are kept
+#             (web/sf-prune.sh, SF_KEEP_RELEASES)
 #
 # The panel resolves the variant list per target (Build > Config target,
 # stored in its database) and passes it here, so this script never reads any
@@ -116,8 +118,13 @@ release_target(){
 	echo "--- Release $A/$S to SourceForge ---"
 	upload_dir "$BASED/packages/output" "$A/$S" "$SF_FRS/addon" ||
 		echo "! addon upload failed <$A/$S>"
-	upload_dir "$BASED/output/litegapps" "$A/$S" "$SF_FRS/litegapps" ||
+	if upload_dir "$BASED/output/litegapps" "$A/$S" "$SF_FRS/litegapps"; then
+		# Keep the newest SF_KEEP_RELEASES (15) releases per variant; only after
+		# a successful upload, so a failed one never costs an old release.
+		bash "$BASED/web/sf-prune.sh" "$A" "$S" || echo "! prune failed <$A/$S>"
+	else
 		echo "! zip upload failed <$A/$S>"
+	fi
 }
 
 echo "==================================================="

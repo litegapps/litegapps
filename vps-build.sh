@@ -286,7 +286,11 @@ build_variant(){
 		return 1
 	fi
 	log "Upload litegapps <$variant> <$ARCH/$SDK>"
-	scp_tree "$rin" "$SF_FRS/litegapps/$ARCH/$SDK/$variant"
+	if scp_tree "$rin" "$SF_FRS/litegapps/$ARCH/$SDK/$variant" && [ -z "$NO_UPLOAD" ]; then
+		# Keep the newest SF_KEEP_RELEASES (15) releases per variant.
+		SF_USER="$SF_USER" SF_HOST="$SF_HOST" SF_FRS="$SF_FRS" \
+			bash "$BASED/web/sf-prune.sh" "$ARCH" "$SDK" 2>&1 | while IFS= read -r l; do log "$l"; done
+	fi
 	[ -z "$KEEP_OUTPUT" ] && rm -rf "$rin"
 	return 0
 }

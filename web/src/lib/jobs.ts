@@ -138,7 +138,12 @@ function plan(req: JobRequest): Plan {
 					`build ${count} zip · ${targets.length} target` +
 					(req.buildAddon ? " · addon" : "") +
 					(req.upload ? " · upload SF" : ""),
-				env: packageEnv(req.packages ?? {}),
+				env: {
+					...packageEnv(req.packages ?? {}),
+					// Build > Settings; web/sf-prune.sh reads both after an upload.
+					SF_PRUNE: req.retention?.on === false ? "0" : "1",
+					SF_KEEP_RELEASES: String(req.retention?.keep ?? 15),
+				},
 			};
 		}
 		case "clean-sources":

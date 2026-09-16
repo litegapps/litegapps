@@ -71,6 +71,7 @@ about releases is stored there.
 | `src/components/` | UI — matrix, build forms, job list, terminal dialog, theme toggle |
 | `db-backup.sh` / `db-restore.sh` / `db-list.sh` / `db-tool.mjs` | encrypted database backup to `<SF>/db/`, restore, and remote listing |
 | `sf-common.sh` | shared SourceForge settings and ssh options for the shell jobs |
+| `sf-prune.sh` | keeps the newest 15 dated releases per variant on the FRS, deletes older ones |
 | `build-batch.sh` | builds every ticked arch x SDK in one job (variants per target resolved by the panel), restoring sources first when asked |
 | `clean-sources.sh` | deletes one target's restored sources (mirrors `cleanup_target` in `vps-build.sh`; keeps `output/`) |
 | `make-status.sh` | regenerates `status.json` from the SourceForge listing |
@@ -193,7 +194,10 @@ every combination is queued into a single batch job, because builds share
   allowed),
 - release the results to SourceForge - addon to `<FRS>/addon/<arch>/<sdk>/`
   and zips to `<FRS>/litegapps/<arch>/<sdk>/` (`rsync -R`, which creates the
-  remote directories; off by default, since it publishes),
+  remote directories; off by default, since it publishes). After a successful
+  zip upload `web/sf-prune.sh` keeps only the newest 15 dated releases per
+  variant folder and deletes the rest (`SF_KEEP_RELEASES`, `--dry-run`); the
+  on/off switch and the count are in Build > Settings,
 - delete the target's sources afterwards so a long run does not fill the disk.
 
 A failing target is logged and the run continues; the job ends non-zero if
