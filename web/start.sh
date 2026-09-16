@@ -73,6 +73,61 @@ ok      "  LiteGapps build panel — deploy"
 echo -e "${BLUE}========================================================================${NC}"
 
 #################################################
+# 0. Refuse to redeploy while a job is running
+#
+# Starting the stack recreates the web container, which kills whatever build,
+# restore or upload it is running - the job dies half way and comes back as
+# failed. So a deploy waits, unless --force says otherwise.
+#################################################
+FORCE=0
+for arg in "$@"; do
+	case "$arg" in
+		-f | --force) FORCE=1 ;;
+		*) err "[ERROR] unknown option <$arg>"; echo "usage: bash web/start.sh [--force]"; exit 1 ;;
+	esac
+done
+
+running_job(){
+	# The database is the panel's own record of what it started.
+	$COMPOSE exec -T mysql sh -c \
+		'mysql -uroot -p"$MYSQL_ROOT_PASSWORD" -N -e "SELECT CONCAT(id, \" \", label) FROM litegapps.jobs WHERE status = '"'"'running'"'"' LIMIT 1" 2>/dev/null' \
+		2>/dev/null | head -n1
+}
+
+build_lock_held(){
+	# Held for as long as a build job runs, and by anything else that takes it.
+	command -v flock >/dev/null || return 1
+	flock -n "$WEB_DIR/.job.lock" -c true 2>/dev/null && return 1
+	[ -f "$WEB_DIR/.job.lock" ]
+}
+
+step "0. Checking for running jobs"
+BUSY=""
+if $COMPOSE ps --status running 2>/dev/null | grep -q mysql; then
+	BUSY="$(running_job)"
+fi
+if [ -z "$BUSY" ] && build_lock_held; then
+	BUSY="proses build memegang web/.job.lock"
+fi
+
+if [ -n "$BUSY" ]; then
+	if [ "$FORCE" = 1 ]; then
+		warn "[WARN] masih ada proses berjalan: $BUSY"
+		warn "       --force dipakai: proses itu akan dimatikan oleh deploy ini"
+	else
+		err "[ERROR] tidak deploy: masih ada proses berjalan"
+		err "        $BUSY"
+		echo
+		echo "  Deploy me-restart container web, jadi job yang sedang jalan akan mati"
+		echo "  dan tercatat gagal. Tunggu sampai selesai (lihat terminal di panel),"
+		echo "  atau paksa dengan:  bash web/start.sh --force"
+		exit 1
+	fi
+else
+	ok "[OK] tidak ada job berjalan"
+fi
+
+#################################################
 # 1. git pull
 #################################################
 step "1. Updating code"
@@ -140,6 +195,15 @@ if unset_env ADMIN_PASSWORD; then
 	GENERATED_ADMIN_PASSWORD="$(gen 16)"
 	set_env ADMIN_PASSWORD "$GENERATED_ADMIN_PASSWORD"
 	ok "[OK] ADMIN_PASSWORD generated (shown once at the end)"
+fi
+
+# Database backups are uploaded to the SourceForge release area, which is
+# world readable, so they are always encrypted. No key, no backup.
+GENERATED_DB_KEY=""
+if unset_env DB_BACKUP_KEY; then
+	GENERATED_DB_KEY="$(openssl rand -hex 32 2>/dev/null || head -c 32 /dev/urandom | od -An -tx1 | tr -d ' \n')"
+	set_env DB_BACKUP_KEY "$GENERATED_DB_KEY"
+	ok "[OK] DB_BACKUP_KEY generated (shown once at the end)"
 fi
 
 if unset_env PUID; then set_env PUID "$REPO_UID"; fi
@@ -348,6 +412,11 @@ if [ -n "$GENERATED_ADMIN_PASSWORD" ]; then
 	echo    "  Login : $(get_env ADMIN_USER) / $GENERATED_ADMIN_PASSWORD   (new - also saved in web/.env)"
 else
 	echo    "  Login : $(get_env ADMIN_USER)  (password in web/.env)"
+fi
+if [ -n "$GENERATED_DB_KEY" ]; then
+	echo    "  DB key: $GENERATED_DB_KEY"
+	echo    "          (encrypts database backups - keep a copy somewhere else,"
+	echo    "           without it an uploaded backup cannot be restored)"
 fi
 echo    "  Logs  : $COMPOSE logs -f web"
 echo -e "${BLUE}========================================================================${NC}"

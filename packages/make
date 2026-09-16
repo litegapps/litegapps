@@ -224,8 +224,9 @@ RESTORE(){
 	done
 	print " "
 	
-	local PROP_ARCH=`getp arch $BASED/config | sed "s/,/ /g"`
-	local PROP_SDK=`getp sdk $BASED/config | sed "s/,/ /g"`
+	# ARCH/SDK come from `make restore <arch> <sdk>` and fall back to config
+	local PROP_ARCH=`echo "$ARCH" | sed "s/,/ /g"`
+	local PROP_SDK=`echo "$SDK" | sed "s/,/ /g"`
 	for A in $PROP_ARCH; do
 		for B in $PROP_SDK; do
 			if [ -f $BASED/zip-server/$A/${B}.zip ]; then
@@ -236,13 +237,18 @@ RESTORE(){
 					mkdir -p $BASED/files/$A/$B
 				fi
 				print "- <$BASED/zip-server/$A/${B}.zip> is available extracting"
-				unzip -o $BASED/zip-server/$A/${B}.zip -d $BASED/files/$A/$B >/dev/null
-				
+				if ! unzip -o $BASED/zip-server/$A/${B}.zip -d $BASED/files/$A/$B >/dev/null; then
+					print "! Unzip $BASED/zip-server/$A/${B}.zip error"
+					print "+ Removing zip"
+					rm -rf $BASED/zip-server/$A/${B}.zip $BASED/files/$A/$B
+					exit 1
+				fi
 			else
 				mkdir -p $BASED/zip-server/$A
-				URL=https://sourceforge.net/projects/litegapps/files/files-server/package/$A/${B}.zip
+				URL=https://sourceforge.net/projects/litegapps/files/files-server/package/$A/${B}.zip/download
+				[ -n "$SF_MIRROR" ] && URL="${URL}?use_mirror=${SF_MIRROR}"
 				print "- Downloading <${URL}>"
-				curl --progress-bar -L -o $BASED/zip-server/$A/${B}.zip $URL
+				curl --progress-bar -fL -o $BASED/zip-server/$A/${B}.zip $URL || rm -f $BASED/zip-server/$A/${B}.zip
 				if [ -f $BASED/zip-server/$A/${B}.zip ]; then
 					print "- Extract ZIP to $BASED/files/$A/$B"
 					mkdir -p $BASED/files/$A/$B
@@ -252,7 +258,8 @@ RESTORE(){
 					else
 						print "! Unzip $BASED/zip-server/$A/${B}.zip error"
 						print "+ Removing zip"
-						rm -rf $BASED/zip-server/$A/${B}.zip
+						rm -rf $BASED/zip-server/$A/${B}.zip $BASED/files/$A/$B
+						exit 1
 					fi
 				else
 					print "! file <$BASED/zip-server/$A/${B}.zip> is not found"

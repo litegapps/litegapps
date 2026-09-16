@@ -2,62 +2,58 @@ import { redirect } from "next/navigation";
 import Icon from "@/components/Icon";
 import AppBar from "@/components/AppBar";
 import BuildForm from "@/components/BuildForm";
+import BatchBuildForm from "@/components/BatchBuildForm";
 import Jobs from "@/components/Jobs";
-import StatusMatrix from "@/components/StatusMatrix";
 import { currentUser } from "@/lib/session";
 import { listJobs, runningJob } from "@/lib/jobs";
-import { readStatus, type Status } from "@/lib/status";
+import { readStatus } from "@/lib/status";
+import { readRestoreOverview } from "@/lib/restore";
+import { readOverrides } from "@/lib/buildtargets";
+import { PACKAGE_LISTS, readPackageLists, resolveList } from "@/lib/packages";
+import { readBatchPrefs, readSinglePrefs } from "@/lib/formstate";
+import TargetConfigForm from "@/components/TargetConfigForm";
+import PackageListsForm from "@/components/PackageListsForm";
+import JobTerminal from "@/components/JobTerminal";
+import Link from "next/link";
 
 // Sessions, job rows and status.json all change outside the render, so this
 // page must never be cached.
 export const dynamic = "force-dynamic";
 
-function Stat({ icon, label, value, total }: {
-	icon: string;
-	label: string;
-	value: string | number;
-	total?: number;
-}) {
-	return (
-		<div className="stat">
-			<div className="k">
-				<Icon name={icon} />
-				{label}
-			</div>
-			<div className="v">
-				{value}
-				{total !== undefined && <small> / {total}</small>}
-			</div>
-		</div>
-	);
-}
-
-function count(s: Status, key: "gapps" | "package") {
-	let n = 0;
-	let total = 0;
-	for (const a of s.archs) {
-		for (const sdk of s.sdks) {
-			total++;
-			if (s.targets[a]?.[String(sdk.sdk)]?.[key]) n++;
-		}
-	}
-	return { n, total };
-}
-
 export default async function Page({
 	searchParams,
 }: {
-	searchParams: Promise<{ error?: string }>;
+	searchParams: Promise<{ error?: string; done?: string; tab?: string }>;
 }) {
 	const user = await currentUser();
 	if (!user) redirect("/login");
 
-	const { error } = await searchParams;
-	const [status, jobs, running] = await Promise.all([readStatus(), listJobs(), runningJob()]);
+	const { error, done, tab: rawTab } = await searchParams;
+	const tab = rawTab === "config" ? "config" : rawTab === "single" ? "single" : "build";
+	const [status, jobs, running, overview, overrides] = await Promise.all([
+		readStatus(),
+		listJobs(),
+		runningJob(),
+		readRestoreOverview(),
+		readOverrides(),
+	]);
+	const [batchPrefs, singlePrefs] = await Promise.all([readBatchPrefs(), readSinglePrefs()]);
+	const storedPackages = tab === "config" ? await readPackageLists() : {};
+	const packageLists = Object.fromEntries(
+		PACKAGE_LISTS.map((n) => [n, resolveList(n, storedPackages)]),
+	);
 	const busy = running !== null;
 
-	const g = status ? count(status, "gapps") : null;
-	const p = status ? count(status, "package") : null;
+	// Source state for the checklist: what the release server has, and what
+	// this checkout already holds.
+	const serverGapps: Record<string, boolean> = {};
+	for (const a of status?.archs ?? []) {
+		for (const s of status?.sdks ?? []) {
+			serverGapps[`${a}-${s.sdk}`] = Boolean(status?.targets[a]?.[String(s.sdk)]?.gapps);
+		}
+	}
+	const localGapps: Record<string, string[]> = {};
+	for (const r of overview.restored) localGapps[`${r.arch}-${r.sdk}`] = r.variants;
 
 	return (
 		<>
@@ -68,6 +64,12 @@ export default async function Page({
 					<div className="err" style={{ marginTop: 20 }}>
 						<Icon name="error" />
 						<span>{error}</span>
+					</div>
+				)}
+				{done && (
+					<div className="err ok" style={{ marginTop: 20 }}>
+						<Icon name="check_circle" />
+						<span>{done}</span>
 					</div>
 				)}
 
@@ -93,22 +95,32 @@ export default async function Page({
 					)}
 				</div>
 
-				<div className="stats">
-					<Stat icon="sell" label="Versi" value={status?.version?.version ?? "—"} />
-					<Stat icon="event" label="Rilis terakhir" value={status?.latest_release || "—"} />
-					{g && <Stat icon="folder_zip" label="Gapps source" value={g.n} total={g.total} />}
-					{p && <Stat icon="inventory_2" label="Package source" value={p.n} total={p.total} />}
-				</div>
+				<nav className="tabs card" aria-label="Halaman build" style={{ marginBottom: 0 }}>
+					<Link href="/" className={`tab${tab === "build" ? " active" : ""}`}>
+						<Icon name="checklist" />
+						<span>Build banyak</span>
+					</Link>
+					<Link href="/?tab=single" className={`tab${tab === "single" ? " active" : ""}`}>
+						<Icon name="play_circle" />
+						<span>Satu perintah</span>
+					</Link>
+					<Link href="/?tab=config" className={`tab${tab === "config" ? " active" : ""}`}>
+						<Icon name="tune" />
+						<span>Config target</span>
+					</Link>
+				</nav>
 
+				{tab === "single" ? (
+					<>
 				<section className="card">
 					<div className="card-head">
 						<h2>
 							<Icon name="play_circle" />
-							Jalankan
+							Jalankan satu perintah
 						</h2>
 						<code>build.sh &middot; packages/make &middot; web/make-status.sh</code>
 					</div>
-					<BuildForm busy={busy} />
+					<BuildForm busy={busy} back="/?tab=single" prefs={singlePrefs} />
 					{busy && running && (
 						<div className="legend">
 							<span className="item">
@@ -122,6 +134,92 @@ export default async function Page({
 					)}
 				</section>
 
+				<JobTerminal kinds={["make", "packages", "restore", "clean", "status"]} />
+
+					<section className="card">
+						<div className="card-head">
+							<h2>
+								<Icon name="history" />
+								Riwayat job
+							</h2>
+						</div>
+						<Jobs jobs={jobs} busy={busy} />
+					</section>
+					</>
+				) : tab === "config" ? (
+					<>
+					<section className="card">
+						<div className="card-head">
+							<h2>
+								<Icon name="tune" />
+								Varian per target
+							</h2>
+							<code>tersimpan di database panel</code>
+						</div>
+						<div className="note" style={{ margin: "0 16px" }}>
+							<Icon name="info" />
+							<div>
+								Di sinilah ditentukan tiap versi Android dan arsitektur dibangun jadi varian apa.
+								Daftar ini yang dipakai saat build, bukan <code>config</code> utama atau config di{" "}
+								<code>core/</code>. Config utama tetap dipakai untuk versi, kompresi, level zip, dan
+								penanda builder.
+							</div>
+						</div>
+						<TargetConfigForm overrides={overrides} count={Object.keys(overrides).length} />
+					</section>
+					<section className="card">
+						<div className="card-head">
+							<h2>
+								<Icon name="apps" />
+								Daftar paket per varian
+							</h2>
+							<code>paket addon yang ditambahkan ke gapps tiap varian</code>
+						</div>
+						<PackageListsForm
+							lists={packageLists}
+							changed={Object.keys(storedPackages)}
+							order={PACKAGE_LISTS}
+							labels={{
+								micro: "micro",
+								nano: "nano",
+								basic: "basic",
+								user: "user",
+								go: "go",
+								"core.keep": "Dilewati (sudah ada di gapps dasar)",
+							}}
+						/>
+					</section>
+					</>
+				) : (
+				<>
+				<section className="card">
+					<div className="card-head">
+						<h2>
+							<Icon name="checklist" />
+							Build banyak target
+						</h2>
+						<code>bash web/build-batch.sh &lt;arch&gt;:&lt;sdk&gt;=&lt;varian&gt;</code>
+					</div>
+					<BatchBuildForm
+						busy={busy}
+						prefs={batchPrefs}
+						overrides={overrides}
+						serverGapps={serverGapps}
+						localGapps={localGapps}
+					/>
+					<div className="legend">
+						<span className="item">
+							<Icon name="info" />
+							<span>
+								Semua target dibangun berurutan dalam satu job; kalau satu target gagal, sisanya
+								tetap lanjut dan log mencatat mana yang gagal.
+							</span>
+						</span>
+					</div>
+				</section>
+
+				<JobTerminal kinds={["build-batch"]} />
+
 				<section className="card">
 					<div className="card-head">
 						<h2>
@@ -131,25 +229,14 @@ export default async function Page({
 					</div>
 					<Jobs jobs={jobs} busy={busy} />
 				</section>
-
-				{status ? (
-					<StatusMatrix status={status} />
-				) : (
-					<section className="card">
-						<div className="msg">
-							<Icon name="error" />
-							<b>status.json belum ada.</b>
-							<br />
-							Jalankan perintah <code>Segarkan status</code> di atas.
-						</div>
-					</section>
+				</>
 				)}
 
 				<footer>
 					<span className="item">
-						<Icon name="update" />
+						<Icon name="info" />
 						<span>
-							Status diperbarui <b>{status?.generated ?? "—"}</b>
+							Daftar source dan rilis yang sudah terbit ada di menu <b>Info</b>.
 						</span>
 					</span>
 				</footer>

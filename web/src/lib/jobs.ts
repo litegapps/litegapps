@@ -1,14 +1,17 @@
 import { spawn } from "node:child_process";
-import { openSync, mkdirSync, readFileSync } from "node:fs";
+import { openSync, closeSync, mkdirSync, readFileSync } from "node:fs";
 import { readFile, stat } from "node:fs/promises";
 import path from "node:path";
 import type { RowDataPacket, ResultSetHeader } from "mysql2";
 import { db, ensureSchema } from "./db";
 import { repoRoot, jobLogDir } from "./paths";
-import { ARCHS, SDKS, VARIANTS } from "./targets";
+import { findBuildProcesses } from "./procs";
+import { ARCHS, BACKUP_NAME, SDKS, VARIANTS } from "./targets";
+import { targetSpec } from "./buildtargets";
+import { packageEnv } from "./packages";
 import type { Job, JobRequest } from "./targets";
 
-export { ARCHS, SDKS, VARIANTS } from "./targets";
+export { ARCHS, SDKS, VARIANTS, ANDROID } from "./targets";
 export type { Job, JobKind, JobRequest } from "./targets";
 
 /*
@@ -20,7 +23,10 @@ export type { Job, JobKind, JobRequest } from "./targets";
  * array with no shell, so nothing a form can submit is ever interpreted.
  */
 
-type Plan = { argv: string[]; label: string };
+type Plan = { argv: string[]; label: string; env?: Record<string, string> };
+
+/** Placeholder in a plan's argv, replaced with the job's own id in startJob. */
+const JOB_ID_TOKEN = "__JOB_ID__";
 
 /** Turn a request into an argv array, or throw if anything is off the allowlist. */
 function plan(req: JobRequest): Plan {
@@ -46,6 +52,7 @@ function plan(req: JobRequest): Plan {
 			return {
 				argv: ["bash", "build.sh", "make", "litegapps", variant, arch, sdk],
 				label: `make ${variant} ${arch} sdk ${sdk}`,
+				env: packageEnv(req.packages ?? {}),
 			};
 		case "packages":
 			needArch(); needSdk();
@@ -55,6 +62,95 @@ function plan(req: JobRequest): Plan {
 			};
 		case "restore":
 			return { argv: ["sh", "build.sh", "restore"], label: "restore" };
+		case "restore-bin":
+			return { argv: ["sh", "build.sh", "restore", "bin"], label: "restore bin" };
+		case "restore-package":
+			needArch(); needSdk();
+			return {
+				argv: ["bash", "packages/make", "restore", arch, sdk],
+				label: `restore package ${arch} sdk ${sdk}`,
+			};
+		case "restore-gapps": {
+			needArch(); needSdk();
+			const list = [...new Set(req.variants ?? [])];
+			if (!list.length) throw new Error("pick at least one variant");
+			for (const v of list) {
+				if (!(VARIANTS as readonly string[]).includes(v)) throw new Error(`bad variant: ${v}`);
+			}
+			// build.sh restores bin.zip first, then each variant's gapps zip.
+			return {
+				argv: ["sh", "build.sh", "restore", "litegapps", list.join(","), arch, sdk],
+				label: `restore gapps ${list.join(",")} ${arch} sdk ${sdk}`,
+			};
+		}
+		case "build-batch": {
+			// The per-target variant lists are resolved before the job starts
+			// and handed over in argv (see buildtargets.targetSpec).
+			const archs = [...new Set(req.archs ?? [])];
+			const sdks = [...new Set(req.sdks ?? [])];
+			if (!archs.length) throw new Error("pick at least one arch");
+			if (!sdks.length) throw new Error("pick at least one Android version");
+			for (const a of archs) {
+				if (!(ARCHS as readonly string[]).includes(a)) throw new Error(`bad arch: ${a}`);
+			}
+			for (const s of sdks) {
+				if (!(SDKS as readonly number[]).includes(Number(s))) throw new Error(`bad sdk: ${s}`);
+			}
+			const auto = req.autoVariants !== false;
+			const list = [...new Set(req.variants ?? [])];
+			if (!auto) {
+				if (!list.length) throw new Error("pick at least one variant");
+				for (const v of list) {
+					if (!(VARIANTS as readonly string[]).includes(v)) throw new Error(`bad variant: ${v}`);
+				}
+			}
+
+			const spec = targetSpec(
+				archs,
+				sdks.map(Number),
+				auto ? (req.overrides ?? {}) : {},
+				auto ? undefined : list,
+			);
+			const count = spec
+				.split(";")
+				.filter(Boolean)
+				.reduce((n, part) => n + part.split("=")[1].split(",").filter(Boolean).length, 0);
+
+			return {
+				argv: [
+					"bash", "web/build-batch.sh", spec,
+					req.restoreMissing === false ? "0" : "1",
+					req.cleanAfter ? "1" : "0",
+					req.buildAddon ? "1" : "0",
+					req.upload ? "1" : "0",
+				],
+				label:
+					`build ${count} zip · ${archs.join("/")} · sdk ${sdks.join(",")}` +
+					(req.buildAddon ? " · addon" : "") +
+					(req.upload ? " · upload SF" : ""),
+				env: packageEnv(req.packages ?? {}),
+			};
+		}
+		case "db-backup":
+			return { argv: ["bash", "web/db-backup.sh"], label: "backup database ke SourceForge" };
+		case "db-list":
+			return { argv: ["bash", "web/db-list.sh"], label: "refresh daftar backup" };
+		case "db-restore": {
+			const name = req.name ?? "";
+			if (!BACKUP_NAME.test(name)) throw new Error(`bad backup name: ${name}`);
+			// JOB_ID_TOKEN becomes this job's own id once the row exists, so the
+			// restore can keep its own history row.
+			return {
+				argv: ["bash", "web/db-restore.sh", name, JOB_ID_TOKEN],
+				label: `restore database dari ${name}`,
+			};
+		}
+		case "clean-sources":
+			needArch(); needSdk();
+			return {
+				argv: ["bash", "web/clean-sources.sh", arch, sdk],
+				label: `clean sources ${arch} sdk ${sdk}`,
+			};
 		case "clean":
 			return { argv: ["sh", "build.sh", "clean"], label: "clean" };
 		case "status":
@@ -63,6 +159,17 @@ function plan(req: JobRequest): Plan {
 			throw new Error(`unknown job kind: ${req.kind}`);
 	}
 }
+
+/*
+ * Job kinds that touch the build tree. Starting a second one while something
+ * is already building would have two processes writing the same output/,
+ * log/ and gapps directories.
+ */
+const BUILD_KINDS = new Set<string>([
+	"make", "packages", "build-batch",
+	"restore", "restore-bin", "restore-package", "restore-gapps",
+	"clean", "clean-sources",
+]);
 
 /** Only one build may run at a time — they share output/ and log/. */
 export async function runningJob(): Promise<Job | null> {
@@ -76,9 +183,21 @@ export async function runningJob(): Promise<Job | null> {
 export async function startJob(req: JobRequest): Promise<number> {
 	await ensureSchema();
 
-	if (await runningJob()) throw new Error("a job is already running");
+	const busy = await runningJob();
+	if (busy) throw new Error(`ada job lain yang sedang berjalan: ${busy.label} (#${busy.id})`);
 
-	const { argv, label } = plan(req);
+	if (BUILD_KINDS.has(req.kind)) {
+		// Nothing in the database, but something may still be building - a job
+		// started with docker exec, or one whose row was restored away.
+		const foreign = await findBuildProcesses();
+		if (foreign.length) {
+			throw new Error(
+				`ada proses build lain di VPS: pid ${foreign[0].pid} (${foreign[0].cmd}) — tunggu sampai selesai`,
+			);
+		}
+	}
+
+	const { argv: planned, label, env: planEnv } = plan(req);
 	const root = repoRoot();
 	const dir = jobLogDir();
 	mkdirSync(dir, { recursive: true });
@@ -86,13 +205,29 @@ export async function startJob(req: JobRequest): Promise<number> {
 	const c = db();
 	const [res] = await c.query<ResultSetHeader>(
 		"INSERT INTO jobs (kind, label, argv, log_file) VALUES (?, ?, ?, '')",
-		[req.kind, label, argv.join(" ")],
+		[req.kind, label, planned.join(" ")],
 	);
 	const id = res.insertId;
+	const argv = planned.map((a) => (a === JOB_ID_TOKEN ? String(id) : a));
 	const logFile = path.join(dir, `${id}.log`);
 	const exitFile = path.join(dir, `${id}.exit`);
 
 	const fd = openSync(/*turbopackIgnore: true*/ logFile, "a");
+
+	/*
+	 * Build jobs also take a real file lock, as the last line of defence: two
+	 * of them can only overlap if both the database check and the process scan
+	 * missed, and then the second one stops at once instead of corrupting a
+	 * build. Jobs that do not touch the build tree (status refresh, database
+	 * backup) run without it, so a long build never blocks them.
+	 */
+	const guarded = BUILD_KINDS.has(req.kind);
+	const lockFd = guarded
+		? openSync(/*turbopackIgnore: true*/ path.join(root, "web", ".job.lock"), "a")
+		: null;
+	const wrapper = guarded
+		? 'flock -n 9 || { echo "! build lain sedang memegang lock - dibatalkan"; printf 1 > "$0"; exit 1; }; "$@"; printf %s "$?" > "$0"'
+		: '"$@"; printf %s "$?" > "$0"';
 
 	/*
 	 * The job must outlive the request, so it is detached and unref'd — which
@@ -106,12 +241,18 @@ export async function startJob(req: JobRequest): Promise<number> {
 	 */
 	const child = spawn(
 		/*turbopackIgnore: true*/ "bash",
-		["-c", '"$@"; printf %s "$?" > "$0"', exitFile, ...argv],
+		["-c", wrapper, exitFile, ...argv],
 		{
 			cwd: root,
-			stdio: ["ignore", fd, fd],
+			// fd 9 is the lock the wrapper's `flock -n 9` holds for as long as
+			// the job lives; the kernel releases it when the process exits.
+			stdio: lockFd
+				? ["ignore", fd, fd, "ignore", "ignore", "ignore", "ignore", "ignore", "ignore", lockFd]
+				: ["ignore", fd, fd],
 			detached: true,
-			env: process.env,
+			// planEnv carries the panel's package lists (LG_PKGS_*), which the
+			// build reads instead of its built-in ones.
+			env: { ...process.env, ...planEnv },
 		},
 	);
 
@@ -119,6 +260,18 @@ export async function startJob(req: JobRequest): Promise<number> {
 		"UPDATE jobs SET log_file = ?, exit_file = ?, pid = ?, pid_start = ? WHERE id = ?",
 		[logFile, exitFile, child.pid ?? null, pidStartTime(child.pid ?? null), id],
 	);
+
+	/*
+	 * Hand both descriptors over to the child.
+	 *
+	 * The lock matters here: parent and child share one open file description,
+	 * and a flock is released only when every descriptor for it is closed. Left
+	 * open in the server, the lock would outlive the job and every later build
+	 * would be refused - so the server drops its copy and the child keeps the
+	 * lock for exactly as long as it runs.
+	 */
+	closeSync(fd);
+	if (lockFd !== null) closeSync(lockFd);
 
 	child.on("error", async () => {
 		await db().query(
@@ -176,10 +329,15 @@ export async function reconcile(): Promise<void> {
 	await ensureSchema();
 	const c = db();
 	const [rows] = await c.query<RowDataPacket[]>(
-		"SELECT id, pid, pid_start, exit_file FROM jobs WHERE status = 'running'",
+		"SELECT id, pid, pid_start, exit_file, TIMESTAMPDIFF(SECOND, started_at, NOW()) AS age FROM jobs WHERE status = 'running'",
 	);
 
 	for (const r of rows) {
+		// startJob inserts the row before it can spawn, and records the pid
+		// only afterwards. A request landing in that gap must not read the
+		// missing pid as a dead process, so give a fresh row time to fill in.
+		if (!r.pid && !r.exit_file && Number(r.age) < 60) continue;
+
 		let code: number | null = null;
 		if (r.exit_file) {
 			try {

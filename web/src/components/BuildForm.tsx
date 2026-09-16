@@ -5,6 +5,8 @@ import { useFormStatus } from "react-dom";
 import Icon from "./Icon";
 import { startJobAction } from "@/app/actions";
 import { ARCHS, SDKS, VARIANTS } from "@/lib/targets";
+import { useBusy } from "./useBusy";
+import { useRemember } from "./useRemember";
 
 type Kind = { id: string; label: string; needs: readonly string[] };
 
@@ -16,8 +18,10 @@ const KINDS: readonly Kind[] = [
 	{ id: "clean", label: "Clean", needs: [] },
 ];
 
-function Submit({ busy }: { busy: boolean }) {
+function Submit({ busy: initialBusy }: { busy: boolean }) {
 	const { pending } = useFormStatus();
+	// Live: a job started elsewhere must disable this too.
+	const busy = useBusy(initialBusy);
 	const disabled = busy || pending;
 	return (
 		<button className="btn" type="submit" disabled={disabled}>
@@ -27,12 +31,27 @@ function Submit({ busy }: { busy: boolean }) {
 	);
 }
 
-export default function BuildForm({ busy }: { busy: boolean }) {
-	const [kind, setKind] = useState<string>("make");
+export default function BuildForm({
+	busy,
+	back = "/",
+	prefs,
+}: {
+	busy: boolean;
+	back?: string;
+	/** last used command and target, from the database */
+	prefs: { kind: string; variant: string; arch: string; sdk: string };
+}) {
+	const [kind, setKind] = useState<string>(prefs.kind);
+	const [variant, setVariant] = useState(prefs.variant);
+	const [arch, setArch] = useState(prefs.arch);
+	const [sdk, setSdk] = useState(prefs.sdk);
+
+	useRemember("single", { kind, variant, arch, sdk });
 	const needs = KINDS.find((k) => k.id === kind)?.needs ?? [];
 
 	return (
 		<form action={startJobAction} className="buildform">
+			<input type="hidden" name="back" value={back} />
 			<div className="field">
 				<label htmlFor="kind">Perintah</label>
 				<select id="kind" name="kind" value={kind} onChange={(e) => setKind(e.target.value)}>
@@ -47,7 +66,12 @@ export default function BuildForm({ busy }: { busy: boolean }) {
 			{needs.includes("variant") && (
 				<div className="field">
 					<label htmlFor="variant">Varian</label>
-					<select id="variant" name="variant" defaultValue="lite">
+					<select
+						id="variant"
+						name="variant"
+						value={variant}
+						onChange={(e) => setVariant(e.target.value)}
+					>
 						{VARIANTS.map((v) => (
 							<option key={v} value={v}>
 								{v}
@@ -60,7 +84,7 @@ export default function BuildForm({ busy }: { busy: boolean }) {
 			{needs.includes("arch") && (
 				<div className="field">
 					<label htmlFor="arch">Arsitektur</label>
-					<select id="arch" name="arch" defaultValue="arm64">
+					<select id="arch" name="arch" value={arch} onChange={(e) => setArch(e.target.value)}>
 						{ARCHS.map((a) => (
 							<option key={a} value={a}>
 								{a}
@@ -73,7 +97,7 @@ export default function BuildForm({ busy }: { busy: boolean }) {
 			{needs.includes("sdk") && (
 				<div className="field">
 					<label htmlFor="sdk">SDK</label>
-					<select id="sdk" name="sdk" defaultValue="36">
+					<select id="sdk" name="sdk" value={sdk} onChange={(e) => setSdk(e.target.value)}>
 						{[...SDKS].reverse().map((s) => (
 							<option key={s} value={s}>
 								{s}

@@ -12,7 +12,8 @@ admin panel with its own `package.json`, which drives those same shell
 scripts rather than replacing them.
 
 For the full working guide, see the `build-litegapps` skill
-(`.claude/skills/build-litegapps/SKILL.md`).
+(`.claude/skills/build-litegapps/SKILL.md`). `AGENTS.md` is the short version
+of the rules in this file, for agents that do not read this one.
 
 ## Build commands
 
@@ -25,7 +26,16 @@ sh build.sh clean     # reset tree (removes downloads, output, logs)
 
 # build a single target, ignoring config:
 bash build.sh make litegapps <variant> <arch> <sdk>   # e.g. lite arm64 36
+
+# restore a single target, ignoring config (variants comma separated):
+sh build.sh restore bin                               # bin.zip only
+sh build.sh restore litegapps <variant,...> <arch> <sdk>
+bash packages/make restore <arch> <sdk>
 ```
+
+With no arguments both `restore` commands behave as before and read their
+config (`litegapps.restore` + each variant's `restore.arch`/`restore.sdk`, and
+`packages/config`); the arguments only override it.
 
 Output: `output/litegapps/<arch>/<sdk>/<variant>/<date>/LiteGapps-*.zip`
 Logs: `log/make.log` and `log/make_live.log` — **read these first when a build fails.**
@@ -93,11 +103,53 @@ Logs: `log/make.log` and `log/make_live.log` — **read these first when a build
   read-only mount and runs as the host uid (`PUID`/`PGID`), so builds never
   leave root-owned files in the checkout. It never reimplements build logic: every action shells out to
   `build.sh` / `packages/make` / `web/make-status.sh` through a fixed allowlist
-  in `src/lib/targets.ts`, spawned as an argv array with no shell. The
+  in `src/lib/jobs.ts`, spawned as an argv array with no shell. Builds are
+  guarded three ways: the running-job row, a scan for build processes started
+  outside the panel (`src/lib/procs.ts`), and `flock -n web/.job.lock` held by
+  the job process (the server must close its own copy of that fd, or the lock
+  outlives the job). The
   availability matrix comes from `web/status.json` (written by
   `web/make-status.sh`), never from a live SourceForge call inside a request.
-  MySQL stores only the admin account, sessions and job history.
-  Deploy with **`bash web/start.sh`** (one-shot, idempotent). Never start the
+  MySQL stores only the admin account, sessions, job history and panel settings
+  (including the build forms' last selection, so they resume where they were).
+  Every job's output is tailed by an inline terminal panel under the form that
+  started it (`src/components/JobTerminal.tsx` + `Terminal.tsx`, fed by
+  `?job=<id>` or `/api/jobs/running`); progress is parsed from the
+  `=== [n/m] ... ===` markers the scripts print. `/info` holds the release matrices (gapps/package source,
+  published releases) and the status refresh.
+  `/` offers a checklist that turns ticked arch x SDK combinations into one
+  batch job (`web/build-batch.sh`, continue-on-failure, optional auto-restore
+  and per-target source cleanup). Which variants each target is built with
+  and which addon apps go into each variant, come from the panel's "Config
+  target" tab and live in its database (`build_targets`, `package_lists`),
+  never in `config` or `core/*/config`: the panel resolves them before a job
+  starts and passes them in argv (`<arch>:<sdk>=<variant,...>`) and in the
+  environment (`LG_PKGS_<VARIANT>`, `LG_CORE_KEEP`, honoured by
+  `lib/litegapps.sh`), then invokes
+  `bash build.sh make litegapps <variant> <arch> <sdk>` per target, exactly
+  like `LITE()`/`CORE()`/`PIXEL()` in `sf-build.sh`. Targets with no row
+  follow `defaultVariants()`. The batch job can also build the addon per
+  target (`MAKE_ADDON` equivalent) and, only when explicitly ticked, release
+  addon and zips to the SourceForge FRS. The main `config` still supplies
+  version, compression, zip level, signer and builder. `/restore` restores sources per arch/SDK with the target arguments above,
+  defaulting the gapps variants to the same per-target list the build uses, and
+  `web/clean-sources.sh` deletes a target's sources again. `/config` edits the
+  shell configs (`config`, `packages/config`, per-variant `config`) in place —
+  it only ever replaces the value of a key the file already has, keeping
+  comments and order, and refuses to save while a job runs. `/files` is a file
+  manager over the checkout (detail/rename/move/delete per entry) with every
+  path resolved inside the repo root and `.git`/`.env`/`.ssh`/`node_modules`
+  refused at any depth. `/backup` dumps the database (users + jobs; never
+  sessions) with `web/db-tool.mjs`, **always AES-256-GCM encrypted** with
+  `DB_BACKUP_KEY` because the upload target `$HOMEE/db` is world readable,
+  and uploads it with rsync of a staged directory (that restricted account
+  cannot mkdir and its rsync has no `--mkpath`). A switch on that page turns
+  on a daily backup, run by an in-process scheduler
+  (`src/instrumentation.ts` -> `src/lib/scheduler.ts`, state in the `settings`
+  table) because the image has no cron.
+  Deploy with **`bash web/start.sh`** (one-shot, idempotent) — it refuses to
+  run while a panel job is running, since recreating the container kills it;
+  `--force` overrides. Never start the
   stack under another compose project name than `litegapps-web` — it prefixes
   the MySQL volume, and a different name comes up with an empty database.
   **Never sync `web/` to the SourceForge FRS** — see the `sf-build.sh` note above.
@@ -107,6 +159,22 @@ Logs: `log/make.log` and `log/make_live.log` — **read these first when a build
   `files`, `tmp`) have no leading slash, so they match at **any** depth — that
   silently swallowed `web/src/app/api/jobs/[id]/log/`, hence the `!web/src/**`
   rule. Check `git check-ignore -v <path>` before assuming a new file is tracked.
+
+## Working on the panel
+
+- Deploy with `bash web/start.sh`; it refuses while a job runs (see the `web/`
+  entry above) because recreating the container kills that job.
+- Config the panel owns lives in **its database**, not in the repo: the
+  per-target variant list (`build_targets`), the per-variant package lists
+  (`package_lists`), the daily-backup switch and the build forms' last
+  selection (`settings`). The build gets them through argv and the
+  environment, so `config` and `core/*/config` stay out of it except for
+  version, compression, zip level, signer and builder.
+- Jobs are the only way the panel touches the tree, they are serialised three
+  ways (running-job row, process scan, `flock`), and each one's output is
+  tailed by the terminal panel on the page that started it.
+- Verification is manual and against the live VPS panel — there is no test
+  suite. See AGENTS.md for how.
 
 ## Conventions
 

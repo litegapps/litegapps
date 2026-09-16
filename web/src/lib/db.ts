@@ -69,6 +69,27 @@ export function ensureSchema(): Promise<void> {
 					INDEX (started_at)
 				) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
 			`);
+			await c.query(`
+				CREATE TABLE IF NOT EXISTS settings (
+					k          VARCHAR(64) PRIMARY KEY,
+					v          VARCHAR(255) NOT NULL,
+					updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+				) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+			`);
+			await c.query(`
+				CREATE TABLE IF NOT EXISTS build_targets (
+					arch     VARCHAR(16) NOT NULL,
+					sdk      INT NOT NULL,
+					variants VARCHAR(255) NOT NULL,
+					PRIMARY KEY (arch, sdk)
+				) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+			`);
+			await c.query(`
+				CREATE TABLE IF NOT EXISTS package_lists (
+					name  VARCHAR(32) PRIMARY KEY,
+					items TEXT NOT NULL
+				) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+			`);
 			// Tables created before pid_start existed.
 			const [cols] = await c.query<RowDataPacket[]>(
 				"SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'jobs' AND COLUMN_NAME = 'pid_start'",

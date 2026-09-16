@@ -22,11 +22,27 @@ read_config(){ getp "$1" "$BASED/config"; }
 # self-contained - no external script needed to stage modules first.
 #################################################
 
+# Package names are directory names in the addon output; anything else in an
+# override is dropped rather than trusted.
+_litegapps_clean_pkgs(){
+	local W out=""
+	for W in $1; do
+		case "$W" in
+			*[!A-Za-z0-9._-]*) continue ;;
+			"") continue ;;
+		esac
+		out="$out $W"
+	done
+	echo "$out"
+}
+
 # Apps already shipped in every variant's base gapps - skip when copying
 # "core" addon packages so they aren't duplicated as modules.
+# LG_CORE_KEEP (set by the web panel) replaces the list when present.
 _litegapps_core_module(){
 	local input="$1" output="$2"
 	local keep="GoogleServicesFramework GmsCore GoogleCalendarSyncAdapter PlayStore Phonesky GoogleContactsSyncAdapter"
+	[ -n "${LG_CORE_KEEP:-}" ] && keep="$(_litegapps_clean_pkgs "$LG_CORE_KEEP")"
 	[ -d "$input" ] || return 0
 	local Y G skip
 	for Y in $(ls -1 "$input"); do
@@ -42,8 +58,22 @@ _litegapps_core_module(){
 	done
 }
 
-# Per-variant whitelist of extra gapps apps (verbatim from sf-build.sh)
+# Per-variant whitelist of extra gapps apps. LG_PKGS_<VARIANT> (set by the web
+# panel, which keeps its own editable copy) replaces the built-in list below.
 _litegapps_module_whitelist(){
+	local override
+	case "$1" in
+		micro) override="${LG_PKGS_MICRO:-}" ;;
+		nano)  override="${LG_PKGS_NANO:-}" ;;
+		basic) override="${LG_PKGS_BASIC:-}" ;;
+		user)  override="${LG_PKGS_USER:-}" ;;
+		go)    override="${LG_PKGS_GO:-}" ;;
+		*)     override="" ;;
+	esac
+	if [ -n "$override" ]; then
+		_litegapps_clean_pkgs "$override"
+		return 0
+	fi
 	case "$1" in
 	micro) echo "
 AndroidAuto Arcore SettingsIntelligenceGoogle DeskClockGoogle SoundPicker Chrome
@@ -95,8 +125,8 @@ _litegapps_build_addon(){
 		return 0
 	fi
 	printlog "- Building package addon <$P_ARCH/$P_SDK>"
-	# packages/make reads arch/sdk from its own config for restore, not
-	# from CLI args - point it at this target, then restore the file.
+	# packages/make restore takes arch/sdk as args, but make and other
+	# steps still read its config - point it at this target, then restore the file.
 	cp -pf "$PKG/config" "$PKG/config.bak"
 	sed -i "s/^arch=.*/arch=$P_ARCH/" "$PKG/config"
 	sed -i "s/^sdk=.*/sdk=$P_SDK/" "$PKG/config"
@@ -316,7 +346,8 @@ litegapps_variants(){
 
 litegapps_restore(){
 	local i
-	for i in $(get_config litegapps.restore | sed "s/,/ /g"); do
+	# VARIANT (from `build.sh restore litegapps <variants>`) overrides config
+	for i in $(echo "${VARIANT:-$(get_config litegapps.restore)}" | sed "s/,/ /g"); do
 		BASED="$base/core/litegapps/$i"
 		if [ -d "$BASED" ]; then
 			_litegapps_restore_variant
@@ -361,8 +392,9 @@ MODULES_FILES=$BASED/modules_files
 for i in $GAPPS $GAPPS_FILES $MODULES $MODULES_FILES; do
 [ ! -d $i ] && cdir $i
 done
-LIST_ARCH=`read_config restore.arch | sed "s/,/ /g"`
-LIST_SDK=`read_config restore.sdk | sed "s/,/ /g"`
+# ARCH_IN/SDK_IN (from `build.sh restore litegapps <variants> <arch> <sdk>`) override the variant config
+LIST_ARCH=`echo "${ARCH_IN:-$(read_config restore.arch)}" | sed "s/,/ /g"`
+LIST_SDK=`echo "${SDK_IN:-$(read_config restore.sdk)}" | sed "s/,/ /g"`
 NAME=`read_config name`
 
 printlog " "
@@ -385,16 +417,24 @@ for D_ARCH in $LIST_ARCH; do
 		del "$GAPPS/$D_ARCH/$D_SDK"; cdir "$GAPPS/$D_ARCH/$D_SDK"
 		cdir "$GAPPS_FILES/$D_ARCH/$D_SDK"
 		ZIP="$GAPPS_FILES/$D_ARCH/$D_SDK/$GZIP.zip"
-		if [ -f "$ZIP" ]; then
+		# a cached zip is only trusted when it tests clean: a failed or
+		# truncated earlier download must not be reused (it would fail to
+		# extract and abort the whole restore)
+		if [ -f "$ZIP" ] && unzip -tq "$ZIP" >/dev/null 2>&1; then
 			printlog "${NUM_6070}. Available •> <$ZIP>"
 		else
+			del "$ZIP"
 			printlog "${NUM_6070}. Downloading : $D_ARCH/$D_SDK/$GZIP.zip"
 			curl --progress-bar -L -o "$ZIP" "$(sf_url "$SERVER_GAPPS/$D_ARCH/$D_SDK/$GZIP.zip/download")"
 			# fallback to plain <sdk>.zip if the suffixed/named zip isn't on the server
 			if [ "$GZIP" != "$D_SDK" ] && ! unzip -tq "$ZIP" >/dev/null 2>&1; then
 				printlog "     <$GZIP.zip> unavailable, falling back to ${D_SDK}.zip"
+				del "$ZIP"
 				GZIP="${D_SDK}"; ZIP="$GAPPS_FILES/$D_ARCH/$D_SDK/$GZIP.zip"
-				[ -f "$ZIP" ] || curl --progress-bar -L -o "$ZIP" "$(sf_url "$SERVER_GAPPS/$D_ARCH/$D_SDK/$GZIP.zip/download")"
+				if ! { [ -f "$ZIP" ] && unzip -tq "$ZIP" >/dev/null 2>&1; }; then
+					del "$ZIP"
+					curl --progress-bar -L -o "$ZIP" "$(sf_url "$SERVER_GAPPS/$D_ARCH/$D_SDK/$GZIP.zip/download")"
+				fi
 			fi
 			printlog "     File size : $(du -sh "$ZIP" 2>/dev/null | cut -f1)"
 		fi

@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import Icon from "./Icon";
 import type { Job } from "@/lib/targets";
 
@@ -12,69 +13,23 @@ const STATUS: Record<string, { cls: string; icon: string; text: string }> = {
 	unknown: { cls: "no", icon: "help", text: "tidak diketahui" },
 };
 
-function when(v: string | null) {
+// mysql2 hands DATETIME columns over as Date objects, which reach this client
+// component still as Dates; String() on one gives "Tue Sep 15 …", so format
+// from the ISO form instead (the database clock is UTC).
+function when(v: string | Date | null) {
 	if (!v) return "—";
-	return String(v).replace("T", " ").replace(/\.\d+Z?$/, "").replace("Z", "");
-}
-
-function LogView({ id }: { id: number }) {
-	const [log, setLog] = useState("Memuat…");
-	const [status, setStatus] = useState<string>("running");
-	const box = useRef<HTMLPreElement>(null);
-	const stick = useRef(true);
-
-	useEffect(() => {
-		let alive = true;
-		let timer: ReturnType<typeof setTimeout>;
-
-		async function tick() {
-			try {
-				const r = await fetch(`/api/jobs/${id}/log`, { cache: "no-store" });
-				if (r.ok && alive) {
-					const d = await r.json();
-					setLog(d.log || "(belum ada keluaran)");
-					setStatus(d.status);
-					if (d.status === "running") timer = setTimeout(tick, 2000);
-					return;
-				}
-			} catch {
-				// Network hiccup: keep polling rather than dropping the view.
-			}
-			if (alive) timer = setTimeout(tick, 5000);
-		}
-		tick();
-		return () => {
-			alive = false;
-			clearTimeout(timer);
-		};
-	}, [id]);
-
-	// Follow the tail only while the reader has not scrolled up.
-	useEffect(() => {
-		const el = box.current;
-		if (el && stick.current) el.scrollTop = el.scrollHeight;
-	}, [log]);
-
-	return (
-		<pre
-			className="logbox"
-			ref={box}
-			onScroll={(e) => {
-				const el = e.currentTarget;
-				stick.current = el.scrollHeight - el.scrollTop - el.clientHeight < 40;
-			}}
-		>
-			{log}
-			{status === "running" ? "\n…" : ""}
-		</pre>
-	);
+	const d = new Date(v);
+	if (Number.isNaN(d.getTime())) return String(v);
+	return d.toISOString().slice(0, 19).replace("T", " ");
 }
 
 export default function Jobs({ jobs, busy }: { jobs: Job[]; busy: boolean }) {
-	const [open, setOpen] = useState<number | null>(
-		jobs.find((j) => j.status === "running")?.id ?? null,
-	);
+	// The log itself lives in the terminal panel on the page; opening one from
+	// here just points that panel at this job.
 	const router = useRouter();
+	const pathname = usePathname();
+	const params = useSearchParams();
+	const open = Number(params.get("job")) || null;
 
 	// While something is running the row status is stale the moment it is
 	// rendered, so refresh the server component on a slow interval.
@@ -125,11 +80,17 @@ export default function Jobs({ jobs, busy }: { jobs: Job[]; busy: boolean }) {
 									<td className="when">{when(j.finished_at)}</td>
 									<td>
 										<button
-											className="joblink"
+											className={`joblink${open === j.id ? " on" : ""}`}
 											type="button"
-											onClick={() => setOpen(open === j.id ? null : j.id)}
+											onClick={() => {
+												const next = new URLSearchParams(params.toString());
+												next.set("job", String(j.id));
+												router.replace(`${pathname}?${next}`);
+											}}
+											title="Tampilkan log job ini"
 										>
-											{open === j.id ? "tutup" : "lihat"}
+											<Icon name="terminal" />
+											log
 										</button>
 									</td>
 								</tr>
@@ -138,7 +99,6 @@ export default function Jobs({ jobs, busy }: { jobs: Job[]; busy: boolean }) {
 					</tbody>
 				</table>
 			</div>
-			{open !== null && <LogView id={open} />}
 		</>
 	);
 }

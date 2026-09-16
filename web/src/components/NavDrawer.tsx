@@ -16,6 +16,11 @@ import { logoutAction } from "@/app/actions";
 
 const LINKS = [
 	{ href: "/", icon: "build", label: "Build" },
+	{ href: "/restore", icon: "cloud_download", label: "Restore" },
+	{ href: "/config", icon: "tune", label: "Config" },
+	{ href: "/files", icon: "folder_open", label: "File" },
+	{ href: "/backup", icon: "backup", label: "Backup DB" },
+	{ href: "/info", icon: "info", label: "Info" },
 	{ href: "/server", icon: "monitoring", label: "Server" },
 ];
 

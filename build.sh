@@ -581,8 +581,19 @@ RESTORE(){
        	exit 1
        fi
 	fi
-	[ "$(get_config litegapps.build)"  = true ] && litegapps_restore
-	[ "$(get_config litegappsx.build)" = true ] && litegappsx_restore
+	# optional target: build.sh restore <bin|litegapps|litegappsx> [variants] [arch] [sdk]
+	# (variants may be comma separated; no product restores everything in config)
+	if [ "$PRODUCT" ]; then
+		case "$PRODUCT" in
+		bin) ;;
+		litegapps)  litegapps_restore ;;
+		litegappsx) litegappsx_restore ;;
+		*) printlog "[ERROR] unknown product <$PRODUCT>"; exit 1 ;;
+		esac
+	else
+		[ "$(get_config litegapps.build)"  = true ] && litegapps_restore
+		[ "$(get_config litegappsx.build)" = true ] && litegappsx_restore
+	fi
 }
 
 #################################################
