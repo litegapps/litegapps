@@ -50,14 +50,38 @@ find_slot() {
   [ "$slot" ] && echo "$slot";
 }
 
+# log_tool <applet>: how to run tar/gzip here, or nothing. An applet linked on
+# PATH first; otherwise through busybox or toybox by name, because some TWRP
+# builds ship busybox (or toybox) without applet symlinks. The zip's own toybox
+# comes last: it has tar but no gzip, and is missing for a foreign architecture.
+log_tool() {
+    local t="$1" m
+    if command -v "$t" >/dev/null 2>&1; then
+        echo "$t"
+        return 0
+    fi
+    for m in busybox /sbin/busybox /system/xbin/busybox toybox /system/bin/toybox "$TOYBOX"; do
+        [ -n "$m" ] || continue
+        command -v "$m" >/dev/null 2>&1 || [ -x "$m" ] || continue
+        if "$m" --list 2>/dev/null | grep -qx "$t"; then
+            echo "$m $t"      # busybox
+            return 0
+        fi
+        if "$m" 2>/dev/null | tr ' ' '\n' | grep -qx "$t"; then
+            echo "$m $t"      # toybox prints its applets with no arguments
+            return 0
+        fi
+    done
+    return 1
+}
+
 make_log() {
     local log_prefix="litegapps"
     if [ "$(getp litegapps_type "$MODPATH/module.prop")" = "litegappsx" ]; then
         log_prefix="litegappsx"
     fi
-    local NAME_LOG="[LOG]${log_prefix}_$(getp version "$MODPATH/module.prop").zip"
+    local BASE="$LITEGAPPS/[LOG]${log_prefix}_$(getp version "$MODPATH/module.prop")"
     local LOG_DIR="$LITEGAPPS/log"
-    local ZIP=""
 
     mkdir -p "$LOG_DIR"
     getprop > "$LOG_DIR/get_prop"
@@ -75,24 +99,33 @@ make_log() {
         [ -d "$TR" ] && listlog "$TR"
     done
 
-    # The bundled zip is only there when this zip matches the device's
-    # architecture - which is exactly what is not true when the install fails
-    # on an architecture mismatch. Fall back to a zip the system provides.
-    if [ -x "$bin/zip" ]; then
-        ZIP="$bin/zip"
-    elif command -v zip >/dev/null 2>&1; then
-        ZIP="$(command -v zip)"
-    fi
+    # Pack with tar + gzip from the environment, never with a binary shipped in
+    # this zip (those are missing on exactly the failure that most needs a
+    # log, e.g. a zip for another architecture). tar is a toybox applet since
+    # Android 7 and gzip since Android 9; Magisk, KernelSU and APatch run
+    # installers with busybox, and TWRP builds carry busybox or toybox. Without
+    # gzip the log is a plain .tar, and with no tar at all the folder is kept.
+    local TAR GZIP
+    TAR="$(log_tool tar)"
+    GZIP="$(log_tool gzip)"
 
-    rm -f "$LITEGAPPS/$NAME_LOG"
-    if [ -n "$ZIP" ] && ( cd "$LOG_DIR" && "$ZIP" -r9 "$LITEGAPPS/$NAME_LOG" * >/dev/null 2>&1 ); then
-        LOG_RESULT="$LITEGAPPS/$NAME_LOG"
+    rm -f "$BASE.tar.gz" "$BASE.tar"
+    if [ -n "$TAR" ] && ( cd "$LITEGAPPS" && $TAR -czf "$BASE.tar.gz" log ) >/dev/null 2>&1; then
+        LOG_RESULT="$BASE.tar.gz"
+        rm -rf "$LOG_DIR"
+    elif [ -n "$TAR" ] && ( cd "$LITEGAPPS" && $TAR -cf "$BASE.tar" log ) >/dev/null 2>&1; then
+        rm -f "$BASE.tar.gz"
+        if [ -n "$GZIP" ] && $GZIP -f "$BASE.tar" >/dev/null 2>&1; then
+            LOG_RESULT="$BASE.tar.gz"
+        else
+            LOG_RESULT="$BASE.tar"
+        fi
         rm -rf "$LOG_DIR"
     else
-        # No working zip: keep the plain log folder rather than lose it.
+        rm -f "$BASE.tar.gz" "$BASE.tar"
         LOG_RESULT="$LOG_DIR"
     fi
-    # Nothing below may write to the log file any more: it is zipped or kept.
+    # Nothing below may write to the log file any more: it is packed or kept.
     log=/dev/null
 }
 
@@ -954,8 +987,8 @@ sedlog "Format file : $format_file"
 #checking architecture executable support
 test ! -f $bin/tar && report_bug "your architecture is not supported or not compatible with your device"
 
-#checking executable
-for W in $format_file tar zip; do
+#checking executable (zip is no longer needed on the device: logs are tar.gz)
+for W in $format_file tar; do
 	test ! -f $bin/$W && report_bug "Please add executable <$W> in <$bin/$W>"
 done
 

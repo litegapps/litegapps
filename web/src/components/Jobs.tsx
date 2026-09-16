@@ -11,6 +11,7 @@ const STATUS: Record<string, { cls: string; icon: string; text: string }> = {
 	done: { cls: "ok", icon: "check", text: "selesai" },
 	failed: { cls: "no", icon: "close", text: "gagal" },
 	unknown: { cls: "no", icon: "help", text: "tidak diketahui" },
+	stopped: { cls: "no", icon: "stop_circle", text: "dihentikan" },
 };
 
 // mysql2 hands DATETIME columns over as Date objects, which reach this client

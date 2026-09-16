@@ -347,7 +347,8 @@ copy_binary_flashable(){
      ;;
      esac
 	local input_arch=$1
-	for W94 in tar zip toybox $flashable_bin; do
+	# No zip: the installer packs its log with the device's own tar/gzip.
+	for W94 in tar toybox $flashable_bin; do
 		if [ -f $base/bin/$INPUT_ARCH/$W94 ]; then
 			cdir $CP_OUT
 			cp -pf $base/bin/$INPUT_ARCH/$W94 $CP_OUT/

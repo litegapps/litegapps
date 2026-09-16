@@ -120,24 +120,25 @@ if $COMPOSE ps --status running 2>/dev/null | grep -q mysql; then
 	BUSY="$(running_job)"
 fi
 if [ -z "$BUSY" ] && build_lock_held; then
-	BUSY="proses build memegang web/.job.lock"
+	BUSY="a build process holds web/.job.lock"
 fi
 
 if [ -n "$BUSY" ]; then
 	if [ "$FORCE" = 1 ]; then
-		warn "[WARN] masih ada proses berjalan: $BUSY"
-		warn "       --force dipakai: proses itu akan dimatikan oleh deploy ini"
+		warn "[WARN] a job is still running: $BUSY"
+		warn "       --force given: this deploy will kill it"
 	else
-		err "[ERROR] tidak deploy: masih ada proses berjalan"
+		err "[ERROR] not deploying: a job is still running"
 		err "        $BUSY"
 		echo
-		echo "  Deploy me-restart container web, jadi job yang sedang jalan akan mati"
-		echo "  dan tercatat gagal. Tunggu sampai selesai (lihat terminal di panel),"
-		echo "  atau paksa dengan:  bash web/start.sh --force"
+		echo "  Deploying recreates the web container, which kills the running job and"
+		echo "  leaves it recorded as failed. Wait for it to finish, or stop it first"
+		echo "  with the Stop button in the job's terminal on the panel (recorded as"
+		echo "  stopped), then deploy again. To force it: bash web/start.sh --force"
 		exit 1
 	fi
 else
-	ok "[OK] tidak ada job berjalan"
+	ok "[OK] no job running"
 fi
 
 #################################################

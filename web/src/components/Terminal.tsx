@@ -1,7 +1,48 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { usePathname, useSearchParams } from "next/navigation";
+import { useFormStatus } from "react-dom";
 import Icon from "./Icon";
+import { stopJobAction } from "@/app/actions";
+
+/** Stop button, only while the job runs; asks first, since it kills the whole job. */
+function StopButton({ jobId, label }: { jobId: number; label: string }) {
+	const pathname = usePathname();
+	const params = useSearchParams();
+	const next = new URLSearchParams(params.toString());
+	next.delete("error");
+	const back = next.size ? `${pathname}?${next}` : pathname;
+
+	return (
+		<form action={stopJobAction} style={{ display: "contents" }}>
+			<input type="hidden" name="id" value={jobId} />
+			<input type="hidden" name="back" value={back} />
+			<StopSubmit label={label} />
+		</form>
+	);
+}
+
+function StopSubmit({ label }: { label: string }) {
+	const { pending } = useFormStatus();
+	return (
+		<button
+			type="submit"
+			className="btn danger"
+			disabled={pending}
+			onClick={(e) => {
+				const ok = window.confirm(
+					`Hentikan "${label}"?\n\nSemua proses job ini dimatikan sekarang. Zip yang sedang dibuat ` +
+						"tidak selesai, dan unggahan ke SourceForge yang sedang berjalan terputus.",
+				);
+				if (!ok) e.preventDefault();
+			}}
+		>
+			<Icon name={pending ? "hourglass_top" : "stop_circle"} />
+			{pending ? "Menghentikan…" : "Hentikan"}
+		</button>
+	);
+}
 
 /*
  * Live terminal for one job, shown inline under the form that started it.
@@ -17,7 +58,7 @@ type JobLog = {
 	id: number;
 	kind: string;
 	label: string;
-	status: "running" | "done" | "failed" | "unknown";
+	status: "running" | "done" | "failed" | "unknown" | "stopped";
 	exit_code: number | null;
 	started_at: string | null;
 	finished_at: string | null;
@@ -29,6 +70,7 @@ const STATUS: Record<string, { cls: string; icon: string; text: string }> = {
 	done: { cls: "ok", icon: "check", text: "selesai" },
 	failed: { cls: "no", icon: "close", text: "gagal" },
 	unknown: { cls: "no", icon: "help", text: "tidak diketahui" },
+	stopped: { cls: "no", icon: "stop_circle", text: "dihentikan" },
 };
 
 /** Progress and the current step, read from the log the scripts already print. */
@@ -193,6 +235,7 @@ export default function Terminal({
 					<Icon name={copied ? "check" : "content_copy"} />
 					{copied ? "Tersalin" : "Salin log"}
 				</button>
+				{job?.status === "running" && <StopButton jobId={jobId} label={job.label} />}
 				<button type="button" className="btn" onClick={onClose}>
 					<Icon name="close" />
 					Tutup

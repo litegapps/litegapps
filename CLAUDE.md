@@ -46,6 +46,19 @@ Logs: `log/make.log` and `log/make_live.log` — **read these first when a build
   `make_archive`, `make_tar_arch`, `get_android_version`, `printlog`, `del`, `cdir`,
   `clean_variant_dirs`). Subcommands `restore`/`make`/`clean`/`upload`/`update-gapps-server`
   dispatch to the product functions in `lib/`.
+- `installer/27-litegapps.sh` — addon.d script that keeps a Kopi (system) install
+  across ROM updates. It is run by the ROM's backuptool in recovery
+  (`backuptool.sh`, or `backuptool_ab.sh` at postinstall on A/B), once per stage
+  and as a separate process. Follow that contract, never guess mount points:
+  address files through `$S` (`$S/product/...`, `$S/system_ext/...`, which the
+  V3 backuptool mounts), keep state in `$C` (A/B has no `/tmp`), and write only
+  through `backup_file`/`restore_file`/`get_output_path` so A/B lands in the new
+  slot under `/postinstall`. Keep the `. /tmp/backuptool.functions` line verbatim
+  (backuptool_ab rewrites it) and use `exit`, not `return`, at top level. The
+  install lists it replays (`list_install_<partition>`) are written by the Kopi
+  `update-binary`, relative to each partition root. The previous version guessed
+  `/mnt/product`, so GmsCore (product) and GSF (system_ext) were lost on every
+  ROM update, and on A/B it restored nothing into the new slot.
 - `lib/litegapps.sh` / `lib/litegappsx.sh` — per-product build logic, each exposing
   `<product>_restore`, `<product>_make`, `<product>_clean`. Sourced by `build.sh`.
   (This replaced the old `core/*/make.sh`, `core/litegapps/restore.sh`, and the
@@ -57,8 +70,15 @@ Logs: `log/make.log` and `log/make_live.log` — **read these first when a build
   checks them against the device **before** touching `bin/<arch>`, so a wrong zip
   fails with "this zip is for arm, but this device is arm64" instead of a chmod
   error. On any failure `report_bug` writes the reason into the log before
-  `make_log` packs it, and `make_log` falls back to a system `zip` (or keeps the
-  plain `log/` folder) because the bundled one is missing on exactly that failure.
+  `make_log` packs it. The log is `[LOG]litegapps_<version>.tar.gz`, packed with
+  the environment's own `tar`/`gzip` (toybox has `tar` since Android 7 and `gzip`
+  since Android 9; Magisk/KernelSU/APatch busybox has both, and TWRP builds carry
+  busybox or toybox) — never with a binary from the zip, which is absent on
+  exactly that failure. `log_tool` finds them as linked applets on PATH, or
+  through `busybox <applet>` / `toybox <applet>` for recoveries that ship the
+  multi-call binary without applet symlinks. Without gzip it
+  is a plain `.tar`; without tar the `log/` folder is kept. No `zip` binary is
+  shipped in flashable zips any more.
 - `config` — top-level build config (version, compression, which products/variants).
 - `core/litegapps/<variant>/` — one dir per variant
   (`lite core go micro pixel nano basic user superlite`), each with its own `config`,

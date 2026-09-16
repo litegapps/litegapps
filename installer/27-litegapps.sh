@@ -1,257 +1,193 @@
 #!/sbin/sh
-# Copyright 2020 - 2025 The Litegapps Project
-# Litegapps addon.d (running in rom installer)
+# Copyright 2020 - 2026 The Litegapps Project
+# 27-litegapps.sh - keep a LiteGapps "kopi" (system) install across ROM updates
 # ADDOND_VERSION=3
-# by wahyu6070
+#
+# Run by the ROM's backuptool - backuptool.sh from recovery, backuptool_ab.sh
+# during an A/B OTA - once per stage, each time as its own process. Nothing
+# here may rely on a variable set in another stage.
+#
+# The backuptool contract this script follows:
+#   $S   the system root. Files are always addressed through it: $S/...,
+#        $S/product/..., $S/system_ext/... For ADDOND_VERSION 3 backuptool
+#        mounts vendor/product/system_ext so those symlinks resolve, both in
+#        recovery and on A/B devices.
+#   $C   the backup directory, kept from the backup stage to the restore stage.
+#   backup_file, restore_file and get_output_path (backuptool.functions): on
+#        A/B they send a $S/... path to the new slot under /postinstall, so
+#        every write below goes through them rather than to $S directly.
 
-base=/tmp/kopi/modules/litegapps
-module=$base/module.prop
-
+# Keep this line exactly as it is: backuptool_ab.sh rewrites it to its own path.
 . /tmp/backuptool.functions
 
-if [ "$C" ]; then
-	TMP=$C
-else
-	TMP=/tmp/backupdir
-fi
+[ -n "$S" ] || S=/system            # run by hand, outside backuptool
+[ -n "$C" ] || C=/tmp/backupdir
+
+# Copy of the kopi module record, taken at backup and read back at restore.
+# It lives in $C because /tmp does not exist in Android during an A/B OTA.
+base="$C/litegapps-kopi"
+module="$base/module.prop"
 
 ps | grep zygote | grep -v grep >/dev/null && BOOTMODE=true || BOOTMODE=false
 $BOOTMODE || ps -A 2>/dev/null | grep zygote | grep -v grep >/dev/null && BOOTMODE=true
 
 if ! $BOOTMODE; then
-# update-binary|updater <RECOVERY_API_VERSION> <OUTFD> <ZIPFILE>
- OUTFD=$(ps | grep -v 'grep' | grep -oE 'update(.*) 3 [0-9]+' | cut -d" " -f3)
- [ -z $OUTFD ] && OUTFD=$(ps -Af | grep -v 'grep' | grep -oE 'update(.*) 3 [0-9]+' | cut -d" " -f3)
- # update_engine_sideload --payload=file://<ZIPFILE> --offset=<OFFSET> --headers=<HEADERS> --status_fd=<OUTFD>
- [ -z $OUTFD ] && OUTFD=$(ps | grep -v 'grep' | grep -oE 'status_fd=[0-9]+' | cut -d= -f2)
- [ -z $OUTFD ] && OUTFD=$(ps -Af | grep -v 'grep' | grep -oE 'status_fd=[0-9]+' | cut -d= -f2)
- fi
- ui_print() { $BOOTMODE && log -t Magisk -- "$1" || echo -e "ui_print $1\nui_print" >> /proc/self/fd/$OUTFD; }
+	# update-binary|updater <RECOVERY_API_VERSION> <OUTFD> <ZIPFILE>
+	OUTFD=$(ps | grep -v 'grep' | grep -oE 'update(.*) 3 [0-9]+' | cut -d" " -f3)
+	[ -z "$OUTFD" ] && OUTFD=$(ps -Af | grep -v 'grep' | grep -oE 'update(.*) 3 [0-9]+' | cut -d" " -f3)
+	# update_engine_sideload --payload=file://<ZIPFILE> --offset=<OFFSET> --headers=<HEADERS> --status_fd=<OUTFD>
+	[ -z "$OUTFD" ] && OUTFD=$(ps | grep -v 'grep' | grep -oE 'status_fd=[0-9]+' | cut -d= -f2)
+	[ -z "$OUTFD" ] && OUTFD=$(ps -Af | grep -v 'grep' | grep -oE 'status_fd=[0-9]+' | cut -d= -f2)
+fi
 
-print(){
-	ui_print "$1"
-	}
-	
-#
-
-getp(){ grep "^$1=" "$2" | head -n1 | cut -d = -f 2-; }
-
-
-set_prop() {
-  local property="$1"
-  local value="$2"
-  file_location="$3"
-  if grep -q "${property}" "${file_location}"; then
-    sed -i "s/\(${property}\)=.*/\1=${value}/g" "${file_location}"
-  else
-    echo "${property}=${value}" >>"${file_location}"
-  fi
+ui_print(){
+	if $BOOTMODE; then
+		log -t LiteGapps -- "$1"
+	elif [ -n "$OUTFD" ]; then
+		echo -e "ui_print $1\nui_print" >> /proc/self/fd/$OUTFD
+	else
+		echo "$1"
+	fi
 }
 
-ch_con(){
-chcon -h u:object_r:system_file:s0 "$1" || sedlog "Failed chcon $1"
+print(){ ui_print "$1"; }
+
+getp(){ [ -f "$2" ] && grep "^$1=" "$2" | head -n1 | cut -d = -f 2-; }
+
+# Where a $S/... path lands in the ROM being installed (the new slot on A/B).
+out(){ get_output_path "$1"; }
+
+# set_prop <key> <value> <file>: the key is matched whole, not as a regex
+# fragment, so "setupwizard.theme" never rewrites "ro.setupwizard.theme".
+set_prop(){
+	local key="$1" value="$2" file="$3" esc
+	[ -f "$file" ] || return 0
+	esc=$(printf '%s' "$key" | sed 's/[][\.*^$/]/\\&/g')
+	if grep -q "^${esc}=" "$file"; then
+		sed -i "s/^${esc}=.*/${key}=${value}/" "$file"
+	else
+		echo "${key}=${value}" >> "$file"
+	fi
 }
 
+# Every path the Kopi installer recorded, addressed through $S. The lists are
+# relative to their partition root and mix files with directories.
+installed_paths(){
+	local part root f
+	for part in system product system_ext vendor; do
+		case $part in
+			system) root="$S" ;;
+			*) root="$S/$part" ;;
+		esac
+		[ -f "$base/list_install_$part" ] || continue
+		while IFS= read -r f; do
+			[ -n "$f" ] && echo "$root/$f"
+		done < "$base/list_install_$part"
+	done
+}
 
-#system dir
-if [ -f /system/system/build.prop ]; then
-	SYSTEM=/system/system
-elif [ -f /system_root/system/build.prop ]; then
-	SYSTEM=/system_root/system
-elif [ -f /system_root/build.prop ]; then
-	SYSTEM=/system_root
-elif [ -f /mnt/system/system/build.prop ]; then
-	SYSTEM=/mnt/system/system
-elif [ -f /mnt/system_root/system/build.prop ]; then
-	SYSTEM=/mnt/system_root/system
-elif [ -f /mnt/system_root/build.prop ]; then
-	SYSTEM=/mnt/system_root
-elif [ -f /mnt/system/build.prop ]; then
-	SYSTEM=/mnt/system
-else
-	SYSTEM=/system
-fi
-
-#vendor dir
-VENDOR=/vendor
-
-# /product dir (android 10+)
-if [ ! -L $SYSTEM/product ]; then
-	PRODUCT=$SYSTEM/product
-elif [ ! -L /mnt/product ]; then
-	PRODUCT=/mnt/product
-else
-	PRODUCT=/product
-fi
-
-# /system_ext dir (android 11+)
-if [ ! -L $SYSTEM/system_ext ]; then
-	SYSTEM_EXT=$SYSTEM/system_ext
-elif [ ! -L /mnt/system_ext ]; then
-	PRODUCT=/mnt/system_ext
-else
-	SYSTEM_EXT=/system_ext
-fi
-
-
-NAME=`getp name $module`
-VARIANT=`getp litegapps_variant $module`
-VERSION=`getp version $module`
-
-
-LIST_DIR="
-$TMP
-"
-for Y in $LIST_DIR; do
-	[ ! -d $Y ] && mkdir -p $Y
-done
+# Debloat entries were recorded as the device's absolute paths at install
+# time (/mnt/system/system/app/X, /product/priv-app/Y, ...), which differ
+# between recoveries. Re-root them under $S by partition.
+debloat_target(){
+	local e="$1" dir name
+	case "$e" in
+		*/priv-app/*) dir=priv-app ;;
+		*/app/*) dir=app ;;
+		*) return 1 ;;
+	esac
+	name="${e##*/$dir/}"
+	case "$e" in
+		*/product/$dir/*) echo "$S/product/$dir/$name" ;;
+		*/system_ext/$dir/*) echo "$S/system_ext/$dir/$name" ;;
+		*) echo "$S/$dir/$name" ;;
+	esac
+}
 
 case "$1" in
-  backup)
-  	
-  	if [ -d $SYSTEM/etc/kopi ]; then
-  		#print "- Copying $SYSTEM/etc/kopi"
-  		rm -rf /tmp/kopi
-  		mkdir -p /tmp/kopi
-  		cp -rdf $SYSTEM/etc/kopi/* /tmp/kopi/
-  	else
-  		print "! Failed Backup $SYSTEM/etc/kopi Not Found"
-  		return 0
-  	fi
-  	
-  	print "Backuping LiteGapps"
-  	
-  	## Backup 27-litegapps.sh
-  	cp -f $SYSTEM/addon.d/27-litegapps.sh $base/
-  	
-  	if [ -f $base/list_install_system ]; then
-  	
-  		for AAA in $(cat $base/list_install_system); do
-  			if [ -f $SYSTEM/$AAA ] && [ ! -L $SYSTEM/$AAA ] ; then
-  				#print "  Backuping •> $SYSTEM/$AAA"
-  				backup_file $SYSTEM/$AAA
-  			fi
-    	  done
- 	 fi
- 	 if [ -f $base/list_install_product ]; then
- 	 	for BBB in $(cat $base/list_install_product); do
- 	 		if [ -f $PRODUCT/$BBB ] && [ ! -L $PRODUCT/$BBB ] ; then
- 	 			#print "  Backuping •> $PRODUCT/$BBB"
- 	 			backup_file $PRODUCT/$BBB
-    		  fi
-    	  done
-  	fi
-  	if [ -f $base/list_install_system_ext ]; then
-  		for CCC in $(cat $base/list_install_system_ext); do
-  			if [ -f $SYSTEM_EXT/$CCC ] && [ ! -L $SYSTEM_EXT/$CCC ] ; then
-  				#print "  Backuping •> $SYSTEM_EXT/$CCC"
-  				backup_file $SYSTEM_EXT/$CCC
-    		  fi
-    	  done
-	  fi
-	  
-  ;;
-  restore)
-  	
-  	if [ ! -d $base ]; then
-  		print "! Failed Restore LiteGapps"
-  		return 0
-  	fi
-  	print "Restoring LiteGapps"
-  	if [ -f $base/list_install_system ]; then
-  		for A in $(cat $base/list_install_system); do
-  			if [ -f $TMP$SYSTEM/$A ] && [ ! -L $TMP$SYSTEM/$A ]; then
-  				dir1=`dirname $SYSTEM/$A`
-  				#print "  Restoring •> $SYSTEM/$A"
-  				restore_file $SYSTEM/$A
-  				ch_con $dir1
-  			fi
-    	  done
-  	fi
-  	if [ -f $base/list_install_product ]; then
-  		for B in $(cat $base/list_install_product); do
-  			if [ -f $TMP$PRODUCT/$B ] && [ ! -L $TMP$PRODUCT/$B ]; then
-  				dir1=`dirname $PRODUCT/$B`
-  				#print "  Restoring •> $PRODUCT/$B"
-  				restore_file $PRODUCT/$B
-  				ch_con $dir1
-  			fi
-    	  done
-  	fi
-  	if [ -f $base/list_install_system_ext ]; then
-  		for CCCC in $(cat $base/list_install_system_ext); do
-  			if [ -f $TMP$SYSTEM_EXT/$CCCC ] && [ ! -L $TMP$SYSTEM_EXT/$CCCC ]; then
-  				dir1=`dirname $SYSTEM_EXT/$CCCC`
-  				#print "  Restoring •> $SYSTEM_EXT/$CCCC"
-  				restore_file $SYSTEM_EXT/$CCCC
-  				ch_con $dir1
-  			fi
-    	  done
-  	fi
-  	
-  	rm -rf $SYSTEM/etc/kopi/modules/litegapps
-      mkdir -p $SYSTEM/etc/kopi/modules/litegapps
-      cp -rdf $base/* $SYSTEM/etc/kopi/modules/litegapps/
-  	
-      ## litegapps addon.d
-      cp -f $base/27-litegapps.sh $SYSTEM/addon.d
-      chmod 755 $SYSTEM/addon.d/27-litegapps.sh
-      
-      if [ $VARIANT != lite ]; then
-      	print "- Patch Build.prop Config"
-      	PROP_FILE=$SYSTEM/build.prop
-		  sedlog "- Backuping $PROP_FILE TO $DIR_BACKUP/build.prop"
-		  cp -pf $PROP_FILE $DIR_BACKUP/build.prop
-		  set_prop "setupwizard.feature.baseline_setupwizard_enabled" "true" "$PROP_FILE"
-		  set_prop "ro.setupwizard.enterprise_mode" "1" "$PROP_FILE"
-		  set_prop "ro.setupwizard.rotation_locked" "true" "$PROP_FILE"
-		  set_prop "setupwizard.enable_assist_gesture_training" "true" "$PROP_FILE"
-		  set_prop "setupwizard.theme" "glif_v3_light" "$SYSTEM/product/build.prop"
-		  set_prop "setupwizard.feature.skip_button_use_mobile_data.carrier1839" "true" "$PROP_FILE"
-		  set_prop "setupwizard.feature.show_pai_screen_in_main_flow.carrier1839" "false" "$PROP_FILE"
-		  set_prop "setupwizard.feature.show_pixel_tos" "false" "$PROP_FILE"
-		  set_prop "ro.setupwizard.network_required" "false" "$PROP_FILE"
-      
-      fi
-      
-      ## Removing files
-      if [ -f $base/list-debloat ]; then
-      	for YT in $(cat $base/list-debloat); do
-      		if [ -f "$YT" ]; then
-      			print "- Removing File <${YT}>"
-      			rm -rf "$YT"
-      		elif [ -d "$YT" ]; then
-      			print "- Removing Directory <${YT}>"
-      			rm -rf "$YT"
-      		fi
-      	done
-      else
-      print "[!] <$base/list-debloat> is not found"
-      fi
-  	
-    ;;
-  pre-backup)
-  	DIR_PARTITION
-  	echo " "
-  	echo "Addon Version : $V"
-  	echo "Tmp : $TMP"
-  	echo "LiteGapps Addon.d"
-  	echo "Started -> $(date '+%d/%m/%Y %H:%M:%S')"
-  	echo "System = $SYSTEM"
-  	echo " "
-  ;;
-  post-backup)
-    # Stub
-  ;;
-  pre-restore)
-    # Stub
-    print "Litegapps addon.d $V"
-    ;;
-  post-restore)
-  
-    print "Variant : $VARIANT"
-	print "Restoring $NAME $VERSION Finish"
-	rm -rf /$base
-  ;;
+	pre-backup)
+		print "LiteGapps addon.d (system $S, backup $C)"
+	;;
+	backup)
+		if [ ! -d "$S/etc/kopi/modules/litegapps" ]; then
+			print "! LiteGapps is not installed in $S - nothing to keep"
+			exit 0
+		fi
+		print "- Backing up LiteGapps"
+		rm -rf "$base"
+		mkdir -p "$base"
+		cp -rdf "$S/etc/kopi/modules/litegapps/." "$base/"
+
+		installed_paths | while IFS= read -r F; do
+			if [ -f "$F" ] && [ ! -L "$F" ]; then
+				backup_file "$F"
+			fi
+		done
+	;;
+	post-backup)
+		# Stub
+	;;
+	pre-restore)
+		# Stub
+	;;
+	restore)
+		if [ ! -f "$module" ]; then
+			print "! No LiteGapps backup in $C - skipping restore"
+			exit 0
+		fi
+		print "- Restoring $(getp name "$module") $(getp version "$module")"
+
+		# Only what the backup stage actually saved: the lists also name
+		# directories, which restore_file cannot copy.
+		installed_paths | while IFS= read -r F; do
+			if [ -f "$C/$F" ] || [ -L "$C/$F" ]; then
+				restore_file "$F"
+			fi
+		done
+
+		# The kopi module record, so LiteGapps is still managed after the update.
+		KOPI_OUT="$(out "$S/etc/kopi/modules/litegapps")"
+		rm -rf "$KOPI_OUT"
+		mkdir -p "$KOPI_OUT"
+		cp -rdf "$base/." "$KOPI_OUT/"
+
+		if [ "$(getp litegapps_variant "$module")" != lite ]; then
+			print "- Patching build.prop for Setup Wizard"
+			PROP_FILE="$(out "$S/build.prop")"
+			set_prop "setupwizard.feature.baseline_setupwizard_enabled" "true" "$PROP_FILE"
+			set_prop "ro.setupwizard.enterprise_mode" "1" "$PROP_FILE"
+			set_prop "ro.setupwizard.rotation_locked" "true" "$PROP_FILE"
+			set_prop "setupwizard.enable_assist_gesture_training" "true" "$PROP_FILE"
+			set_prop "setupwizard.feature.skip_button_use_mobile_data.carrier1839" "true" "$PROP_FILE"
+			set_prop "setupwizard.feature.show_pai_screen_in_main_flow.carrier1839" "false" "$PROP_FILE"
+			set_prop "setupwizard.feature.show_pixel_tos" "false" "$PROP_FILE"
+			set_prop "ro.setupwizard.network_required" "false" "$PROP_FILE"
+			# product's build.prop moved to etc/ in Android 10
+			for P in "$S/product/etc/build.prop" "$S/product/build.prop"; do
+				P="$(out "$P")"
+				if [ -f "$P" ]; then
+					set_prop "setupwizard.theme" "glif_v3_light" "$P"
+					break
+				fi
+			done
+		fi
+
+		# The ROM brought back what LiteGapps removed at install time.
+		if [ -f "$base/list-debloat" ]; then
+			while IFS= read -r E; do
+				T="$(debloat_target "$E")" || continue
+				T="$(out "$T")"
+				if [ -e "$T" ]; then
+					print "- Removing $T"
+					rm -rf "$T"
+				fi
+			done < "$base/list-debloat"
+		fi
+	;;
+	post-restore)
+		print "- LiteGapps $(getp litegapps_variant "$module") restored"
+		rm -rf "$base"
+	;;
 esac
 
+exit 0

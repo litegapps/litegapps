@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { currentUser, logout } from "@/lib/session";
-import { startJob, runningJob } from "@/lib/jobs";
+import { startJob, runningJob, stopJob } from "@/lib/jobs";
 import { writeConfigDoc } from "@/lib/config";
 import { moveEntry, removeEntry, renameEntry } from "@/lib/files";
 import { AUTO_BACKUP, setSetting } from "@/lib/settings";
@@ -275,6 +275,26 @@ export async function savePanelConfigAction(formData: FormData) {
 	}
 
 	revalidatePath("/");
+	redirect(target);
+}
+
+/** Stop a running job from its terminal panel. */
+export async function stopJobAction(formData: FormData) {
+	const user = await currentUser();
+	if (!user) redirect("/login");
+
+	const id = Number(formData.get("id"));
+	const back = backPath(String(formData.get("back") ?? "/"));
+
+	let target = withParam(back, "job", String(id));
+	try {
+		if (!Number.isInteger(id) || id < 1) throw new Error("job tidak valid");
+		await stopJob(id, user);
+	} catch (e) {
+		target = withParam(target, "error", e instanceof Error ? e.message : "gagal menghentikan job");
+	}
+
+	revalidatePath(back.split("?")[0]);
 	redirect(target);
 }
 

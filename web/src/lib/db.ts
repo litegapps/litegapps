@@ -58,7 +58,7 @@ export function ensureSchema(): Promise<void> {
 					kind        VARCHAR(32) NOT NULL,
 					label       VARCHAR(255) NOT NULL,
 					argv        TEXT NOT NULL,
-					status      ENUM('running','done','failed','unknown') NOT NULL DEFAULT 'running',
+					status      ENUM('running','done','failed','unknown','stopped') NOT NULL DEFAULT 'running',
 					exit_code   INT NULL,
 					pid         INT NULL,
 					pid_start   BIGINT NULL,
@@ -96,6 +96,15 @@ export function ensureSchema(): Promise<void> {
 					v VARCHAR(255) NOT NULL
 				) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
 			`);
+			// "stopped" came later than the table: jobs stopped from the panel.
+			const [scol] = await c.query<RowDataPacket[]>(
+				"SELECT COLUMN_TYPE FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'jobs' AND COLUMN_NAME = 'status'",
+			);
+			if (scol.length && !String(scol[0].COLUMN_TYPE).includes("'stopped'")) {
+				await c.query(
+					"ALTER TABLE jobs MODIFY status ENUM('running','done','failed','unknown','stopped') NOT NULL DEFAULT 'running'",
+				);
+			}
 			// settings.v started as VARCHAR(255), which the build checklist's
 			// saved target list outgrows as soon as more than ~16 targets are
 			// ticked - the write then failed and the selection was lost.

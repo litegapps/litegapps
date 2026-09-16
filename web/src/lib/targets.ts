@@ -52,7 +52,7 @@ export type Job = {
 	id: number;
 	kind: string;
 	label: string;
-	status: "running" | "done" | "failed" | "unknown";
+	status: "running" | "done" | "failed" | "unknown" | "stopped";
 	exit_code: number | null;
 	started_at: string;
 	finished_at: string | null;

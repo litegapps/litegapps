@@ -1,6 +1,6 @@
 import { spawn } from "node:child_process";
 import { openSync, closeSync, mkdirSync, readFileSync } from "node:fs";
-import { readFile, stat } from "node:fs/promises";
+import { appendFile, readFile, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 import type { RowDataPacket, ResultSetHeader } from "mysql2";
 import { db, ensureSchema } from "./db";
@@ -279,6 +279,66 @@ export async function startJob(req: JobRequest): Promise<number> {
 	child.unref();
 
 	return id;
+}
+
+/*
+ * Stop a running job: its whole process group, then record why.
+ *
+ * Jobs are spawned detached, which makes the wrapper a process-group leader,
+ * so signalling the negative pid reaches everything the script started -
+ * build.sh, curl, rsync, the zip signer - not only the top shell. SIGTERM
+ * first so rsync and friends can clean up their temp files, SIGKILL for
+ * whatever is still there after a grace period. The pid is checked together
+ * with its start time, so a recycled pid can never be killed by mistake.
+ */
+export async function stopJob(id: number, by: string): Promise<void> {
+	await ensureSchema();
+	const c = db();
+	const [rows] = await c.query<RowDataPacket[]>(
+		"SELECT id, status, pid, pid_start, log_file, exit_file FROM jobs WHERE id = ?",
+		[id],
+	);
+	if (!rows.length) throw new Error(`job #${id} tidak ditemukan`);
+	const job = rows[0];
+	if (job.status !== "running") throw new Error(`job #${id} tidak sedang berjalan`);
+
+	const pid = job.pid as number | null;
+	const start = job.pid_start as number | null;
+
+	const signal = (sig: NodeJS.Signals) => {
+		if (!pid) return;
+		try {
+			process.kill(-pid, sig); // the whole process group
+		} catch {
+			try {
+				process.kill(pid, sig); // not a group leader after all
+			} catch {
+				// already gone
+			}
+		}
+	};
+
+	if (pid && pidAlive(pid, start)) {
+		signal("SIGTERM");
+		for (let i = 0; i < 20 && pidAlive(pid, start); i++) {
+			await new Promise((r) => setTimeout(r, 500));
+		}
+		if (pidAlive(pid, start)) signal("SIGKILL");
+	}
+
+	const note = `\n! stopped from the panel by ${by} at ${new Date().toISOString()}\n`;
+	if (job.log_file) {
+		await appendFile(/*turbopackIgnore: true*/ job.log_file as string, note).catch(() => {});
+	}
+	// Same exit code a SIGTERM gives a shell, written where the wrapper would
+	// have, so every reader of the exit file agrees the job is over.
+	if (job.exit_file) {
+		await writeFile(/*turbopackIgnore: true*/ job.exit_file as string, "143").catch(() => {});
+	}
+	await c.query(
+		"UPDATE jobs SET status = 'stopped', exit_code = 143, finished_at = NOW() WHERE id = ? AND status = 'running'",
+		[id],
+	);
 }
 
 /*
