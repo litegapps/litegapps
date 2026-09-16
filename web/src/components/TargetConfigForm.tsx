@@ -4,7 +4,15 @@ import { useState } from "react";
 import { useFormStatus } from "react-dom";
 import Icon from "./Icon";
 import { saveBuildTargetsAction } from "@/app/actions";
-import { ANDROID, ARCHS, SDKS, VARIANTS, defaultVariants } from "@/lib/targets";
+import {
+	ANDROID,
+	ARCHS,
+	SDKS,
+	UNSUPPORTED_MSG,
+	VARIANTS,
+	defaultVariants,
+	targetSupported,
+} from "@/lib/targets";
 
 /*
  * Per target (arch x Android) pick which variants are built. This is what the
@@ -109,8 +117,9 @@ export default function TargetConfigForm({ overrides, count }: Props) {
 					<tbody>
 						{[...SDKS].reverse().map((s) => {
 							const list = listOf(arch, s);
+							const supported = targetSupported(arch, s);
 							return (
-								<tr key={s}>
+								<tr key={s} className={supported ? undefined : "unsupported"}>
 									<td className="lbl">
 										<b>{ANDROID[s] ?? s}</b>
 										<br />
@@ -121,13 +130,18 @@ export default function TargetConfigForm({ overrides, count }: Props) {
 											<input
 												type="checkbox"
 												aria-label={`${v} untuk ${arch} SDK ${s}`}
-												checked={list.includes(v)}
+												checked={supported && list.includes(v)}
+												disabled={!supported}
 												onChange={() => toggle(arch, s, v)}
 											/>
 										</td>
 									))}
 									<td className="when">
-										{isDefault(arch, s) ? (
+										{!supported ? (
+											<span className="tag" title={UNSUPPORTED_MSG}>
+												TIDAK DIDUKUNG
+											</span>
+										) : isDefault(arch, s) ? (
 											<span className="tag">BAWAAN</span>
 										) : (
 											<button type="button" className="joblink" onClick={() => reset(arch, s)}>

@@ -114,8 +114,41 @@ abort(){
 	[ -d $tmp ] && del $tmp
 	exit 1
 	}
+# x86 (32-bit) is supported up to Android 15 (SDK 35) only. Google ships no
+# 32-bit x86 phone system image with GMS after Android 11, so a newer x86
+# base needs hand-picked APKs, and it is downloaded by almost nobody.
+# Releases up to Android 15 stay where they are; nothing newer is built.
+X86_LAST_SDK=35
+
+# target_supported <arch> <sdk>: 0 when that target may be restored/built.
+target_supported(){
+	if [ "$1" = x86 ] && [ "$2" -gt "$X86_LAST_SDK" ] 2>/dev/null; then
+		return 1
+	fi
+	return 0
+}
+
+# Read a top-level config value.
+#
+# The web panel keeps its own identity and version in its database and passes
+# them to a job as LG_CFG_<key> (dots become underscores), so the `config` in
+# this repository can stay a neutral default for everyone who clones it while
+# a specific builder's values never have to be committed. Anything the panel
+# does not set still comes from the file.
 get_config() {
-	getp "$1" "$base/config"
+	local key="$1" env_key value
+	env_key="LG_CFG_$(printf '%s' "$key" | tr '.-' '__')"
+	case "$env_key" in
+		*[!A-Za-z0-9_]*) env_key="" ;;
+	esac
+	if [ -n "$env_key" ]; then
+		eval "value=\${$env_key-}"
+		if [ -n "$value" ]; then
+			printf '%s\n' "$value"
+			return 0
+		fi
+	fi
+	getp "$key" "$base/config"
 }
 
 ERROR(){

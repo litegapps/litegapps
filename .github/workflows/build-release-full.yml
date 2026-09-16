@@ -70,6 +70,12 @@ jobs:
           SDK="${{ inputs.sdk }}"
           [ -z "$SDK" ] && SDK="36"
 
+          # x86 (32-bit) is supported up to Android 15 (SDK 35) only.
+          if [ "$ARCH" = "x86" ] && [ "$SDK" -gt 35 ]; then
+            echo "::error::x86 (32-bit) is not supported after Android 15 (SDK 35)"
+            exit 1
+          fi
+
           TAG="${{ inputs.tag }}"
           if [ -z "$TAG" ]; then
             if [ "${{ github.ref_type }}" = "tag" ]; then

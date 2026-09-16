@@ -88,10 +88,23 @@ for arg in "$@"; do
 done
 
 running_job(){
-	# The database is the panel's own record of what it started.
-	$COMPOSE exec -T mysql sh -c \
-		'mysql -uroot -p"$MYSQL_ROOT_PASSWORD" -N -e "SELECT CONCAT(id, \" \", label) FROM litegapps.jobs WHERE status = '"'"'running'"'"' LIMIT 1" 2>/dev/null' \
-		2>/dev/null | head -n1
+	# The database is the panel's own record of what it started. A row only
+	# counts as busy while the job really is: the panel settles finished rows
+	# when a page is rendered, so a job that ended minutes ago can still read
+	# "running" here, and its exit file is what proves otherwise.
+	local line id label exitfile
+	while IFS=$'\t' read -r id label exitfile; do
+		[ -n "$id" ] || continue
+		if [ -n "$exitfile" ] && [ -f "$exitfile" ]; then
+			continue   # wrapper wrote its exit code: finished, just not reconciled
+		fi
+		echo "$id $label"
+		return 0
+	done <<EOF
+$($COMPOSE exec -T mysql sh -c \
+	'mysql -uroot -p"$MYSQL_ROOT_PASSWORD" -N -e "SELECT id, label, exit_file FROM litegapps.jobs WHERE status = '"'"'running'"'"'" 2>/dev/null' \
+	2>/dev/null | sed "s#/litegapps/#$REPO_DIR/#")
+EOF
 }
 
 build_lock_held(){

@@ -501,6 +501,9 @@ UNZIP_GAPPS(){
 # - Build All's progress tracking does not affect the manual menu at all.
 #################################################
 BUILD_ALL_STATE="$BASED/sf-build-progress.log"
+# x86 (32-bit) stops at Android 15 (SDK 35): Google ships no 32-bit x86 phone
+# image with GMS after Android 11. Build All skips x86 above this.
+X86_LAST_SDK=35
 BUILD_ALL_ARCHES="arm64 arm x86 x86_64"
 BUILD_ALL_SDKS="37 36 35 34 33 32 31 30 29 28 27 26 25 24"
 BUILD_ALL_BATCH=4
@@ -511,6 +514,7 @@ BUILD_ALL(){
 	local BA BS
 	for BA in $BUILD_ALL_ARCHES; do
 		for BS in $BUILD_ALL_SDKS; do
+			[ "$BA" = x86 ] && [ "$BS" -gt "$X86_LAST_SDK" ] && continue
 			if grep -qx "$BA $BS" "$BUILD_ALL_STATE"; then
 				continue
 			fi
@@ -551,6 +555,7 @@ SHOW_BUILD_ALL_PROGRESS(){
 	echo "Build All progress ($BUILD_ALL_STATE):"
 	for BA in $BUILD_ALL_ARCHES; do
 		for BS in $BUILD_ALL_SDKS; do
+			[ "$BA" = x86 ] && [ "$BS" -gt "$X86_LAST_SDK" ] && continue
 			total=$((total + 1))
 			if grep -qx "$BA $BS" "$BUILD_ALL_STATE"; then
 				echo "  [x] $BA $BS"
@@ -609,6 +614,10 @@ echo -n "    Select SDK : "
 read selsdk
 case $selsdk in
 25 | 26 | 27 | 28 | 29 | 30 | 31 | 32 | 33 | 34 | 35 | 36 | 37)
+if [ "$ARCH" = x86 ] && [ "$selsdk" -gt 35 ]; then
+echo "! x86 (32-bit) is not supported after Android 15 (SDK 35)"
+continue
+fi
 export SDK=$selsdk
 break
 ;;

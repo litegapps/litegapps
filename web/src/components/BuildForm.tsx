@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useFormStatus } from "react-dom";
 import Icon from "./Icon";
 import { startJobAction } from "@/app/actions";
-import { ARCHS, SDKS, VARIANTS } from "@/lib/targets";
+import { ARCHS, SDKS, UNSUPPORTED_MSG, VARIANTS, targetSupported } from "@/lib/targets";
 import { useBusy } from "./useBusy";
 import { useRemember } from "./useRemember";
 
@@ -18,11 +18,11 @@ const KINDS: readonly Kind[] = [
 	{ id: "clean", label: "Clean", needs: [] },
 ];
 
-function Submit({ busy: initialBusy }: { busy: boolean }) {
+function Submit({ busy: initialBusy, blocked }: { busy: boolean; blocked: boolean }) {
 	const { pending } = useFormStatus();
 	// Live: a job started elsewhere must disable this too.
 	const busy = useBusy(initialBusy);
-	const disabled = busy || pending;
+	const disabled = busy || pending || blocked;
 	return (
 		<button className="btn" type="submit" disabled={disabled}>
 			<Icon name={disabled ? "hourglass_top" : "play_arrow"} />
@@ -47,6 +47,10 @@ export default function BuildForm({
 	const [sdk, setSdk] = useState(prefs.sdk);
 
 	useRemember("single", { kind, variant, arch, sdk });
+
+	// Only commands that take a target can hit an unsupported one.
+	const takesTarget = ["make", "packages"].includes(kind);
+	const blocked = takesTarget && !targetSupported(arch, sdk);
 	const needs = KINDS.find((k) => k.id === kind)?.needs ?? [];
 
 	return (
@@ -107,7 +111,12 @@ export default function BuildForm({
 				</div>
 			)}
 
-			<Submit busy={busy} />
+			{blocked && (
+				<p className="cl-hint" style={{ flexBasis: "100%", margin: 0 }}>
+					{UNSUPPORTED_MSG}.
+				</p>
+			)}
+			<Submit busy={busy} blocked={blocked} />
 		</form>
 	);
 }

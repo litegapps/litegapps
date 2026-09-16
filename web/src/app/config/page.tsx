@@ -132,6 +132,11 @@ export default async function ConfigPage({
 				<div className="note" style={{ marginTop: 20 }}>
 					<Icon name="warning" />
 					<div>
+						Halaman ini mengubah <b>file config di repo</b>, yang dipakai semua orang yang clone.
+						Untuk identitas dan versi build di VPS ini, pakai <b>Build → Config target</b>: nilainya
+						disimpan di database panel dan tidak pernah ikut ke git.
+						<br />
+						<br />
 						File ini ikut di git. Perubahan di sini muncul sebagai perubahan file di repo, jadi
 						commit atau kembalikan lewat git seperti biasa. Komentar dan urutan baris tidak diubah —
 						hanya nilai di kanan tanda <code>=</code>.

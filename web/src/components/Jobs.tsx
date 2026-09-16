@@ -43,7 +43,7 @@ export default function Jobs({ jobs, busy }: { jobs: Job[]; busy: boolean }) {
 		return (
 			<div className="msg">
 				<Icon name="history" />
-				Belum ada job yang dijalankan.
+				Belum ada job dari halaman ini.
 			</div>
 		);
 	}

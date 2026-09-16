@@ -26,6 +26,13 @@ never reimplements build logic.
   publish to the release server.
 - **Never sync `web/` to the SourceForge FRS** — it is world-readable and that
   directory holds the panel's compose file and `.env.example`.
+- The repo `config` is a neutral default (`name.builder=yourname`,
+  `build.status=unofficial`). A maintainer's identity lives in the panel
+  database and reaches builds as `LG_CFG_*`; never commit it back into
+  `config`.
+- x86 (32-bit) is supported up to Android 15 (SDK 35) only. Do not add x86
+  builds or sources for SDK 36+ (`target_supported()` in `build.sh`,
+  `targetSupported()` in `web/src/lib/targets.ts`).
 - Anything uploaded to `$HOMEE` (`/home/frs/project/litegapps`) is public.
   Database backups that go to `<project>/db/` are therefore always encrypted.
 

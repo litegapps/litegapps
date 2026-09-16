@@ -1,5 +1,5 @@
 import { getSetting, setSetting } from "./settings";
-import { ARCHS, SDKS, VARIANTS } from "./targets";
+import { ARCHS, SDKS, VARIANTS, targetSupported } from "./targets";
 
 /*
  * What the build forms were set to last time.
@@ -11,10 +11,8 @@ import { ARCHS, SDKS, VARIANTS } from "./targets";
  */
 
 export type BatchPrefs = {
-	archs: string[];
-	sdks: number[];
-	auto: boolean;
-	variants: string[];
+	/** ticked targets, "<arch>-<sdk>" */
+	targets: string[];
 	restoreMissing: boolean;
 	cleanAfter: boolean;
 	buildAddon: boolean;
@@ -32,10 +30,7 @@ const BATCH_KEY = "form.batch";
 const SINGLE_KEY = "form.single";
 
 export const DEFAULT_BATCH: BatchPrefs = {
-	archs: ["arm64"],
-	sdks: [36],
-	auto: true,
-	variants: ["lite"],
+	targets: ["arm64-36"],
 	restoreMissing: true,
 	cleanAfter: false,
 	buildAddon: false,
@@ -52,7 +47,9 @@ export const DEFAULT_SINGLE: SinglePrefs = {
 const SINGLE_KINDS = ["make", "packages", "restore", "status", "clean"];
 
 function keepArchs(v: unknown): string[] {
-	return Array.isArray(v) ? v.filter((a): a is string => (ARCHS as readonly string[]).includes(a as string)) : [];
+	return Array.isArray(v)
+		? v.filter((a): a is string => (ARCHS as readonly string[]).includes(a as string))
+		: [];
 }
 
 function keepSdks(v: unknown): number[] {
@@ -61,25 +58,35 @@ function keepSdks(v: unknown): number[] {
 		: [];
 }
 
-function keepVariants(v: unknown): string[] {
-	return Array.isArray(v)
-		? v.filter((x): x is string => (VARIANTS as readonly string[]).includes(x as string))
-		: [];
+function keepTargets(v: unknown): string[] {
+	if (!Array.isArray(v)) return [];
+	return [...new Set(v.map(String))].filter((k) => {
+		const i = k.lastIndexOf("-");
+		if (i < 1) return false;
+		return (
+			(ARCHS as readonly string[]).includes(k.slice(0, i)) &&
+			(SDKS as readonly number[]).includes(Number(k.slice(i + 1))) &&
+			targetSupported(k.slice(0, i), Number(k.slice(i + 1)))
+		);
+	});
 }
+
 
 export async function readBatchPrefs(): Promise<BatchPrefs> {
 	try {
 		const raw = await getSetting(BATCH_KEY);
 		if (!raw) return DEFAULT_BATCH;
-		const p = JSON.parse(raw) as Partial<BatchPrefs>;
-		const archs = keepArchs(p.archs);
-		const sdks = keepSdks(p.sdks);
-		const variants = keepVariants(p.variants);
+		const p = JSON.parse(raw) as Partial<BatchPrefs> & { archs?: unknown; sdks?: unknown };
+		// Rows written before the checklist became a matrix held arch x sdk
+		// lists; they turn into the same set of targets.
+		let targets = keepTargets(p.targets);
+		if (!targets.length) {
+			const archs = keepArchs(p.archs);
+			const sdks = keepSdks(p.sdks);
+			targets = archs.flatMap((a) => sdks.map((s) => `${a}-${s}`));
+		}
 		return {
-			archs: archs.length ? archs : DEFAULT_BATCH.archs,
-			sdks: sdks.length ? sdks : DEFAULT_BATCH.sdks,
-			auto: p.auto !== false,
-			variants: variants.length ? variants : DEFAULT_BATCH.variants,
+			targets: targets.length ? targets : DEFAULT_BATCH.targets,
 			restoreMissing: p.restoreMissing !== false,
 			cleanAfter: p.cleanAfter === true,
 			buildAddon: p.buildAddon === true,
@@ -95,10 +102,7 @@ export async function writeBatchPrefs(p: BatchPrefs): Promise<void> {
 	await setSetting(
 		BATCH_KEY,
 		JSON.stringify({
-			archs: keepArchs(p.archs),
-			sdks: keepSdks(p.sdks),
-			auto: p.auto,
-			variants: keepVariants(p.variants),
+			targets: keepTargets(p.targets),
 			restoreMissing: p.restoreMissing,
 			cleanAfter: p.cleanAfter,
 			buildAddon: p.buildAddon,

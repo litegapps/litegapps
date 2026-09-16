@@ -150,9 +150,20 @@ json_list(){
 }
 
 #################################################
-# Project version (from the repo config)
+# Project version
+#
+# LG_CFG_<key> (set by the panel from its own database) wins over the repo
+# config, the same rule get_config() in build.sh follows.
 #################################################
-cfg(){ grep "^$1=" "$ROOT/config" 2>/dev/null | head -n1 | cut -d = -f 2-; }
+cfg(){
+	local env_key="LG_CFG_$(printf '%s' "$1" | tr '.-' '__')" value
+	eval "value=\${$env_key-}"
+	if [ -n "$value" ]; then
+		printf '%s\n' "$value"
+		return 0
+	fi
+	grep "^$1=" "$ROOT/config" 2>/dev/null | head -n1 | cut -d = -f 2-
+}
 
 V_VERSION="$(cfg version)"
 V_CODE="$(cfg version.code)"

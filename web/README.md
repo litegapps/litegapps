@@ -165,7 +165,15 @@ When a new SDK is added, extend `SDK_MAP` in `make-status.sh` and `SDKS` in
   in place of their built-in lists (names are filtered to
   `[A-Za-z0-9._-]` on both sides).
 
-Both travel with the database backup, so the configuration survives a
+- **Identitas & versi build ini** (`build_config`): `version`,
+  `version.code`, `codename`, `name.builder`, `build.status` for builds made
+  on this machine. The repo `config` stays neutral (`yourname`,
+  `unofficial`) for everyone who clones it; these values reach every job that
+  reads the config as `LG_CFG_<key>`, which `get_config()` in `build.sh` and
+  `web/make-status.sh` read before the file. An empty field falls back to the
+  file.
+
+All three travel with the database backup, so the configuration survives a
 redeploy and can be restored on another machine.
 
 Nothing about *which* targets are built is read from the repo: the panel
@@ -269,7 +277,7 @@ tomorrow rather than every five minutes.
 
 Details worth knowing:
 
-- `users`, `jobs`, `settings`, `build_targets` and `package_lists` are dumped. `sessions.token` is the raw login
+- `users`, `jobs`, `settings`, `build_targets`, `package_lists` and `build_config` are dumped. `sessions.token` is the raw login
   cookie, so sessions never leave the machine — and a restore therefore never
   logs anyone out.
 - The restore keeps its own job row (`plan()` passes a `__JOB_ID__`

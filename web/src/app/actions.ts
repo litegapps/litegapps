@@ -10,6 +10,7 @@ import { AUTO_BACKUP, setSetting } from "@/lib/settings";
 import { readOverrides, writeOverrides } from "@/lib/buildtargets";
 import { PACKAGE_LISTS, readPackageLists, writePackageLists } from "@/lib/packages";
 import { readSinglePrefs, writeBatchPrefs, writeSinglePrefs } from "@/lib/formstate";
+import { PANEL_KEYS, readPanelConfig, writePanelConfig } from "@/lib/panelconfig";
 import type { JobKind } from "@/lib/targets";
 
 /*
@@ -36,13 +37,13 @@ export async function startJobAction(formData: FormData) {
 			// stored config", never which variants that turns into.
 			overrides: kind === "build-batch" ? await readOverrides() : undefined,
 			packages: kind === "build-batch" || kind === "make" ? await readPackageLists() : undefined,
+			// Identity and version come from the panel, never from the repo file.
+			config: await readPanelConfig(),
 			kind,
 			variant: String(formData.get("variant") ?? "") || undefined,
 			name: String(formData.get("name") ?? "") || undefined,
 			variants: formData.getAll("variants").map(String),
-			archs: formData.getAll("archs").map(String),
-			sdks: formData.getAll("sdks").map(String),
-			autoVariants: formData.get("autoVariants") === "on",
+			targets: formData.getAll("targets").map(String),
 			restoreMissing: formData.get("restoreMissing") === "on",
 			cleanAfter: formData.get("cleanAfter") === "on",
 			buildAddon: formData.get("buildAddon") === "on",
@@ -229,10 +230,7 @@ async function rememberForm(kind: string, formData: FormData) {
 	try {
 		if (kind === "build-batch") {
 			await writeBatchPrefs({
-				archs: formData.getAll("archs").map(String),
-				sdks: formData.getAll("sdks").map(Number),
-				auto: formData.get("autoVariants") === "on",
-				variants: formData.getAll("variants").map(String),
+				targets: formData.getAll("targets").map(String),
 				restoreMissing: formData.get("restoreMissing") === "on",
 				cleanAfter: formData.get("cleanAfter") === "on",
 				buildAddon: formData.get("buildAddon") === "on",
@@ -252,6 +250,32 @@ async function rememberForm(kind: string, formData: FormData) {
 	} catch {
 		// A preference that cannot be stored must never stop a build.
 	}
+}
+
+/*
+ * Save the panel's identity and version (Build > Config target). These live in
+ * the database and are passed to jobs as LG_CFG_*, so the repo `config` can
+ * stay a neutral default for everyone who clones it.
+ */
+export async function savePanelConfigAction(formData: FormData) {
+	await requireAdmin();
+
+	const next: Record<string, string> = {};
+	for (const k of PANEL_KEYS) {
+		const raw = formData.get(`cfg:${k}`);
+		if (raw !== null) next[k] = String(raw);
+	}
+
+	let target = "/?tab=config";
+	try {
+		const n = await writePanelConfig(next);
+		target = withParam(target, "done", `Identitas panel disimpan (${n} nilai dipakai)`);
+	} catch (e) {
+		target = withParam(target, "error", e instanceof Error ? e.message : "gagal menyimpan");
+	}
+
+	revalidatePath("/");
+	redirect(target);
 }
 
 export async function logoutAction() {

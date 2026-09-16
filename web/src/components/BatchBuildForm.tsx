@@ -4,25 +4,32 @@ import { useState } from "react";
 import { useFormStatus } from "react-dom";
 import Icon from "./Icon";
 import { startJobAction } from "@/app/actions";
-import { ANDROID, ARCHS, SDKS, VARIANTS, defaultVariants } from "@/lib/targets";
+import {
+	ANDROID,
+	ARCHS,
+	SDKS,
+	UNSUPPORTED_MSG,
+	defaultVariants,
+	targetSupported,
+} from "@/lib/targets";
 import { useBusy } from "./useBusy";
 import { useRemember } from "./useRemember";
 
 /*
- * Checklist build: tick architectures and Android versions, and every
- * combination is queued into one batch job (web/build-batch.sh). Kept to one
+ * Checklist build: tick the arch x Android targets in the matrix and every one
+ * of them is queued into a single batch job (web/build-batch.sh). Kept to one
  * job because builds share output/ and log/, so the panel's single-job lock
  * still holds while a "build everything" run is going.
+ *
+ * The matrix mirrors Build > Config target, which is also where each target's
+ * variants come from: nothing about variants is chosen here.
  */
 
 type Props = {
 	busy: boolean;
 	/** last used selection, from the database */
 	prefs: {
-		archs: string[];
-		sdks: number[];
-		auto: boolean;
-		variants: string[];
+		targets: string[];
 		restoreMissing: boolean;
 		cleanAfter: boolean;
 		buildAddon: boolean;
@@ -35,30 +42,6 @@ type Props = {
 	/** "<arch>-<sdk>" -> variants already restored in this checkout */
 	localGapps: Record<string, string[]>;
 };
-
-function Chip({
-	checked,
-	onChange,
-	disabled,
-	title,
-	main,
-	sub,
-}: {
-	checked: boolean;
-	onChange: () => void;
-	disabled?: boolean;
-	title?: string;
-	main: string;
-	sub?: string;
-}) {
-	return (
-		<label className={`chip${checked ? " on" : ""}${disabled ? " off" : ""}`} title={title}>
-			<input type="checkbox" checked={checked} onChange={onChange} disabled={disabled} />
-			<span className="chip-main">{main}</span>
-			{sub && <span className="chip-sub">{sub}</span>}
-		</label>
-	);
-}
 
 function Submit({ busy: initialBusy, count }: { busy: boolean; count: number }) {
 	const { pending } = useFormStatus();
@@ -78,14 +61,19 @@ function Submit({ busy: initialBusy, count }: { busy: boolean; count: number }) 
 	);
 }
 
-export default function BatchBuildForm({ busy, prefs, overrides, serverGapps, localGapps }: Props) {
-	const configured = (a: string, s: number) => overrides[`${a}-${s}`] ?? defaultVariants(a, s);
-	// Seeded from the last run; the page is dynamic, so this is the server's
-	// value on both renders and cannot mismatch on hydration.
-	const [archs, setArchs] = useState<string[]>(prefs.archs);
-	const [sdks, setSdks] = useState<number[]>(prefs.sdks);
-	const [auto, setAuto] = useState(prefs.auto);
-	const [variants, setVariants] = useState<string[]>(prefs.variants);
+export default function BatchBuildForm({
+	busy,
+	prefs,
+	overrides,
+	serverGapps,
+	localGapps,
+}: Props) {
+	const [picked, setPicked] = useState<string[]>(
+		prefs.targets.filter((k) => {
+			const i = k.lastIndexOf("-");
+			return targetSupported(k.slice(0, i), Number(k.slice(i + 1)));
+		}),
+	);
 	const [opts, setOpts] = useState({
 		restoreMissing: prefs.restoreMissing,
 		cleanAfter: prefs.cleanAfter,
@@ -95,103 +83,118 @@ export default function BatchBuildForm({ busy, prefs, overrides, serverGapps, lo
 	const setOpt = (k: keyof typeof opts) => setOpts((o) => ({ ...o, [k]: !o[k] }));
 
 	// Ticking a box is enough: leaving for another menu must not lose it.
-	useRemember("batch", { archs, sdks, auto, variants, ...opts });
+	useRemember("batch", { targets: picked, ...opts });
 
-	const toggle = <T,>(list: T[], v: T, set: (x: T[]) => void) =>
-		set(list.includes(v) ? list.filter((x) => x !== v) : [...list, v]);
+	const key = (a: string, s: number) => `${a}-${s}`;
+	const configured = (a: string, s: number) => overrides[key(a, s)] ?? defaultVariants(a, s);
+	const on = (a: string, s: number) => picked.includes(key(a, s));
 
-	const targets = archs.flatMap((a) => sdks.map((s) => ({ arch: a, sdk: s })));
-	const count = targets.reduce(
-		(n, t) => n + (auto ? configured(t.arch, t.sdk).length : variants.length),
-		0,
-	);
-	targets.sort((x, y) => x.arch.localeCompare(y.arch) || y.sdk - x.sdk);
+	const toggle = (a: string, s: number) =>
+		setPicked((cur) =>
+			cur.includes(key(a, s)) ? cur.filter((k) => k !== key(a, s)) : [...cur, key(a, s)],
+		);
+
+	/** Tick or clear a whole Android row / arch column at once. */
+	const setMany = (keys: string[], next: boolean) =>
+		setPicked((cur) => (next ? [...new Set([...cur, ...keys])] : cur.filter((k) => !keys.includes(k))));
+
+	// Row, column and "select all" only ever reach supported targets.
+	const rowKeys = (s: number) => ARCHS.filter((a) => targetSupported(a, s)).map((a) => key(a, s));
+	const colKeys = (a: string) => SDKS.filter((s) => targetSupported(a, s)).map((s) => key(a, s));
+	const allKeys = ARCHS.flatMap((a) => colKeys(a));
+
+	const targets = picked
+		.map((k) => {
+			const i = k.lastIndexOf("-");
+			return { arch: k.slice(0, i), sdk: Number(k.slice(i + 1)) };
+		})
+		.filter((t) => (ARCHS as readonly string[]).includes(t.arch))
+		.sort((x, y) => x.arch.localeCompare(y.arch) || y.sdk - x.sdk);
+
+	const count = targets.reduce((n, t) => n + configured(t.arch, t.sdk).length, 0);
 
 	return (
 		<form action={startJobAction} className="checklist">
 			<input type="hidden" name="kind" value="build-batch" />
-			{archs.map((a) => (
-				<input key={a} type="hidden" name="archs" value={a} />
+			{picked.map((k) => (
+				<input key={k} type="hidden" name="targets" value={k} />
 			))}
-			{sdks.map((s) => (
-				<input key={s} type="hidden" name="sdks" value={s} />
-			))}
-			{!auto && variants.map((v) => <input key={v} type="hidden" name="variants" value={v} />)}
-			{auto && <input type="hidden" name="autoVariants" value="on" />}
 
 			<div className="cl-group">
 				<div className="cl-head">
-					<span>Arsitektur</span>
+					<span>Target</span>
 					<button
 						type="button"
 						className="btn text"
-						onClick={() => setArchs(archs.length === ARCHS.length ? [] : [...ARCHS])}
+						onClick={() => setMany(allKeys, picked.length !== allKeys.length)}
 					>
-						{archs.length === ARCHS.length ? "Kosongkan" : "Pilih semua"}
+						{picked.length === allKeys.length ? "Kosongkan" : "Pilih semua"}
 					</button>
 				</div>
-				<div className="chips">
-					{ARCHS.map((a) => (
-						<Chip
-							key={a}
-							main={a}
-							checked={archs.includes(a)}
-							onChange={() => toggle(archs, a, setArchs)}
-						/>
-					))}
-				</div>
-			</div>
 
-			<div className="cl-group">
-				<div className="cl-head">
-					<span>Android</span>
-					<button
-						type="button"
-						className="btn text"
-						onClick={() => setSdks(sdks.length === SDKS.length ? [] : [...SDKS])}
-					>
-						{sdks.length === SDKS.length ? "Kosongkan" : "Pilih semua"}
-					</button>
+				<div className="tscroll">
+					<table className="jobs targetcfg">
+						<thead>
+							<tr>
+								<th>Android</th>
+								{ARCHS.map((a) => (
+									<th key={a}>
+										<button
+											type="button"
+											className="joblink"
+											title={`Pilih semua ${a}`}
+											onClick={() =>
+												setMany(colKeys(a), !colKeys(a).every((k) => picked.includes(k)))
+											}
+										>
+											{a}
+										</button>
+									</th>
+								))}
+							</tr>
+						</thead>
+						<tbody>
+							{[...SDKS].reverse().map((s) => {
+								const rowOn = rowKeys(s).every((k) => picked.includes(k));
+								return (
+									<tr key={s}>
+										<td className="lbl">
+											<button
+												type="button"
+												className="joblink"
+												title="Pilih semua arsitektur untuk versi ini"
+												onClick={() => setMany(rowKeys(s), !rowOn)}
+											>
+												<b>{ANDROID[s] ?? s}</b> <small>SDK {s}</small>
+											</button>
+										</td>
+										{ARCHS.map((a) =>
+											targetSupported(a, s) ? (
+												<td key={a}>
+													<input
+														type="checkbox"
+														aria-label={`${a} Android ${ANDROID[s] ?? s}`}
+														checked={on(a, s)}
+														onChange={() => toggle(a, s)}
+													/>
+												</td>
+											) : (
+												<td key={a} className="when" title={UNSUPPORTED_MSG}>
+													—
+												</td>
+											),
+										)}
+									</tr>
+								);
+							})}
+						</tbody>
+					</table>
 				</div>
-				<div className="chips">
-					{[...SDKS].reverse().map((s) => (
-						<Chip
-							key={s}
-							main={ANDROID[s] ?? String(s)}
-							sub={`SDK ${s}`}
-							checked={sdks.includes(s)}
-							onChange={() => toggle(sdks, s, setSdks)}
-						/>
-					))}
-				</div>
-			</div>
-
-			<div className="cl-group">
-				<div className="cl-head">
-					<span>Varian</span>
-					<label className="cl-switch">
-						<input type="checkbox" checked={auto} onChange={() => setAuto(!auto)} />
-						<span>Ikut config target</span>
-					</label>
-				</div>
-				<div className="chips">
-					{VARIANTS.map((v) => (
-						<Chip
-							key={v}
-							main={v}
-							disabled={auto}
-							checked={auto ? false : variants.includes(v)}
-							onChange={() => toggle(variants, v, setVariants)}
-						/>
-					))}
-				</div>
-				{auto && (
-					<p className="cl-hint">
-						Varian diambil per target dari tab <b>Config target</b>. Target yang belum diatur di sana
-						memakai daftar bawaan: arm64 SDK ≤28 core+lite, arm64 SDK 29+ pixel+lite+superlite,
-						arm/x86/x86_64 core (+superlite SDK 29+).
-					</p>
-				)}
+				<p className="cl-hint">
+					Tanda — berarti target tidak didukung: {UNSUPPORTED_MSG}. Klik nama arsitektur atau
+					versi Android untuk mencentang satu kolom/baris sekaligus. Varian
+					tiap target diambil dari tab <b>Config target</b> — hasil akhirnya ada di tabel di bawah.
+				</p>
 			</div>
 
 			<div className="cl-group">
@@ -258,12 +261,12 @@ export default function BatchBuildForm({ busy, prefs, overrides, serverGapps, lo
 						</thead>
 						<tbody>
 							{targets.slice(0, 40).map((t) => {
-								const key = `${t.arch}-${t.sdk}`;
-								const list = auto ? configured(t.arch, t.sdk) : variants;
-								const local = localGapps[key] ?? [];
+								const k = key(t.arch, t.sdk);
+								const list = configured(t.arch, t.sdk);
+								const local = localGapps[k] ?? [];
 								const missing = list.filter((v) => !local.includes(v));
 								return (
-									<tr key={key}>
+									<tr key={k}>
 										<td>
 											<b>{t.arch}</b> · Android {ANDROID[t.sdk] ?? t.sdk}
 										</td>
@@ -274,7 +277,7 @@ export default function BatchBuildForm({ busy, prefs, overrides, serverGapps, lo
 													<Icon name="check" />
 													siap di VPS
 												</span>
-											) : serverGapps[key] ? (
+											) : serverGapps[k] ? (
 												<span className="pill run">
 													<Icon name="cloud_download" />
 													unduh {missing.length} varian

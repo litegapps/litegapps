@@ -6,9 +6,17 @@ import type { RowDataPacket, ResultSetHeader } from "mysql2";
 import { db, ensureSchema } from "./db";
 import { repoRoot, jobLogDir } from "./paths";
 import { findBuildProcesses } from "./procs";
-import { ARCHS, BACKUP_NAME, SDKS, VARIANTS } from "./targets";
-import { targetSpec } from "./buildtargets";
+import {
+	ARCHS,
+	BACKUP_NAME,
+	SDKS,
+	UNSUPPORTED_MSG,
+	VARIANTS,
+	targetSupported,
+} from "./targets";
+import { parseTargetKey, targetSpec } from "./buildtargets";
 import { packageEnv } from "./packages";
+import { panelConfigEnv } from "./panelconfig";
 import type { Job, JobRequest } from "./targets";
 
 export { ARCHS, SDKS, VARIANTS, ANDROID } from "./targets";
@@ -25,6 +33,14 @@ export type { Job, JobKind, JobRequest } from "./targets";
 
 type Plan = { argv: string[]; label: string; env?: Record<string, string> };
 
+/*
+ * Jobs that read the build config get the panel's identity and version as
+ * LG_CFG_* (see lib/panelconfig), so the repo's `config` stays neutral.
+ */
+const CONFIG_KINDS = new Set<string>([
+	"make", "build-batch", "packages", "restore", "restore-gapps", "restore-bin", "status",
+]);
+
 /** Placeholder in a plan's argv, replaced with the job's own id in startJob. */
 const JOB_ID_TOKEN = "__JOB_ID__";
 
@@ -40,6 +56,11 @@ function plan(req: JobRequest): Plan {
 	const needSdk = () => {
 		if (!(SDKS as readonly number[]).includes(Number(sdk))) throw new Error(`bad sdk: ${sdk}`);
 	};
+	// Anything that restores or builds a target must also be a target the
+	// project still supports (see targetSupported in targets.ts).
+	const needSupported = () => {
+		if (!targetSupported(arch, sdk)) throw new Error(UNSUPPORTED_MSG);
+	};
 	const needVariant = () => {
 		if (!(VARIANTS as readonly string[]).includes(variant)) {
 			throw new Error(`bad variant: ${variant}`);
@@ -48,14 +69,14 @@ function plan(req: JobRequest): Plan {
 
 	switch (req.kind) {
 		case "make":
-			needVariant(); needArch(); needSdk();
+			needVariant(); needArch(); needSdk(); needSupported();
 			return {
 				argv: ["bash", "build.sh", "make", "litegapps", variant, arch, sdk],
 				label: `make ${variant} ${arch} sdk ${sdk}`,
 				env: packageEnv(req.packages ?? {}),
 			};
 		case "packages":
-			needArch(); needSdk();
+			needArch(); needSdk(); needSupported();
 			return {
 				argv: ["bash", "packages/make", "make", arch, sdk],
 				label: `packages ${arch} sdk ${sdk}`,
@@ -65,13 +86,13 @@ function plan(req: JobRequest): Plan {
 		case "restore-bin":
 			return { argv: ["sh", "build.sh", "restore", "bin"], label: "restore bin" };
 		case "restore-package":
-			needArch(); needSdk();
+			needArch(); needSdk(); needSupported();
 			return {
 				argv: ["bash", "packages/make", "restore", arch, sdk],
 				label: `restore package ${arch} sdk ${sdk}`,
 			};
 		case "restore-gapps": {
-			needArch(); needSdk();
+			needArch(); needSdk(); needSupported();
 			const list = [...new Set(req.variants ?? [])];
 			if (!list.length) throw new Error("pick at least one variant");
 			for (const v of list) {
@@ -84,33 +105,22 @@ function plan(req: JobRequest): Plan {
 			};
 		}
 		case "build-batch": {
-			// The per-target variant lists are resolved before the job starts
-			// and handed over in argv (see buildtargets.targetSpec).
-			const archs = [...new Set(req.archs ?? [])];
-			const sdks = [...new Set(req.sdks ?? [])];
-			if (!archs.length) throw new Error("pick at least one arch");
-			if (!sdks.length) throw new Error("pick at least one Android version");
-			for (const a of archs) {
-				if (!(ARCHS as readonly string[]).includes(a)) throw new Error(`bad arch: ${a}`);
-			}
-			for (const s of sdks) {
-				if (!(SDKS as readonly number[]).includes(Number(s))) throw new Error(`bad sdk: ${s}`);
-			}
-			const auto = req.autoVariants !== false;
-			const list = [...new Set(req.variants ?? [])];
-			if (!auto) {
-				if (!list.length) throw new Error("pick at least one variant");
-				for (const v of list) {
-					if (!(VARIANTS as readonly string[]).includes(v)) throw new Error(`bad variant: ${v}`);
-				}
+			// Targets are ticked one by one in the checklist ("<arch>-<sdk>");
+			// their variants are never chosen here - they come from the panel's
+			// per-target config, with the built-in default as fallback.
+			const targets = [...new Set(req.targets ?? [])]
+				.map(parseTargetKey)
+				.filter((t): t is { arch: string; sdk: number } => t !== null)
+				.sort((a, b) => a.arch.localeCompare(b.arch) || b.sdk - a.sdk);
+			if (!targets.length) throw new Error("pilih minimal satu target");
+			const unsupported = targets.filter((t) => !targetSupported(t.arch, t.sdk));
+			if (unsupported.length) {
+				throw new Error(
+					`${UNSUPPORTED_MSG}: ${unsupported.map((t) => `${t.arch}/${t.sdk}`).join(", ")}`,
+				);
 			}
 
-			const spec = targetSpec(
-				archs,
-				sdks.map(Number),
-				auto ? (req.overrides ?? {}) : {},
-				auto ? undefined : list,
-			);
+			const spec = targetSpec(targets, req.overrides ?? {});
 			const count = spec
 				.split(";")
 				.filter(Boolean)
@@ -125,24 +135,10 @@ function plan(req: JobRequest): Plan {
 					req.upload ? "1" : "0",
 				],
 				label:
-					`build ${count} zip · ${archs.join("/")} · sdk ${sdks.join(",")}` +
+					`build ${count} zip · ${targets.length} target` +
 					(req.buildAddon ? " · addon" : "") +
 					(req.upload ? " · upload SF" : ""),
 				env: packageEnv(req.packages ?? {}),
-			};
-		}
-		case "db-backup":
-			return { argv: ["bash", "web/db-backup.sh"], label: "backup database ke SourceForge" };
-		case "db-list":
-			return { argv: ["bash", "web/db-list.sh"], label: "refresh daftar backup" };
-		case "db-restore": {
-			const name = req.name ?? "";
-			if (!BACKUP_NAME.test(name)) throw new Error(`bad backup name: ${name}`);
-			// JOB_ID_TOKEN becomes this job's own id once the row exists, so the
-			// restore can keep its own history row.
-			return {
-				argv: ["bash", "web/db-restore.sh", name, JOB_ID_TOKEN],
-				label: `restore database dari ${name}`,
 			};
 		}
 		case "clean-sources":
@@ -198,6 +194,7 @@ export async function startJob(req: JobRequest): Promise<number> {
 	}
 
 	const { argv: planned, label, env: planEnv } = plan(req);
+	const configEnv = CONFIG_KINDS.has(req.kind) ? panelConfigEnv(req.config ?? {}) : {};
 	const root = repoRoot();
 	const dir = jobLogDir();
 	mkdirSync(dir, { recursive: true });
@@ -252,7 +249,7 @@ export async function startJob(req: JobRequest): Promise<number> {
 			detached: true,
 			// planEnv carries the panel's package lists (LG_PKGS_*), which the
 			// build reads instead of its built-in ones.
-			env: { ...process.env, ...planEnv },
+			env: { ...process.env, ...configEnv, ...planEnv },
 		},
 	);
 
@@ -366,10 +363,24 @@ export async function reconcile(): Promise<void> {
 	}
 }
 
-export async function listJobs(limit = 20): Promise<Job[]> {
+/*
+ * Recent jobs, newest first. `kinds` keeps each page's history to its own
+ * work: a batch build belongs under the checklist, not under the
+ * single-command form, the same way the terminal panel is scoped.
+ */
+export async function listJobs(limit = 20, kinds?: readonly string[]): Promise<Job[]> {
 	await reconcile();
+	const cols = "id, kind, label, status, exit_code, started_at, finished_at";
+	if (kinds && kinds.length) {
+		const holes = kinds.map(() => "?").join(",");
+		const [rows] = await db().query<RowDataPacket[]>(
+			`SELECT ${cols} FROM jobs WHERE kind IN (${holes}) ORDER BY id DESC LIMIT ?`,
+			[...kinds, limit],
+		);
+		return rows as Job[];
+	}
 	const [rows] = await db().query<RowDataPacket[]>(
-		"SELECT id, kind, label, status, exit_code, started_at, finished_at FROM jobs ORDER BY id DESC LIMIT ?",
+		`SELECT ${cols} FROM jobs ORDER BY id DESC LIMIT ?`,
 		[limit],
 	);
 	return rows as Job[];

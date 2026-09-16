@@ -10,9 +10,18 @@ import { readStatus } from "@/lib/status";
 import { readRestoreOverview } from "@/lib/restore";
 import { readOverrides } from "@/lib/buildtargets";
 import { PACKAGE_LISTS, readPackageLists, resolveList } from "@/lib/packages";
+import {
+	PANEL_HINTS,
+	PANEL_KEYS,
+	PANEL_LABELS,
+	readPanelConfig,
+} from "@/lib/panelconfig";
+import { readConfigDoc } from "@/lib/config";
 import { readBatchPrefs, readSinglePrefs } from "@/lib/formstate";
+import { KINDS_BATCH, KINDS_SINGLE } from "@/lib/targets";
 import TargetConfigForm from "@/components/TargetConfigForm";
 import PackageListsForm from "@/components/PackageListsForm";
+import PanelConfigForm from "@/components/PanelConfigForm";
 import JobTerminal from "@/components/JobTerminal";
 import Link from "next/link";
 
@@ -30,15 +39,19 @@ export default async function Page({
 
 	const { error, done, tab: rawTab } = await searchParams;
 	const tab = rawTab === "config" ? "config" : rawTab === "single" ? "single" : "build";
+	const kinds = tab === "single" ? KINDS_SINGLE : KINDS_BATCH;
 	const [status, jobs, running, overview, overrides] = await Promise.all([
 		readStatus(),
-		listJobs(),
+		listJobs(20, kinds),
 		runningJob(),
 		readRestoreOverview(),
 		readOverrides(),
 	]);
 	const [batchPrefs, singlePrefs] = await Promise.all([readBatchPrefs(), readSinglePrefs()]);
 	const storedPackages = tab === "config" ? await readPackageLists() : {};
+	const panelConfig = tab === "config" ? await readPanelConfig() : {};
+	const repoDoc = tab === "config" ? await readConfigDoc("main") : null;
+	const repoConfig = Object.fromEntries((repoDoc?.entries ?? []).map((e) => [e.key, e.value]));
 	const packageLists = Object.fromEntries(
 		PACKAGE_LISTS.map((n) => [n, resolveList(n, storedPackages)]),
 	);
@@ -134,7 +147,7 @@ export default async function Page({
 					)}
 				</section>
 
-				<JobTerminal kinds={["make", "packages", "restore", "clean", "status"]} />
+				<JobTerminal kinds={KINDS_SINGLE} />
 
 					<section className="card">
 						<div className="card-head">
@@ -148,6 +161,32 @@ export default async function Page({
 					</>
 				) : tab === "config" ? (
 					<>
+					<section className="card">
+						<div className="card-head">
+							<h2>
+								<Icon name="badge" />
+								Identitas &amp; versi build ini
+							</h2>
+							<code>tersimpan di database panel, bukan di file config repo</code>
+						</div>
+						<div className="note" style={{ margin: "0 16px" }}>
+							<Icon name="info" />
+							<div>
+								Nilai di sini dipakai saat build di VPS ini. File <code>config</code> di repo
+								sengaja dibiarkan netral (<code>name.builder=yourname</code>,{" "}
+								<code>build.status=unofficial</code>) supaya siapa pun yang clone bisa build atas
+								namanya sendiri — nama dan status Anda tidak pernah ikut ke git.
+							</div>
+						</div>
+						<PanelConfigForm
+							values={panelConfig}
+							repo={repoConfig}
+							keys={PANEL_KEYS}
+							labels={PANEL_LABELS}
+							hints={PANEL_HINTS}
+						/>
+					</section>
+
 					<section className="card">
 						<div className="card-head">
 							<h2>
@@ -218,7 +257,7 @@ export default async function Page({
 					</div>
 				</section>
 
-				<JobTerminal kinds={["build-batch"]} />
+				<JobTerminal kinds={KINDS_BATCH} />
 
 				<section className="card">
 					<div className="card-head">

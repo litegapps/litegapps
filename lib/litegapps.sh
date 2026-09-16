@@ -249,6 +249,12 @@ make_flashable_litegapps(){
 		SED "$(getp description $MODULE_PROP)" "$MODULE_DESC" $MODULE_PROP
 		SED "$(getp litegapps_variant $MODULE_PROP)" "$VARIANT" $MODULE_PROP
 		sed -i 's,'"$(getp updateJson $MODULE_PROP)"','"${MODULE_UPDATE}"',g' $MODULE_PROP
+		# The zip's target, so the installer can refuse a wrong device with a
+		# precise message instead of failing half way (managers ignore these).
+		sed -i '/^litegapps_arch=/d;/^litegapps_sdk=/d' $MODULE_PROP
+		[ -n "$(tail -c1 $MODULE_PROP)" ] && echo >> $MODULE_PROP
+		echo "litegapps_arch=$W_ARCH" >> $MODULE_PROP
+		echo "litegapps_sdk=$W_SDK" >> $MODULE_PROP
 
 		if [ "$VARIANT" = "lite" ]; then
 		local NAME_ZIP="LiteGapps-${W_ARCH}-$(get_android_version $W_SDK)-$(date +%Y%m%d)-${PROP_STATUS}.zip"
@@ -284,6 +290,10 @@ _litegapps_build_variant(){
 		# binary copy architecture type
 		BIN_ARCH=$W_ARCH
 		for W_SDK in $CONFIG_SDK; do
+			if ! target_supported "$W_ARCH" "$W_SDK"; then
+				printlog "[SKIP] <$VARIANT $W_ARCH $W_SDK> x86 (32-bit) is not supported after Android 15 (SDK $X86_LAST_SDK)"
+				continue
+			fi
 			sedlog "Building $NAME"
 			printmid "Building $NAME"
 			printlog " "
@@ -408,6 +418,10 @@ SERVER_GAPPS=https://sourceforge.net/projects/litegapps/files/files-server/liteg
 NUM_6070=0
 for D_ARCH in $LIST_ARCH; do
 	for D_SDK in $LIST_SDK; do
+		if ! target_supported "$D_ARCH" "$D_SDK"; then
+			printlog "[SKIP] <$D_ARCH $D_SDK> x86 (32-bit) is not supported after Android 15 (SDK $X86_LAST_SDK)"
+			continue
+		fi
 		if [ -n "$GFILENAME" ]; then
 			GZIP="$GFILENAME"
 		else

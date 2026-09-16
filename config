@@ -1,10 +1,12 @@
 version=4.9
 version.code=49
 codename=stable
-# You can change to your name
-name.builder=wahyu6070
-# unofficial or official
-build.status=wahyu6070
+# Your name, shown in the built zip. Leave the default and the build is
+# marked unofficial; the maintainer's own values live outside this file
+# (the web panel keeps them in its database).
+name.builder=yourname
+# Set to the maintainer key for official builds; anything else is unofficial
+build.status=unofficial
 set.time.stamp=true
 date.time=202007122239
 # xz or br

@@ -32,10 +32,24 @@ get_android_version(){
 		37) echo 17.0 ;;
 	 esac
 	}
+# x86 (32-bit) is supported up to Android 15 (SDK 35) only - same rule as
+# target_supported() in build.sh, which this standalone tool cannot source.
+X86_LAST_SDK=35
+target_supported(){
+	if [ "$1" = x86 ] && [ "$2" -gt "$X86_LAST_SDK" ] 2>/dev/null; then
+		return 1
+	fi
+	return 0
+}
+
 MAKE(){
 	print
 	printmid "Building package"
 	print
+	if ! target_supported "$ARCH" "$SDK"; then
+		print "[SKIP] <$ARCH $SDK> x86 (32-bit) is not supported after Android 15 (SDK $X86_LAST_SDK)"
+		return 0
+	fi
 	cd $BASED/files/$ARCH/$SDK
 for LIST_PROP in $(find * -name build.info -type f); do
 	BASEMOD=$BASED/files/$ARCH/$SDK/$(dirname $LIST_PROP)
@@ -229,6 +243,10 @@ RESTORE(){
 	local PROP_SDK=`echo "$SDK" | sed "s/,/ /g"`
 	for A in $PROP_ARCH; do
 		for B in $PROP_SDK; do
+			if ! target_supported "$A" "$B"; then
+				print "[SKIP] <$A $B> x86 (32-bit) is not supported after Android 15 (SDK $X86_LAST_SDK)"
+				continue
+			fi
 			if [ -f $BASED/zip-server/$A/${B}.zip ]; then
 				if [ -d $BASED/files/$A/$B ]; then
 					rm -rf $BASED/files/$A/$B

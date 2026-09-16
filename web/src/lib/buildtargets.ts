@@ -1,6 +1,6 @@
 import type { RowDataPacket } from "mysql2";
 import { db, ensureSchema } from "./db";
-import { ARCHS, SDKS, VARIANTS, defaultVariants } from "./targets";
+import { ARCHS, SDKS, VARIANTS, defaultVariants, targetSupported } from "./targets";
 
 /*
  * Which variants each arch x SDK is built with.
@@ -23,6 +23,7 @@ export function keyOf(arch: string, sdk: number | string): string {
 
 /** Variants for one target: the stored config if there is one, else the default. */
 export function resolveVariants(arch: string, sdk: number, overrides: Overrides): string[] {
+	if (!targetSupported(arch, sdk)) return [];
 	return overrides[keyOf(arch, sdk)] ?? defaultVariants(arch, sdk);
 }
 
@@ -60,6 +61,10 @@ export async function writeOverrides(next: Overrides): Promise<number> {
 		for (const sdk of SDKS) {
 			const picked = next[keyOf(arch, sdk)];
 			if (!picked) continue;
+			if (!targetSupported(arch, sdk)) {
+				await c.query("DELETE FROM build_targets WHERE arch = ? AND sdk = ?", [arch, sdk]);
+				continue;
+			}
 
 			const def = defaultVariants(arch, sdk);
 			const isDefault = picked.length === def.length && picked.every((v) => def.includes(v));
@@ -85,17 +90,21 @@ export async function writeOverrides(next: Overrides): Promise<number> {
  * on state that may change while it runs.
  */
 export function targetSpec(
-	archs: string[],
-	sdks: number[],
+	targets: { arch: string; sdk: number }[],
 	overrides: Overrides,
-	fixed?: string[],
 ): string {
-	const parts: string[] = [];
-	for (const a of archs) {
-		for (const s of sdks) {
-			const list = fixed ?? resolveVariants(a, s, overrides);
-			parts.push(`${a}:${s}=${list.join(",")}`);
-		}
-	}
-	return parts.join(";");
+	return targets
+		.map((t) => `${t.arch}:${t.sdk}=${resolveVariants(t.arch, t.sdk, overrides).join(",")}`)
+		.join(";");
+}
+
+/** "<arch>-<sdk>" (as the checklist and the config table key them) -> target. */
+export function parseTargetKey(key: string): { arch: string; sdk: number } | null {
+	const i = key.lastIndexOf("-");
+	if (i < 1) return null;
+	const arch = key.slice(0, i);
+	const sdk = Number(key.slice(i + 1));
+	if (!(ARCHS as readonly string[]).includes(arch)) return null;
+	if (!(SDKS as readonly number[]).includes(sdk)) return null;
+	return { arch, sdk };
 }

@@ -25,10 +25,7 @@ export async function POST(req: Request) {
 	try {
 		if (body.form === "batch") {
 			await writeBatchPrefs({
-				archs: (body.archs as string[]) ?? [],
-				sdks: (body.sdks as number[]) ?? [],
-				auto: body.auto !== false,
-				variants: (body.variants as string[]) ?? [],
+				targets: (body.targets as string[]) ?? [],
 				restoreMissing: body.restoreMissing !== false,
 				cleanAfter: body.cleanAfter === true,
 				buildAddon: body.buildAddon === true,

@@ -52,7 +52,13 @@ Logs: `log/make.log` and `log/make_live.log` — **read these first when a build
   per-variant `clean.sh` files — none of those exist any more.)
 - `installer/` — flashable-zip installer payload copied into every zip (Kopi installer,
   `customize.sh`, `action.sh`, `module.prop`, `LICENSE`, post-fs scripts). Referenced as
-  `$utils` in the build code. (Was `core/utils/`.)
+  `$utils` in the build code. (Was `core/utils/`.) The build writes the zip's target
+  into `module.prop` as `litegapps_arch=` / `litegapps_sdk=`, and `customize.sh`
+  checks them against the device **before** touching `bin/<arch>`, so a wrong zip
+  fails with "this zip is for arm, but this device is arm64" instead of a chmod
+  error. On any failure `report_bug` writes the reason into the log before
+  `make_log` packs it, and `make_log` falls back to a system `zip` (or keeps the
+  plain `log/` folder) because the bundled one is missing on exactly that failure.
 - `config` — top-level build config (version, compression, which products/variants).
 - `core/litegapps/<variant>/` — one dir per variant
   (`lite core go micro pixel nano basic user superlite`), each with its own `config`,
@@ -130,8 +136,15 @@ Logs: `log/make.log` and `log/make_live.log` — **read these first when a build
   like `LITE()`/`CORE()`/`PIXEL()` in `sf-build.sh`. Targets with no row
   follow `defaultVariants()`. The batch job can also build the addon per
   target (`MAKE_ADDON` equivalent) and, only when explicitly ticked, release
-  addon and zips to the SourceForge FRS. The main `config` still supplies
-  version, compression, zip level, signer and builder. `/restore` restores sources per arch/SDK with the target arguments above,
+  addon and zips to the SourceForge FRS. The repo `config` is a **neutral
+  default** (`name.builder=yourname`, `build.status=unofficial`) because anyone
+  may clone and build; this VPS's identity and version (`version`,
+  `version.code`, `codename`, `name.builder`, `build.status`) live in the panel
+  database (`build_config`) and reach jobs as `LG_CFG_<key>` (dots become
+  underscores), which `get_config()` in `build.sh` and `web/make-status.sh`
+  read before the file. Never put a maintainer's builder name or official key
+  back into the repo `config`. Compression, zip level and signer still come
+  from the file. `/restore` restores sources per arch/SDK with the target arguments above,
   defaulting the gapps variants to the same per-target list the build uses, and
   `web/clean-sources.sh` deletes a target's sources again. `/config` edits the
   shell configs (`config`, `packages/config`, per-variant `config`) in place —
@@ -165,11 +178,17 @@ Logs: `log/make.log` and `log/make_live.log` — **read these first when a build
 - Deploy with `bash web/start.sh`; it refuses while a job runs (see the `web/`
   entry above) because recreating the container kills that job.
 - Config the panel owns lives in **its database**, not in the repo: the
-  per-target variant list (`build_targets`), the per-variant package lists
-  (`package_lists`), the daily-backup switch and the build forms' last
-  selection (`settings`). The build gets them through argv and the
-  environment, so `config` and `core/*/config` stay out of it except for
-  version, compression, zip level, signer and builder.
+  build identity and version (`build_config`), the per-target variant list
+  (`build_targets`), the per-variant package lists (`package_lists`), the
+  daily-backup switch and the build forms' last selection (`settings`). The
+  build gets them through argv and the environment, so `config` and
+  `core/*/config` stay out of it except for compression, zip level and signer.
+- Changing where a build reads its identity is a release-affecting change:
+  make the new source hold the right values **before** anything can start a
+  build with the old one gone. On 2026-09-16 the repo `config` was neutralised
+  and the panel redeployed before `build_config` was filled; a release job
+  started in between built `-unofficial` zips as `yourname` and uploaded seven
+  of them to the FRS before it was stopped and they were deleted.
 - Jobs are the only way the panel touches the tree, they are serialised three
   ways (running-job row, process scan, `flock`), and each one's output is
   tailed by the terminal panel on the page that started it.
@@ -189,6 +208,18 @@ Logs: `log/make.log` and `log/make_live.log` — **read these first when a build
   the release server and prompt for a Sourceforge username.
 - Do not commit generated/gitignored artifacts.
 - Only commit or push when the user asks.
+
+## Supported targets
+
+x86 (32-bit) is supported **up to Android 15 (SDK 35) only**; arm64, arm and
+x86_64 have no limit. The rule lives in `target_supported()` / `X86_LAST_SDK`
+in `build.sh` (copied into standalone `packages/make`, and applied in
+`sf-build.sh`, `vps-build.sh` and both GitHub workflows), and in
+`targetSupported()` / `X86_LAST_SDK` in `web/src/lib/targets.ts` for the
+panel, which refuses such jobs server-side and disables those cells in its
+forms. Reason: Google publishes no 32-bit x86 phone image with GMS after
+Android 11, and x86 was ~0.5% of downloads (Sep 2025–Sep 2026). Do not add x86
+builds for SDK 36+; keep both copies of the constant in step if it ever moves.
 
 ## Adding Android/SDK support
 

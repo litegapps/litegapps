@@ -45,12 +45,15 @@ export function TargetPicker({ tab, arch, sdk }: { tab: string; arch: string; sd
 
 export function RunButton({
 	busy: initialBusy,
+	blocked = false,
 	icon = "download",
 	label,
 	tone,
 	confirmText,
 }: {
 	busy: boolean;
+	/** the action is not allowed at all here (e.g. an unsupported target) */
+	blocked?: boolean;
 	icon?: string;
 	label: string;
 	tone?: "tonal";
@@ -59,7 +62,7 @@ export function RunButton({
 	const { pending } = useFormStatus();
 	// Live, so a job started elsewhere disables this button without a reload.
 	const busy = useBusy(initialBusy);
-	const disabled = busy || pending;
+	const disabled = busy || pending || blocked;
 	return (
 		<button
 			className={tone ? `btn ${tone}` : "btn"}
@@ -70,8 +73,8 @@ export function RunButton({
 				if (confirmText && !window.confirm(confirmText)) e.preventDefault();
 			}}
 		>
-			<Icon name={pending ? "hourglass_top" : busy ? "hourglass_top" : icon} />
-			{pending ? "Memulai…" : busy ? "Ada job berjalan" : label}
+			<Icon name={blocked ? "block" : pending || busy ? "hourglass_top" : icon} />
+			{blocked ? "Tidak didukung" : pending ? "Memulai…" : busy ? "Ada job berjalan" : label}
 		</button>
 	);
 }

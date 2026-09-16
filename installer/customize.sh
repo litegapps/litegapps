@@ -51,17 +51,15 @@ find_slot() {
 }
 
 make_log() {
-    # Gunakan local untuk variabel
     local log_prefix="litegapps"
     if [ "$(getp litegapps_type "$MODPATH/module.prop")" = "litegappsx" ]; then
         log_prefix="litegappsx"
     fi
     local NAME_LOG="[LOG]${log_prefix}_$(getp version "$MODPATH/module.prop").zip"
     local LOG_DIR="$LITEGAPPS/log"
+    local ZIP=""
 
-    printlog "- Creating log file in <$LITEGAPPS/$NAME_LOG>"
-    mkdir -p "$LOG_DIR" # Pastikan direktori ada
-
+    mkdir -p "$LOG_DIR"
     getprop > "$LOG_DIR/get_prop"
 
     for BLOG in "$SYSTEM" "$PRODUCT" "$SYSTEM_EXT" "$VENDOR"; do
@@ -77,16 +75,25 @@ make_log() {
         [ -d "$TR" ] && listlog "$TR"
     done
 
-    # Hapus log lama jika ada
-    [ -f "$LITEGAPPS/$NAME_LOG" ] && rm -f "$LITEGAPPS/$NAME_LOG"
+    # The bundled zip is only there when this zip matches the device's
+    # architecture - which is exactly what is not true when the install fails
+    # on an architecture mismatch. Fall back to a zip the system provides.
+    if [ -x "$bin/zip" ]; then
+        ZIP="$bin/zip"
+    elif command -v zip >/dev/null 2>&1; then
+        ZIP="$(command -v zip)"
+    fi
 
-    # Gunakan subshell untuk zip, ini JAUH LEBIH AMAN
-    (
-        cd "$LOG_DIR" && "$bin/zip" -r9 "$LITEGAPPS/$NAME_LOG" * >/dev/null 2>&1
-    )
-
-    # Hapus direktori log temporer
-    rm -rf "$LOG_DIR"
+    rm -f "$LITEGAPPS/$NAME_LOG"
+    if [ -n "$ZIP" ] && ( cd "$LOG_DIR" && "$ZIP" -r9 "$LITEGAPPS/$NAME_LOG" * >/dev/null 2>&1 ); then
+        LOG_RESULT="$LITEGAPPS/$NAME_LOG"
+        rm -rf "$LOG_DIR"
+    else
+        # No working zip: keep the plain log folder rather than lose it.
+        LOG_RESULT="$LOG_DIR"
+    fi
+    # Nothing below may write to the log file any more: it is zipped or kept.
+    log=/dev/null
 }
 
 report_bug(){
@@ -96,14 +103,15 @@ report_bug(){
 	printlog "|_________________________|"
 	printlog " known error •> $1"
 	printlog "___________________________"
+	# Written before make_log, so the reason is inside the log it packs.
 	make_log
-	printlog " Please report bug !"
-	printlog " send log : $LITEGAPPS/$NAME_LOG"
-	printlog " send in group telegram https://t.me/litegappsgroup"
-	printlog "____________________________"
-	printlog " "
+	print " Please report bug !"
+	print " send log : $LOG_RESULT"
+	print " send in group telegram https://t.me/litegappsgroup"
+	print "____________________________"
+	print " "
 	del $MODPATH
-	[ $TYPEINSTALL = "kopi" ] && del $KOPIMOD
+	[ "$TYPEINSTALL" = "kopi" ] && del $KOPIMOD
 	
 	if ! $BOOTMODE; then
 		#umount
@@ -185,13 +193,15 @@ printlog "| Name            : $MODULENAME"
 printlog "| Version         : $MODULEVERSION"
 printlog "| Build date      : $MODULEDATE"
 printlog "| By              : $MODULEAUTHOR"
-if [ $TYPEINSTALL = systemless ]; then
-	if [ $KSU_NEXT = true ]; then
+if [ "$TYPEINSTALL" = systemless ]; then
+	# Quoted: these are unset outside their own root manager, and an empty
+	# unquoted operand makes `[` fail with "true: unknown operand".
+	if [ "$KSU_NEXT" = true ]; then
 		KSUD_MOUNT=`ksud module mount | head -n1 | cut -d : -f 2`
-		printlog "| Install As      : systemless (KerneSU-Next Module $KSUD_MOUNT)"
-	elif [ $KSU = true ]; then
+		printlog "| Install As      : systemless (KernelSU-Next Module $KSUD_MOUNT)"
+	elif [ "$KSU" = true ]; then
 		printlog "| Install As      : systemless (KSU Module)"
-	elif [ $APATCH = true ]; then
+	elif [ "$APATCH" = true ]; then
 		printlog "| Install As      : systemless (APATCH Module)"
 	else
 		printlog "| Install As      : systemless (Magisk Module)"
@@ -326,6 +336,7 @@ get_android_version(){
 		34) echo 14.0 ;;
 		35) echo 15.0 ;;
 		36) echo 16.0 ;;
+		37) echo 17.0 ;;
 		*) echo null ;;
 	 esac
 	}
@@ -904,6 +915,26 @@ INITIAL install
 
 #bin
 bin=$MODPATH/bin/$ARCH
+
+# Check the zip was built for this device before anything else: an arm zip on
+# an arm64 device has no bin/arm64, and every later step would fail with a
+# less useful message. Zips record their target in module.prop; older ones do
+# not, so fall back to whether binaries for this architecture are bundled.
+ZIP_ARCH="$(getp litegapps_arch $MODPATH/module.prop)"
+ZIP_SDK="$(getp litegapps_sdk $MODPATH/module.prop)"
+if [ -n "$ZIP_ARCH" ] && [ "$ZIP_ARCH" != "$ARCH" ]; then
+	report_bug "this zip is for $ZIP_ARCH, but this device is $ARCH - download the $ARCH build"
+fi
+if [ -n "$ZIP_SDK" ] && [ "$ZIP_SDK" != "$API" ]; then
+	report_bug "this zip is for Android $(get_android_version $ZIP_SDK) (SDK $ZIP_SDK), but this device runs Android $(get_android_version $API) (SDK $API) - download the SDK $API build"
+fi
+if [ ! -d "$bin" ]; then
+	ZIP_BINS=""
+	for D in "$MODPATH"/bin/*/; do
+		[ -d "$D" ] && ZIP_BINS="$ZIP_BINS $(basename "$D")"
+	done
+	report_bug "this zip has no binaries for $ARCH (it has:${ZIP_BINS:- none}) - download the $ARCH build"
+fi
 
 chmod -R 755 $bin
 

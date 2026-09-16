@@ -42,6 +42,10 @@ jobs:
       matrix:
         sdk: [29, 30, 31, 32, 33, 34, 35, 36]
         arch: [arm, arm64, x86, x86_64]
+        # x86 (32-bit) is supported up to Android 15 (SDK 35) only.
+        exclude:
+          - arch: x86
+            sdk: 36
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -121,7 +125,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           TAG="${{ steps.vars.outputs.tag }}"
-          NOTES="Automated LiteGapps lite build - SDK 29-36 x arm/arm64/x86/x86_64"
+          NOTES="Automated LiteGapps lite build - SDK 29-36 x arm/arm64/x86_64, x86 up to SDK 35"
           PRERELEASE_FLAG=""
           [ "${{ steps.vars.outputs.prerelease }}" = "true" ] && PRERELEASE_FLAG="--prerelease"
           cd collected

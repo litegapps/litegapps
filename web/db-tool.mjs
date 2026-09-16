@@ -36,7 +36,7 @@ const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.dirname(HERE);
 
 // Tables worth keeping. `sessions` is omitted on purpose (see header).
-const TABLES = ["users", "jobs", "settings", "build_targets", "package_lists"];
+const TABLES = ["users", "jobs", "settings", "build_targets", "package_lists", "build_config"];
 const MAGIC = "LGDB1";
 
 function die(msg) {

@@ -72,7 +72,7 @@ export function ensureSchema(): Promise<void> {
 			await c.query(`
 				CREATE TABLE IF NOT EXISTS settings (
 					k          VARCHAR(64) PRIMARY KEY,
-					v          VARCHAR(255) NOT NULL,
+					v          TEXT NOT NULL,
 					updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 				) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
 			`);
@@ -90,6 +90,21 @@ export function ensureSchema(): Promise<void> {
 					items TEXT NOT NULL
 				) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
 			`);
+			await c.query(`
+				CREATE TABLE IF NOT EXISTS build_config (
+					k VARCHAR(64) PRIMARY KEY,
+					v VARCHAR(255) NOT NULL
+				) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+			`);
+			// settings.v started as VARCHAR(255), which the build checklist's
+			// saved target list outgrows as soon as more than ~16 targets are
+			// ticked - the write then failed and the selection was lost.
+			const [vcol] = await c.query<RowDataPacket[]>(
+				"SELECT DATA_TYPE FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'settings' AND COLUMN_NAME = 'v'",
+			);
+			if (vcol.length && String(vcol[0].DATA_TYPE).toLowerCase() === "varchar") {
+				await c.query("ALTER TABLE settings MODIFY v TEXT NOT NULL");
+			}
 			// Tables created before pid_start existed.
 			const [cols] = await c.query<RowDataPacket[]>(
 				"SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'jobs' AND COLUMN_NAME = 'pid_start'",

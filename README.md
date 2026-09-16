@@ -123,6 +123,23 @@ Variants with `modules=true` (pixel, micro, nano, basic, user, go, core) also
 need addon packages — `build.sh make` builds and stages those automatically
 via `packages/make`, no extra step required.
 
+## Supported targets
+
+| Architecture | Android versions |
+|---|---|
+| arm64 | all |
+| arm (32-bit) | all |
+| x86_64 | all |
+| **x86 (32-bit)** | **up to Android 15 (SDK 35)** |
+
+x86 (32-bit) is no longer built from Android 16 (SDK 36) on. Google stopped
+publishing 32-bit x86 phone system images with Google apps after Android 11,
+so every newer x86 base would have to be assembled from hand-picked APKs, and
+x86 accounts for about 0.5% of LiteGapps downloads. Releases up to Android 15
+stay available. `build.sh`, `packages/make`, `sf-build.sh`, `vps-build.sh`
+and both GitHub workflows skip x86 above SDK 35 (`target_supported()` /
+`X86_LAST_SDK` in `build.sh`).
+
 ## Building via GitHub Actions
 
 Fork this repo and use the workflows under `.github/workflows/` to build and
@@ -135,8 +152,9 @@ SSH key, or VPS required:
   disk never has to hold all of them at once. Configure `variants`/`arch`/`sdk`
   as workflow inputs, or push a tag like `full-v1`.
 - **`build-release-lite.yml`** — builds `lite` only, across every SDK 29-36
-  x arch (arm/arm64/x86/x86_64) combination as a GitHub Actions matrix (32
-  parallel jobs), publishing every zip produced to one release. Run manually,
+  x arch (arm/arm64/x86/x86_64) combination as a GitHub Actions matrix (31
+  parallel jobs - x86 stops at SDK 35), publishing every zip produced to one
+  release. Run manually,
   or push a tag like `lite-v1`.
 
 Both use the built-in `GITHUB_TOKEN`, so no secrets need to be configured.

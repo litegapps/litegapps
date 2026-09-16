@@ -23,12 +23,27 @@ export type JobKind =
 	| "db-backup" | "db-restore" | "db-list";
 
 /*
+ * x86 (32-bit) is supported up to Android 15 (SDK 35) only - the same rule as
+ * target_supported() in build.sh. Google ships no 32-bit x86 phone image with
+ * GMS after Android 11, and x86 is 0.5% of downloads. Existing releases stay;
+ * nothing newer is restored or built.
+ */
+export const X86_LAST_SDK = 35;
+
+export function targetSupported(arch: string, sdk: number | string): boolean {
+	return !(arch === "x86" && Number(sdk) > X86_LAST_SDK);
+}
+
+export const UNSUPPORTED_MSG = `x86 (32-bit) tidak didukung untuk Android 16 (SDK ${X86_LAST_SDK + 1}) ke atas`;
+
+/*
  * Default variants for a target, used until the panel's own per-target config
  * says otherwise: arm64 up to SDK 28 gets core+lite, arm64 from SDK 29 gets
  * pixel+lite+superlite, and arm/x86/x86_64 get core (+superlite from SDK 29).
  * (Same split the maintainer release build has always used.)
  */
 export function defaultVariants(arch: string, sdk: number): string[] {
+	if (!targetSupported(arch, sdk)) return [];
 	if (arch === "arm64") return sdk <= 28 ? ["core", "lite"] : ["pixel", "lite", "superlite"];
 	return sdk >= 29 ? ["core", "superlite"] : ["core"];
 }
@@ -43,6 +58,17 @@ export type Job = {
 	finished_at: string | null;
 };
 
+/*
+ * Which job kinds belong to which page, so the terminal panel and the job
+ * history on that page show the same set of work.
+ */
+export const KINDS_BATCH = ["build-batch"] as const;
+export const KINDS_SINGLE = ["make", "packages", "restore", "clean", "status"] as const;
+export const KINDS_RESTORE = [
+	"restore-bin", "restore-package", "restore-gapps", "clean-sources",
+] as const;
+export const KINDS_BACKUP = ["db-backup", "db-restore", "db-list"] as const;
+
 export type JobRequest = {
 	kind: JobKind;
 	variant?: string;
@@ -51,14 +77,16 @@ export type JobRequest = {
 	sdk?: string;
 	/** database backup file name, for db-restore */
 	name?: string;
-	// batch build (checklist): every arch x sdk combination is built
-	archs?: string[];
-	sdks?: string[];
-	autoVariants?: boolean;
+	// batch build (checklist): every arch x sdk combination is built, with the
+	// variants the panel's per-target config gives it
+	/** ticked "<arch>-<sdk>" targets for a batch build */
+	targets?: string[];
 	/** per-target variant config, resolved by the caller (server side only) */
 	overrides?: Record<string, string[]>;
 	/** per-variant package lists, resolved by the caller (server side only) */
 	packages?: Record<string, string[]>;
+	/** the panel's own identity/version config, resolved by the caller */
+	config?: Record<string, string>;
 	restoreMissing?: boolean;
 	cleanAfter?: boolean;
 	/** build the addon packages for each target first (packages/make make) */

@@ -1039,3 +1039,4 @@ section.card.term .modal-head h3 .msr { color: var(--md-primary); }
 	padding: 0 16px 16px;
 }
 .term-foot .cl-switch { flex: 1 1 200px; font-size: 13px; }
+table.targetcfg tr.unsupported td { opacity: 0.45; }

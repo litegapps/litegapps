@@ -8,6 +8,7 @@ import { startJobAction } from "@/app/actions";
 import { currentUser } from "@/lib/session";
 import { listJobs, runningJob } from "@/lib/jobs";
 import { readBackups } from "@/lib/backup";
+import { KINDS_BACKUP } from "@/lib/targets";
 import AutoBackupSwitch from "@/components/AutoBackupSwitch";
 import { AUTO_BACKUP_HOUR, AUTO_BACKUP_LAST, autoBackupOn, getSetting } from "@/lib/settings";
 import { formatBytes } from "@/lib/restore";
@@ -37,7 +38,7 @@ export default async function BackupPage({
 	const { error } = await searchParams;
 	const [state, jobs, running, auto, autoLast] = await Promise.all([
 		readBackups(),
-		listJobs(8),
+		listJobs(8, KINDS_BACKUP),
 		runningJob(),
 		autoBackupOn(),
 		getSetting(AUTO_BACKUP_LAST),
@@ -174,7 +175,7 @@ export default async function BackupPage({
 					</div>
 				</section>
 
-				<JobTerminal kinds={["db-backup", "db-restore", "db-list"]} />
+				<JobTerminal kinds={KINDS_BACKUP} />
 
 				<section className="card">
 					<div className="card-head">

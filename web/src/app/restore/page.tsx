@@ -10,7 +10,7 @@ import { currentUser } from "@/lib/session";
 import { listJobs, runningJob } from "@/lib/jobs";
 import { readStatus } from "@/lib/status";
 import { formatBytes, readRestoreOverview, readTargetState } from "@/lib/restore";
-import { ARCHS, SDKS } from "@/lib/targets";
+import { ARCHS, KINDS_RESTORE, SDKS, UNSUPPORTED_MSG, targetSupported } from "@/lib/targets";
 import { readOverrides, resolveVariants } from "@/lib/buildtargets";
 
 export const dynamic = "force-dynamic";
@@ -48,11 +48,15 @@ export default async function RestorePage({
 		readStatus(),
 		readRestoreOverview(),
 		readTargetState(arch, sdk),
-		listJobs(10),
+		listJobs(10, KINDS_RESTORE),
 		runningJob(),
 		readOverrides(),
 	]);
 	const busy = running !== null;
+	// An unsupported target cannot be restored: its restore buttons stay off
+	// (the server refuses the job anyway). Restore bin and deleting old
+	// sources still work.
+	const supported = targetSupported(arch, sdk);
 	const server = status?.targets[arch]?.[String(sdk)];
 	// Same list the build uses for this target, so a restore brings down what
 	// will actually be built.
@@ -135,6 +139,17 @@ export default async function RestorePage({
 
 					<TargetPicker tab={tab} arch={arch} sdk={sdk} />
 
+					{!supported && (
+						<div className="note" style={{ margin: "0 16px 16px" }}>
+							<Icon name="block" />
+							<div>
+								<b>{UNSUPPORTED_MSG}.</b> Google tidak lagi membuat image ponsel x86 32-bit
+								dengan GMS sejak Android 11, jadi target ini tidak di-restore maupun dibangun.
+								Rilis x86 sampai Android 15 tetap tersedia.
+							</div>
+						</div>
+					)}
+
 					{tab === "package" ? (
 						<>
 							<div className="card-head" style={{ borderTop: "1px solid var(--md-outline-variant)" }}>
@@ -177,7 +192,7 @@ export default async function RestorePage({
 									<input type="hidden" name="arch" value={arch} />
 									<input type="hidden" name="sdk" value={sdk} />
 									<input type="hidden" name="back" value={here} />
-									<RunButton busy={busy} label="Restore package" />
+									<RunButton busy={busy} blocked={!supported} label="Restore package" />
 								</form>
 							</div>
 							<div className="legend">
@@ -263,7 +278,7 @@ export default async function RestorePage({
 								</table>
 							</div>
 							<div className="actions">
-								<RunButton busy={busy} label="Restore gapps" />
+								<RunButton busy={busy} blocked={!supported} label="Restore gapps" />
 							</div>
 							<div className="legend">
 								<span className="item">
@@ -334,7 +349,7 @@ export default async function RestorePage({
 					)}
 				</section>
 
-				<JobTerminal kinds={["restore-bin", "restore-package", "restore-gapps", "clean-sources"]} />
+				<JobTerminal kinds={KINDS_RESTORE} />
 
 				<section className="card">
 					<div className="card-head">

@@ -349,6 +349,12 @@ preflight
 
 for CUR_ARCH in $ARCH_LIST; do
 	for CUR_SDK in $SDK_LIST; do
+		# x86 (32-bit) stops at Android 15 (SDK 35): Google ships no 32-bit x86
+		# phone image with GMS after Android 11.
+		if [ "$CUR_ARCH" = x86 ] && [ "$CUR_SDK" -gt 35 ]; then
+			log "Skip <$CUR_ARCH/$CUR_SDK>: x86 (32-bit) is not supported after Android 15"
+			continue
+		fi
 		line
 		log "===> TARGET <$CUR_ARCH/$CUR_SDK>"
 		VARIANTS="$(variants_for "$CUR_ARCH" "$CUR_SDK")"
