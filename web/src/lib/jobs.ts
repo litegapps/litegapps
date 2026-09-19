@@ -13,6 +13,8 @@ import {
 	UNSUPPORTED_MSG,
 	VARIANTS,
 	targetSupported,
+	variantSupported,
+	GO_UNSUPPORTED_MSG,
 } from "./targets";
 import { parseTargetKey, targetSpec } from "./buildtargets";
 import { packageEnv } from "./packages";
@@ -70,6 +72,7 @@ function plan(req: JobRequest): Plan {
 	switch (req.kind) {
 		case "make":
 			needVariant(); needArch(); needSdk(); needSupported();
+			if (!variantSupported(variant, arch, sdk)) throw new Error(GO_UNSUPPORTED_MSG);
 			return {
 				argv: ["bash", "build.sh", "make", "litegapps", variant, arch, sdk],
 				label: `make ${variant} ${arch} sdk ${sdk}`,
@@ -97,6 +100,7 @@ function plan(req: JobRequest): Plan {
 			if (!list.length) throw new Error("pick at least one variant");
 			for (const v of list) {
 				if (!(VARIANTS as readonly string[]).includes(v)) throw new Error(`bad variant: ${v}`);
+				if (!variantSupported(v, arch, sdk)) throw new Error(GO_UNSUPPORTED_MSG);
 			}
 			// build.sh restores bin.zip first, then each variant's gapps zip.
 			return {

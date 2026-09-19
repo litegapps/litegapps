@@ -285,6 +285,11 @@ Gmail
 	
 GO (){
 	local variant=go
+	# Google's Go apps only exist for arm64 Android 10 (SDK 29) and up.
+	if [ "$ARCH" != arm64 ] || [ "$SDK" -lt 29 ]; then
+		echo "! [SKIP] go is only built for arm64 Android 10 (SDK 29) and up, not <$ARCH $SDK>"
+		return 0
+	fi
 	local list="
 	AssistantGo
 GalleryGo

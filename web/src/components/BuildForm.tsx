@@ -4,7 +4,15 @@ import { useState } from "react";
 import { useFormStatus } from "react-dom";
 import Icon from "./Icon";
 import { startJobAction } from "@/app/actions";
-import { ARCHS, SDKS, UNSUPPORTED_MSG, VARIANTS, targetSupported } from "@/lib/targets";
+import {
+	ARCHS,
+	GO_UNSUPPORTED_MSG,
+	SDKS,
+	UNSUPPORTED_MSG,
+	VARIANTS,
+	targetSupported,
+	variantSupported,
+} from "@/lib/targets";
 import { useBusy } from "./useBusy";
 import { useRemember } from "./useRemember";
 
@@ -50,7 +58,9 @@ export default function BuildForm({
 
 	// Only commands that take a target can hit an unsupported one.
 	const takesTarget = ["make", "packages"].includes(kind);
-	const blocked = takesTarget && !targetSupported(arch, sdk);
+	const targetBlocked = takesTarget && !targetSupported(arch, sdk);
+	const variantBlocked = kind === "make" && !variantSupported(variant, arch, sdk);
+	const blocked = targetBlocked || variantBlocked;
 	const needs = KINDS.find((k) => k.id === kind)?.needs ?? [];
 
 	return (
@@ -113,7 +123,7 @@ export default function BuildForm({
 
 			{blocked && (
 				<p className="cl-hint" style={{ flexBasis: "100%", margin: 0 }}>
-					{UNSUPPORTED_MSG}.
+					{targetBlocked ? UNSUPPORTED_MSG : GO_UNSUPPORTED_MSG}.
 				</p>
 			)}
 			<Submit busy={busy} blocked={blocked} />

@@ -10,7 +10,15 @@ import { currentUser } from "@/lib/session";
 import { listJobs, runningJob } from "@/lib/jobs";
 import { readStatus } from "@/lib/status";
 import { formatBytes, readRestoreOverview, readTargetState } from "@/lib/restore";
-import { ARCHS, KINDS_RESTORE, SDKS, UNSUPPORTED_MSG, targetSupported } from "@/lib/targets";
+import {
+	ARCHS,
+	GO_UNSUPPORTED_MSG,
+	KINDS_RESTORE,
+	SDKS,
+	UNSUPPORTED_MSG,
+	targetSupported,
+	variantSupported,
+} from "@/lib/targets";
 import { readOverrides, resolveVariants } from "@/lib/buildtargets";
 
 export const dynamic = "force-dynamic";
@@ -260,12 +268,18 @@ export default async function RestorePage({
 														value={v.variant}
 														id={`v-${v.variant}`}
 														defaultChecked={rule.includes(v.variant)}
+														disabled={!variantSupported(v.variant, arch, sdk)}
 													/>
 												</td>
 												<td>
 													<label htmlFor={`v-${v.variant}`}>
 														<b>{v.variant}</b>
 														{rule.includes(v.variant) && <span className="tag">DIBANGUN</span>}
+														{!variantSupported(v.variant, arch, sdk) && (
+															<span className="tag" title={GO_UNSUPPORTED_MSG}>
+																TIDAK DIDUKUNG
+															</span>
+														)}
 													</label>
 												</td>
 												<td>

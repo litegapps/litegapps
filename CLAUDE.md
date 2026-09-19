@@ -258,6 +258,14 @@ forms. Reason: Google publishes no 32-bit x86 phone image with GMS after
 Android 11, and x86 was ~0.5% of downloads (Sep 2025–Sep 2026). Do not add x86
 builds for SDK 36+; keep both copies of the constant in step if it ever moves.
 
+The **go** variant is built for **arm64 Android 10 (SDK 29) and up only**:
+Google's Go apps it is made of do not exist for the other targets. The rule is
+`variant_supported()` / `GO_MIN_SDK` in `build.sh` (checked by both the make
+and the restore loop in `lib/litegapps.sh`), `GO()` in `sf-build.sh`,
+`variants_for()` in `vps-build.sh`, and `variantSupported()` in
+`web/src/lib/targets.ts`, which the panel uses to disable the go box on other
+targets, drop it from stored per-target lists, and refuse such jobs.
+
 ## Adding Android/SDK support
 
 Add the SDK→version mapping in `get_android_version()` in `build.sh` (the `case`

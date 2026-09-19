@@ -1,6 +1,13 @@
 import type { RowDataPacket } from "mysql2";
 import { db, ensureSchema } from "./db";
-import { ARCHS, SDKS, VARIANTS, defaultVariants, targetSupported } from "./targets";
+import {
+	ARCHS,
+	SDKS,
+	VARIANTS,
+	defaultVariants,
+	targetSupported,
+	variantSupported,
+} from "./targets";
 
 /*
  * Which variants each arch x SDK is built with.
@@ -24,7 +31,10 @@ export function keyOf(arch: string, sdk: number | string): string {
 /** Variants for one target: the stored config if there is one, else the default. */
 export function resolveVariants(arch: string, sdk: number, overrides: Overrides): string[] {
 	if (!targetSupported(arch, sdk)) return [];
-	return overrides[keyOf(arch, sdk)] ?? defaultVariants(arch, sdk);
+	// A stored row may predate a variant rule (go on arm, say); never build it.
+	return (overrides[keyOf(arch, sdk)] ?? defaultVariants(arch, sdk)).filter((v) =>
+		variantSupported(v, arch, sdk),
+	);
 }
 
 export async function readOverrides(): Promise<Overrides> {
@@ -59,7 +69,7 @@ export async function writeOverrides(next: Overrides): Promise<number> {
 	let kept = 0;
 	for (const arch of ARCHS) {
 		for (const sdk of SDKS) {
-			const picked = next[keyOf(arch, sdk)];
+			const picked = next[keyOf(arch, sdk)]?.filter((v) => variantSupported(v, arch, sdk));
 			if (!picked) continue;
 			if (!targetSupported(arch, sdk)) {
 				await c.query("DELETE FROM build_targets WHERE arch = ? AND sdk = ?", [arch, sdk]);

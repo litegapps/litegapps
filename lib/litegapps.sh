@@ -294,6 +294,10 @@ _litegapps_build_variant(){
 				printlog "[SKIP] <$VARIANT $W_ARCH $W_SDK> x86 (32-bit) is not supported after Android 15 (SDK $X86_LAST_SDK)"
 				continue
 			fi
+			if ! variant_supported "$VARIANT" "$W_ARCH" "$W_SDK"; then
+				printlog "[SKIP] <$VARIANT $W_ARCH $W_SDK> variant $VARIANT is only built for arm64 Android 10 (SDK $GO_MIN_SDK) and up"
+				continue
+			fi
 			sedlog "Building $NAME"
 			printmid "Building $NAME"
 			printlog " "
@@ -420,6 +424,10 @@ for D_ARCH in $LIST_ARCH; do
 	for D_SDK in $LIST_SDK; do
 		if ! target_supported "$D_ARCH" "$D_SDK"; then
 			printlog "[SKIP] <$D_ARCH $D_SDK> x86 (32-bit) is not supported after Android 15 (SDK $X86_LAST_SDK)"
+			continue
+		fi
+		if ! variant_supported "${BASED##*/}" "$D_ARCH" "$D_SDK"; then
+			printlog "[SKIP] <${BASED##*/} $D_ARCH $D_SDK> variant ${BASED##*/} is only built for arm64 Android 10 (SDK $GO_MIN_SDK) and up"
 			continue
 		fi
 		if [ -n "$GFILENAME" ]; then

@@ -37,6 +37,20 @@ export function targetSupported(arch: string, sdk: number | string): boolean {
 export const UNSUPPORTED_MSG = `x86 (32-bit) tidak didukung untuk Android 16 (SDK ${X86_LAST_SDK + 1}) ke atas`;
 
 /*
+ * Variants that exist only for some targets - the same rule as
+ * variant_supported() in build.sh. Go is made of Google's Go apps, which are
+ * built for arm64 from Android 10 (SDK 29) only.
+ */
+export const GO_MIN_SDK = 29;
+
+export function variantSupported(variant: string, arch: string, sdk: number | string): boolean {
+	if (variant === "go") return arch === "arm64" && Number(sdk) >= GO_MIN_SDK;
+	return true;
+}
+
+export const GO_UNSUPPORTED_MSG = `Varian go hanya untuk arm64 Android 10 (SDK ${GO_MIN_SDK}) ke atas`;
+
+/*
  * Default variants for a target, used until the panel's own per-target config
  * says otherwise: arm64 up to SDK 28 gets core+lite, arm64 from SDK 29 gets
  * pixel+lite+superlite, and arm/x86/x86_64 get core (+superlite from SDK 29).

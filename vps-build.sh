@@ -110,6 +110,9 @@ variants_for(){
 	arm64)
 		if [ "$SDK" -ge 21 ] && [ "$SDK" -le 25 ]; then
 			echo "core lite"
+		elif [ "$SDK" -le 28 ]; then
+			# go only exists for arm64 Android 10 (SDK 29) and up
+			echo "pixel micro nano basic user core lite"
 		else
 			echo "pixel micro nano basic user go core lite"
 		fi

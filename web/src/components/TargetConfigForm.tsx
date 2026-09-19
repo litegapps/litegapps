@@ -12,6 +12,8 @@ import {
 	VARIANTS,
 	defaultVariants,
 	targetSupported,
+	variantSupported,
+	GO_UNSUPPORTED_MSG,
 } from "@/lib/targets";
 
 /*
@@ -125,17 +127,23 @@ export default function TargetConfigForm({ overrides, count }: Props) {
 										<br />
 										<small>SDK {s}</small>
 									</td>
-									{VARIANTS.map((v) => (
-										<td key={v}>
-											<input
-												type="checkbox"
-												aria-label={`${v} untuk ${arch} SDK ${s}`}
-												checked={supported && list.includes(v)}
-												disabled={!supported}
-												onChange={() => toggle(arch, s, v)}
-											/>
-										</td>
-									))}
+									{VARIANTS.map((v) => {
+										const ok = supported && variantSupported(v, arch, s);
+										return (
+											<td
+												key={v}
+												title={supported && !ok ? GO_UNSUPPORTED_MSG : undefined}
+											>
+												<input
+													type="checkbox"
+													aria-label={`${v} untuk ${arch} SDK ${s}`}
+													checked={ok && list.includes(v)}
+													disabled={!ok}
+													onChange={() => toggle(arch, s, v)}
+												/>
+											</td>
+										);
+									})}
 									<td className="when">
 										{!supported ? (
 											<span className="tag" title={UNSUPPORTED_MSG}>

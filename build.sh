@@ -128,6 +128,17 @@ target_supported(){
 	return 0
 }
 
+# variant_supported <variant> <arch> <sdk>: 0 when that variant is built for
+# the target. Go is made of Google's Go apps, which only exist for arm64 from
+# Android 10 (SDK 29), so every other target skips it.
+GO_MIN_SDK=29
+variant_supported(){
+	case "$1" in
+		go) [ "$2" = arm64 ] && [ "$3" -ge "$GO_MIN_SDK" ] 2>/dev/null ;;
+		*) return 0 ;;
+	esac
+}
+
 # Read a top-level config value.
 #
 # The web panel keeps its own identity and version in its database and passes
