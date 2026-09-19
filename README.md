@@ -128,7 +128,7 @@ via `packages/make`, no extra step required.
 | Architecture | Android versions |
 |---|---|
 | arm64 | all |
-| arm (32-bit) | all |
+| **arm (32-bit)** | **up to Android 16 (SDK 36)** |
 | x86_64 | all |
 | **x86 (32-bit)** | **up to Android 15 (SDK 35)** |
 
@@ -139,6 +139,12 @@ x86 accounts for about 0.5% of LiteGapps downloads. Releases up to Android 15
 stay available. `build.sh`, `packages/make`, `sf-build.sh`, `vps-build.sh`
 and both GitHub workflows skip x86 above SDK 35 (`target_supported()` /
 `X86_LAST_SDK` in `build.sh`).
+
+arm (32-bit) is no longer built from Android 17 (SDK 37) on, for the same
+reason: Google publishes no 32-bit arm phone image or GSI for Android 17, and
+no custom ROM runs Android 17 on a 32-bit phone (32-bit arm lives on only in
+Android TV devices). Releases up to Android 16 stay available. The same
+scripts skip arm above SDK 36 (`ARM_LAST_SDK` in `build.sh`).
 
 ## Building via GitHub Actions
 

@@ -8,7 +8,7 @@ import {
 	ARCHS,
 	GO_UNSUPPORTED_MSG,
 	SDKS,
-	UNSUPPORTED_MSG,
+	unsupportedReason,
 	VARIANTS,
 	targetSupported,
 	variantSupported,
@@ -123,7 +123,7 @@ export default function BuildForm({
 
 			{blocked && (
 				<p className="cl-hint" style={{ flexBasis: "100%", margin: 0 }}>
-					{targetBlocked ? UNSUPPORTED_MSG : GO_UNSUPPORTED_MSG}.
+					{targetBlocked ? unsupportedReason(arch, sdk) : GO_UNSUPPORTED_MSG}.
 				</p>
 			)}
 			<Submit busy={busy} blocked={blocked} />

@@ -248,15 +248,22 @@ batch jobs as `SF_PRUNE` / `SF_KEEP_RELEASES`; `vps-build.sh` takes them from
 
 ## Supported targets
 
-x86 (32-bit) is supported **up to Android 15 (SDK 35) only**; arm64, arm and
-x86_64 have no limit. The rule lives in `target_supported()` / `X86_LAST_SDK`
-in `build.sh` (copied into standalone `packages/make`, and applied in
+x86 (32-bit) is supported **up to Android 15 (SDK 35) only** and arm (32-bit)
+**up to Android 16 (SDK 36) only**; arm64 and x86_64 have no limit. The rule
+lives in `target_supported()` / `X86_LAST_SDK` in `build.sh` (copied into standalone `packages/make`, and applied in
 `sf-build.sh`, `vps-build.sh` and both GitHub workflows), and in
 `targetSupported()` / `X86_LAST_SDK` in `web/src/lib/targets.ts` for the
 panel, which refuses such jobs server-side and disables those cells in its
 forms. Reason: Google publishes no 32-bit x86 phone image with GMS after
 Android 11, and x86 was ~0.5% of downloads (Sep 2025–Sep 2026). Do not add x86
 builds for SDK 36+; keep both copies of the constant in step if it ever moves.
+The arm cut-off is `ARM_LAST_SDK` next to it, in the same places (and
+`unsupported_reason()` / `unsupportedReason()` name the right one in skip
+messages and refused jobs). Reason, checked 2026-09: Google's SDK repository
+has no armeabi-v7a image after SDK 25 and the Android 16/17 GSIs are arm64 and
+x86_64 only; MindTheGapps ships Android 17 for arm only as an Android TV
+build; LineageOS (newest 23.2 = Android 16) maintains no 32-bit arm phone at
+all. Do not add arm builds for SDK 37+.
 
 The **go** variant is built for **arm64 Android 10 (SDK 29) and up only**:
 Google's Go apps it is made of do not exist for the other targets. The rule is

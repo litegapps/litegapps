@@ -32,14 +32,27 @@ get_android_version(){
 		37) echo 17.0 ;;
 	 esac
 	}
-# x86 (32-bit) is supported up to Android 15 (SDK 35) only - same rule as
-# target_supported() in build.sh, which this standalone tool cannot source.
+# x86 (32-bit) is supported up to Android 15 (SDK 35) only, arm (32-bit) up
+# to Android 16 (SDK 36) - same rule as target_supported() in build.sh, which
+# this standalone tool cannot source.
 X86_LAST_SDK=35
+ARM_LAST_SDK=36
 target_supported(){
 	if [ "$1" = x86 ] && [ "$2" -gt "$X86_LAST_SDK" ] 2>/dev/null; then
 		return 1
 	fi
+	if [ "$1" = arm ] && [ "$2" -gt "$ARM_LAST_SDK" ] 2>/dev/null; then
+		return 1
+	fi
 	return 0
+}
+
+# unsupported_reason <arch> <sdk>: why target_supported() refused the target.
+unsupported_reason(){
+	case "$1" in
+		arm) echo "arm (32-bit) is not supported after Android 16 (SDK $ARM_LAST_SDK)" ;;
+		*) echo "x86 (32-bit) is not supported after Android 15 (SDK $X86_LAST_SDK)" ;;
+	esac
 }
 
 MAKE(){
@@ -47,7 +60,7 @@ MAKE(){
 	printmid "Building package"
 	print
 	if ! target_supported "$ARCH" "$SDK"; then
-		print "[SKIP] <$ARCH $SDK> x86 (32-bit) is not supported after Android 15 (SDK $X86_LAST_SDK)"
+		print "[SKIP] <$ARCH $SDK> $(unsupported_reason "$ARCH" "$SDK")"
 		return 0
 	fi
 	cd $BASED/files/$ARCH/$SDK
@@ -244,7 +257,7 @@ RESTORE(){
 	for A in $PROP_ARCH; do
 		for B in $PROP_SDK; do
 			if ! target_supported "$A" "$B"; then
-				print "[SKIP] <$A $B> x86 (32-bit) is not supported after Android 15 (SDK $X86_LAST_SDK)"
+				print "[SKIP] <$A $B> $(unsupported_reason "$A" "$B")"
 				continue
 			fi
 			if [ -f $BASED/zip-server/$A/${B}.zip ]; then

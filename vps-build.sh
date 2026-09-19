@@ -362,6 +362,12 @@ for CUR_ARCH in $ARCH_LIST; do
 			log "Skip <$CUR_ARCH/$CUR_SDK>: x86 (32-bit) is not supported after Android 15"
 			continue
 		fi
+		# arm (32-bit) stops at Android 16 (SDK 36): no 32-bit arm phone image,
+		# GSI or phone build of Android 17 exists.
+		if [ "$CUR_ARCH" = arm ] && [ "$CUR_SDK" -gt 36 ]; then
+			log "Skip <$CUR_ARCH/$CUR_SDK>: arm (32-bit) is not supported after Android 16"
+			continue
+		fi
 		line
 		log "===> TARGET <$CUR_ARCH/$CUR_SDK>"
 		VARIANTS="$(variants_for "$CUR_ARCH" "$CUR_SDK")"

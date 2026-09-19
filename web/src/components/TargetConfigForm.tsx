@@ -8,7 +8,7 @@ import {
 	ANDROID,
 	ARCHS,
 	SDKS,
-	UNSUPPORTED_MSG,
+	unsupportedReason,
 	VARIANTS,
 	defaultVariants,
 	targetSupported,
@@ -146,7 +146,7 @@ export default function TargetConfigForm({ overrides, count }: Props) {
 									})}
 									<td className="when">
 										{!supported ? (
-											<span className="tag" title={UNSUPPORTED_MSG}>
+											<span className="tag" title={unsupportedReason(arch, s)}>
 												TIDAK DIDUKUNG
 											</span>
 										) : isDefault(arch, s) ? (

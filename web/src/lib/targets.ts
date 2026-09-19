@@ -23,18 +23,39 @@ export type JobKind =
 	| "db-backup" | "db-restore" | "db-list";
 
 /*
- * x86 (32-bit) is supported up to Android 15 (SDK 35) only - the same rule as
- * target_supported() in build.sh. Google ships no 32-bit x86 phone image with
- * GMS after Android 11, and x86 is 0.5% of downloads. Existing releases stay;
- * nothing newer is restored or built.
+ * The 32-bit architectures stop at a last Android version - the same rules as
+ * target_supported() in build.sh. Existing releases stay; nothing newer is
+ * restored or built.
+ *  - x86 up to Android 15 (SDK 35): Google ships no 32-bit x86 phone image
+ *    with GMS after Android 11, and x86 is 0.5% of downloads.
+ *  - arm up to Android 16 (SDK 36): no 32-bit arm phone image, GSI or
+ *    MindTheGapps phone build exists for Android 17 (TV only), and no custom
+ *    ROM runs Android 17 on a 32-bit phone.
  */
 export const X86_LAST_SDK = 35;
+export const ARM_LAST_SDK = 36;
 
 export function targetSupported(arch: string, sdk: number | string): boolean {
-	return !(arch === "x86" && Number(sdk) > X86_LAST_SDK);
+	if (arch === "x86") return Number(sdk) <= X86_LAST_SDK;
+	if (arch === "arm") return Number(sdk) <= ARM_LAST_SDK;
+	return true;
 }
 
-export const UNSUPPORTED_MSG = `x86 (32-bit) tidak didukung untuk Android 16 (SDK ${X86_LAST_SDK + 1}) ke atas`;
+/** Every cut-off in one line, for legends that cover the whole matrix. */
+export const UNSUPPORTED_MSG =
+	`x86 (32-bit) hanya sampai Android 15 (SDK ${X86_LAST_SDK}), ` +
+	`arm (32-bit) hanya sampai Android 16 (SDK ${ARM_LAST_SDK})`;
+
+/** Why one target is refused. */
+export function unsupportedReason(arch: string, sdk: number | string): string {
+	if (arch === "arm") {
+		return `arm (32-bit) tidak didukung untuk Android 17 (SDK ${ARM_LAST_SDK + 1}) ke atas`;
+	}
+	if (arch === "x86") {
+		return `x86 (32-bit) tidak didukung untuk Android 16 (SDK ${X86_LAST_SDK + 1}) ke atas`;
+	}
+	return `${arch} SDK ${sdk} tidak didukung`;
+}
 
 /*
  * Variants that exist only for some targets - the same rule as

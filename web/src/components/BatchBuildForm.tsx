@@ -9,6 +9,7 @@ import {
 	ARCHS,
 	SDKS,
 	UNSUPPORTED_MSG,
+	unsupportedReason,
 	defaultVariants,
 	targetSupported,
 } from "@/lib/targets";
@@ -179,7 +180,7 @@ export default function BatchBuildForm({
 													/>
 												</td>
 											) : (
-												<td key={a} className="when" title={UNSUPPORTED_MSG}>
+												<td key={a} className="when" title={unsupportedReason(a, s)}>
 													—
 												</td>
 											),

@@ -76,6 +76,12 @@ jobs:
             exit 1
           fi
 
+          # arm (32-bit) is supported up to Android 16 (SDK 36) only.
+          if [ "$ARCH" = "arm" ] && [ "$SDK" -gt 36 ]; then
+            echo "::error::arm (32-bit) is not supported after Android 16 (SDK 36)"
+            exit 1
+          fi
+
           TAG="${{ inputs.tag }}"
           if [ -z "$TAG" ]; then
             if [ "${{ github.ref_type }}" = "tag" ]; then

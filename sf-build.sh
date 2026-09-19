@@ -528,6 +528,9 @@ BUILD_ALL_STATE="$BASED/sf-build-progress.log"
 # x86 (32-bit) stops at Android 15 (SDK 35): Google ships no 32-bit x86 phone
 # image with GMS after Android 11. Build All skips x86 above this.
 X86_LAST_SDK=35
+# arm (32-bit) stops at Android 16 (SDK 36): no 32-bit arm phone build of
+# Android 17 exists. Build All skips arm above this.
+ARM_LAST_SDK=36
 BUILD_ALL_ARCHES="arm64 arm x86 x86_64"
 BUILD_ALL_SDKS="37 36 35 34 33 32 31 30 29 28 27 26 25 24"
 BUILD_ALL_BATCH=4
@@ -539,6 +542,7 @@ BUILD_ALL(){
 	for BA in $BUILD_ALL_ARCHES; do
 		for BS in $BUILD_ALL_SDKS; do
 			[ "$BA" = x86 ] && [ "$BS" -gt "$X86_LAST_SDK" ] && continue
+			[ "$BA" = arm ] && [ "$BS" -gt "$ARM_LAST_SDK" ] && continue
 			if grep -qx "$BA $BS" "$BUILD_ALL_STATE"; then
 				continue
 			fi
@@ -580,6 +584,7 @@ SHOW_BUILD_ALL_PROGRESS(){
 	for BA in $BUILD_ALL_ARCHES; do
 		for BS in $BUILD_ALL_SDKS; do
 			[ "$BA" = x86 ] && [ "$BS" -gt "$X86_LAST_SDK" ] && continue
+			[ "$BA" = arm ] && [ "$BS" -gt "$ARM_LAST_SDK" ] && continue
 			total=$((total + 1))
 			if grep -qx "$BA $BS" "$BUILD_ALL_STATE"; then
 				echo "  [x] $BA $BS"
@@ -640,6 +645,10 @@ case $selsdk in
 25 | 26 | 27 | 28 | 29 | 30 | 31 | 32 | 33 | 34 | 35 | 36 | 37)
 if [ "$ARCH" = x86 ] && [ "$selsdk" -gt 35 ]; then
 echo "! x86 (32-bit) is not supported after Android 15 (SDK 35)"
+continue
+fi
+if [ "$ARCH" = arm ] && [ "$selsdk" -gt 36 ]; then
+echo "! arm (32-bit) is not supported after Android 16 (SDK 36)"
 continue
 fi
 export SDK=$selsdk

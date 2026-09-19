@@ -10,7 +10,7 @@ import {
 	ARCHS,
 	BACKUP_NAME,
 	SDKS,
-	UNSUPPORTED_MSG,
+	unsupportedReason,
 	VARIANTS,
 	targetSupported,
 	variantSupported,
@@ -61,7 +61,7 @@ function plan(req: JobRequest): Plan {
 	// Anything that restores or builds a target must also be a target the
 	// project still supports (see targetSupported in targets.ts).
 	const needSupported = () => {
-		if (!targetSupported(arch, sdk)) throw new Error(UNSUPPORTED_MSG);
+		if (!targetSupported(arch, sdk)) throw new Error(unsupportedReason(arch, sdk));
 	};
 	const needVariant = () => {
 		if (!(VARIANTS as readonly string[]).includes(variant)) {
@@ -120,7 +120,7 @@ function plan(req: JobRequest): Plan {
 			const unsupported = targets.filter((t) => !targetSupported(t.arch, t.sdk));
 			if (unsupported.length) {
 				throw new Error(
-					`${UNSUPPORTED_MSG}: ${unsupported.map((t) => `${t.arch}/${t.sdk}`).join(", ")}`,
+					unsupported.map((t) => `${t.arch}/${t.sdk}: ${unsupportedReason(t.arch, t.sdk)}`).join("; "),
 				);
 			}
 

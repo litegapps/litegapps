@@ -291,7 +291,7 @@ _litegapps_build_variant(){
 		BIN_ARCH=$W_ARCH
 		for W_SDK in $CONFIG_SDK; do
 			if ! target_supported "$W_ARCH" "$W_SDK"; then
-				printlog "[SKIP] <$VARIANT $W_ARCH $W_SDK> x86 (32-bit) is not supported after Android 15 (SDK $X86_LAST_SDK)"
+				printlog "[SKIP] <$VARIANT $W_ARCH $W_SDK> $(unsupported_reason "$W_ARCH" "$W_SDK")"
 				continue
 			fi
 			if ! variant_supported "$VARIANT" "$W_ARCH" "$W_SDK"; then
@@ -423,7 +423,7 @@ NUM_6070=0
 for D_ARCH in $LIST_ARCH; do
 	for D_SDK in $LIST_SDK; do
 		if ! target_supported "$D_ARCH" "$D_SDK"; then
-			printlog "[SKIP] <$D_ARCH $D_SDK> x86 (32-bit) is not supported after Android 15 (SDK $X86_LAST_SDK)"
+			printlog "[SKIP] <$D_ARCH $D_SDK> $(unsupported_reason "$D_ARCH" "$D_SDK")"
 			continue
 		fi
 		if ! variant_supported "${BASED##*/}" "$D_ARCH" "$D_SDK"; then

@@ -15,7 +15,7 @@ import {
 	GO_UNSUPPORTED_MSG,
 	KINDS_RESTORE,
 	SDKS,
-	UNSUPPORTED_MSG,
+	unsupportedReason,
 	targetSupported,
 	variantSupported,
 } from "@/lib/targets";
@@ -151,9 +151,10 @@ export default async function RestorePage({
 						<div className="note" style={{ margin: "0 16px 16px" }}>
 							<Icon name="block" />
 							<div>
-								<b>{UNSUPPORTED_MSG}.</b> Google tidak lagi membuat image ponsel x86 32-bit
-								dengan GMS sejak Android 11, jadi target ini tidak di-restore maupun dibangun.
-								Rilis x86 sampai Android 15 tetap tersedia.
+								<b>{unsupportedReason(arch, sdk)}.</b>{" "}
+								{arch === "arm"
+									? "Tidak ada image ponsel, GSI, maupun build ponsel arm 32-bit untuk Android 17 (MindTheGapps pun hanya untuk TV), jadi target ini tidak di-restore maupun dibangun. Rilis arm sampai Android 16 tetap tersedia."
+									: "Google tidak lagi membuat image ponsel x86 32-bit dengan GMS sejak Android 11, jadi target ini tidak di-restore maupun dibangun. Rilis x86 sampai Android 15 tetap tersedia."}
 							</div>
 						</div>
 					)}

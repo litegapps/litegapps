@@ -8,6 +8,7 @@ import { startJobAction } from "@/app/actions";
 import { currentUser } from "@/lib/session";
 import { runningJob } from "@/lib/jobs";
 import { readStatus, type Status } from "@/lib/status";
+import { targetSupported } from "@/lib/targets";
 
 // status.json is rewritten by a job, so this page must never be cached.
 export const dynamic = "force-dynamic";
@@ -43,6 +44,8 @@ function count(s: Status, key: "gapps" | "package") {
 	let total = 0;
 	for (const a of s.archs) {
 		for (const sdk of s.sdks) {
+			// A dropped target never gets sources, so it is not "missing" either.
+			if (!targetSupported(a, sdk.sdk)) continue;
 			total++;
 			if (s.targets[a]?.[String(sdk.sdk)]?.[key]) n++;
 		}

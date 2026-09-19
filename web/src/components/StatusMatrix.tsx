@@ -1,5 +1,15 @@
 import Icon from "./Icon";
 import type { Status } from "@/lib/status";
+import { UNSUPPORTED_MSG, targetSupported, unsupportedReason } from "@/lib/targets";
+
+/** A target the project no longer builds (x86 after SDK 35, arm after SDK 36). */
+function Unsupported({ arch, sdk }: { arch: string; sdk: number }) {
+	return (
+		<span className="rel none" title={unsupportedReason(arch, sdk)}>
+			—<span className="sr">tidak didukung</span>
+		</span>
+	);
+}
 
 function Pill({ on, tag }: { on: boolean; tag?: string }) {
 	if (!on) {
@@ -42,6 +52,17 @@ function Matrix({ s, kind }: { s: Status; kind: "gapps" | "package" | "release" 
 							</td>
 							{s.archs.map((a) => {
 								const t = s.targets[a]?.[String(sdk.sdk)];
+								const supported = targetSupported(a, sdk.sdk);
+								// Sources are never restored for a dropped target, so the
+								// cell says why instead of "missing". Releases published
+								// before the cut-off still show, marked.
+								if (!supported && (kind !== "release" || !t?.release)) {
+									return (
+										<td key={a}>
+											<Unsupported arch={a} sdk={sdk.sdk} />
+										</td>
+									);
+								}
 								if (!t) return <td key={a}>—</td>;
 								if (kind === "gapps") {
 									return (
@@ -63,6 +84,11 @@ function Matrix({ s, kind }: { s: Status; kind: "gapps" | "package" | "release" 
 											<span className="rel">
 												<b>{t.release}</b>
 												<em>{t.variants.length} varian</em>
+												{!supported && (
+													<span className="tag" title={unsupportedReason(a, sdk.sdk)}>
+														TIDAK DIDUKUNG
+													</span>
+												)}
 											</span>
 										) : (
 											<span className="rel none">—</span>
@@ -106,6 +132,9 @@ export default function StatusMatrix({ status }: { status: Status }) {
 					<span className="item">
 						<span className="tag">LITE</span> varian <code>-lite.zip</code> juga tersedia
 					</span>
+					<span className="item">
+						<span className="rel none">—</span> tidak didukung: {UNSUPPORTED_MSG}
+					</span>
 				</div>
 			</section>
 
@@ -118,6 +147,11 @@ export default function StatusMatrix({ status }: { status: Status }) {
 					<code>files-server/package/&lt;arch&gt;/&lt;sdk&gt;.zip</code>
 				</div>
 				<Matrix s={status} kind="package" />
+				<div className="legend">
+					<span className="item">
+						<span className="rel none">—</span> tidak didukung: {UNSUPPORTED_MSG}
+					</span>
+				</div>
 			</section>
 
 			<section className="card">
@@ -132,6 +166,11 @@ export default function StatusMatrix({ status }: { status: Status }) {
 				<div className="legend">
 					<span className="item">
 						Tanggal build terbaru yang sudah ada di server, beserta jumlah varian pada tanggal itu.
+						Rilis lama dari target yang sudah tidak didukung tetap ditampilkan dengan tanda{" "}
+						<span className="tag">TIDAK DIDUKUNG</span>.
+					</span>
+					<span className="item">
+						<span className="rel none">—</span> tidak didukung: {UNSUPPORTED_MSG}
 					</span>
 				</div>
 			</section>

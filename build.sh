@@ -119,13 +119,29 @@ abort(){
 # base needs hand-picked APKs, and it is downloaded by almost nobody.
 # Releases up to Android 15 stay where they are; nothing newer is built.
 X86_LAST_SDK=35
+# arm (32-bit) is supported up to Android 16 (SDK 36) only. Google ships no
+# 32-bit arm phone image or GSI with GMS for Android 17, MindTheGapps has no
+# Android 17 arm phone build (TV only), and no custom ROM runs Android 17 on a
+# 32-bit phone. Releases up to Android 16 stay; nothing newer is built.
+ARM_LAST_SDK=36
 
 # target_supported <arch> <sdk>: 0 when that target may be restored/built.
 target_supported(){
 	if [ "$1" = x86 ] && [ "$2" -gt "$X86_LAST_SDK" ] 2>/dev/null; then
 		return 1
 	fi
+	if [ "$1" = arm ] && [ "$2" -gt "$ARM_LAST_SDK" ] 2>/dev/null; then
+		return 1
+	fi
 	return 0
+}
+
+# unsupported_reason <arch> <sdk>: why target_supported() refused the target.
+unsupported_reason(){
+	case "$1" in
+		arm) echo "arm (32-bit) is not supported after Android 16 (SDK $ARM_LAST_SDK)" ;;
+		*) echo "x86 (32-bit) is not supported after Android 15 (SDK $X86_LAST_SDK)" ;;
+	esac
 }
 
 # variant_supported <variant> <arch> <sdk>: 0 when that variant is built for

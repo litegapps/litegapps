@@ -30,6 +30,8 @@ never reimplements build logic.
   `build.status=unofficial`). A maintainer's identity lives in the panel
   database and reaches builds as `LG_CFG_*`; never commit it back into
   `config`.
+- arm (32-bit) is supported up to Android 16 (SDK 36) only (`ARM_LAST_SDK`).
+  Do not add arm builds or sources for SDK 37+.
 - x86 (32-bit) is supported up to Android 15 (SDK 35) only. Do not add x86
   builds or sources for SDK 36+ (`target_supported()` in `build.sh`,
   `targetSupported()` in `web/src/lib/targets.ts`).
