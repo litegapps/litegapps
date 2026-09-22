@@ -40,6 +40,15 @@ if [ -f "$SRC/known_hosts" ]; then
 	cp "$SRC/known_hosts" "$HOME_DIR/.ssh/known_hosts"
 	chmod 600 "$HOME_DIR/.ssh/known_hosts"
 fi
+# The Google Drive token for web/gdrive-mirror.sh, if one has been set up.
+# Copied, not used in place: the mount is read-only and rclone rewrites the
+# file when it refreshes the access token.
+if [ -f /rclone-host/rclone.conf ]; then
+	mkdir -p "$HOME_DIR/.config/rclone"
+	cp /rclone-host/rclone.conf "$HOME_DIR/.config/rclone/rclone.conf"
+	chmod 600 "$HOME_DIR/.config/rclone/rclone.conf"
+	echo "[entrypoint] imported rclone config"
+fi
 chown -R "$PUID:$PGID" "$HOME_DIR"
 
 # Job logs written by an earlier root-run container would be unwritable now.

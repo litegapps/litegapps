@@ -82,9 +82,9 @@ Logs: `log/make.log` and `log/make_live.log` — **read these first when a build
 - `config` — top-level build config (version, compression, which products/variants).
 - `core/litegapps/<variant>/` — one dir per variant
   (`lite core go micro pixel nano basic user superlite`), each with its own `config`,
-  `restore/`, `gapps/`, `modules/`, `utils/README.md`. `superlite` restores from a
-  fixed gapps zip name instead of an SDK-prefixed one (`restore.filename` in its
-  `config`) and `sf-build.sh` only builds it for SDK 29+.
+  `restore/`, `gapps/`, `modules/`, `utils/README.md`. They do not all restore the
+  same gapps zip - see "Variants and where their gapps come from" below, which
+  is the rule superlite, lite and go all hang off.
 - `core/litegappsx/` — second product, `microg` only, off by default (`litegappsx.build=false`).
 - `packages/` — addon/apk packaging tool (a vendored standalone sub-project; called as a
   black box via `bash packages/make make $ARCH $SDK`, has its own `packages/utils` installer).
@@ -135,14 +135,40 @@ Logs: `log/make.log` and `log/make_live.log` — **read these first when a build
   the job process (the server must close its own copy of that fd, or the lock
   outlives the job). The
   availability matrix comes from `web/status.json` (written by
-  `web/make-status.sh`), never from a live SourceForge call inside a request.
+  `web/make-status.sh`, whose `SDK_MAP` covers Android 7.0-17, SDK 24-37),
+  never from a live SourceForge call inside a request. Releases from before
+  dated folders existed (zips straight in `<variant>/`, version in the name,
+  e.g. `..._v2.5_official.zip` - all Android 7.0-8.0 has) are reported as
+  `legacy` and shown as "v2.5 · lama".
   MySQL stores only the admin account, sessions, job history and panel settings
   (including the build forms' last selection, so they resume where they were).
   Every job's output is tailed by an inline terminal panel under the form that
   started it (`src/components/JobTerminal.tsx` + `Terminal.tsx`, fed by
   `?job=<id>` or `/api/jobs/running`); progress is parsed from the
-  `=== [n/m] ... ===` markers the scripts print. `/info` holds the release matrices (gapps/package source,
+  `=== [n/m] ... ===` markers the scripts print. A batch build also gets a
+  progress table under the checklist (`src/components/BatchProgress.tsx` ->
+  `/api/jobs/<id>/batch` -> `src/lib/batchlog.ts`): per target the addon step,
+  every variant's state (queued / restoring / building / done / failed with
+  the reason) and whether the zips reached SourceForge, plus how many builds
+  are left and a rough ETA. It parses the log `web/build-batch.sh` already
+  prints - the script keeps no state of its own - server-side, because that
+  log grows to megabytes while the table stays a few KB. A successful upload
+  prints no marker, so it is inferred from a release section that ends without
+  `! zip upload failed`; `! addon upload failed` and `! prune failed` are
+  warnings on the row, not upload failures. Keep those messages in step with
+  the parser if the script's output changes. `/info` holds the release matrices (gapps/package source,
   published releases) and the status refresh.
+  The build forms fold: `src/components/Fold.tsx` turns a form section into a
+  drawer with a one-line summary when it is closed (Multi's target matrix,
+  options and target detail; Config target's variant matrix; each package
+  list), and the progress card folds away too (the state is remembered in
+  `localStorage`) so
+  a 33-row table does not bury the log below it. Each build tab (**Multi** and
+  **Single**) also has a "Bersihkan data & log" button: it drops that tab's job
+  rows and their log files (`clearJobs()`), then runs `web/clear-output.sh` as
+  a job, which deletes `output/`, `packages/output/` and `log/` but keeps the
+  sources under `bin/` and `core/*/gapps`. Unreleased zips are gone for good,
+  so it confirms first and refuses while a job runs.
   `/` offers a checklist that turns ticked arch x SDK combinations into one
   batch job (`web/build-batch.sh`, continue-on-failure, optional auto-restore
   and per-target source cleanup). Which variants each target is built with
@@ -172,7 +198,24 @@ Logs: `log/make.log` and `log/make_live.log` — **read these first when a build
   comments and order, and refuses to save while a job runs. `/files` is a file
   manager over the checkout (detail/rename/move/delete per entry) with every
   path resolved inside the repo root and `.git`/`.env`/`.ssh`/`node_modules`
-  refused at any depth. `/backup` dumps the database (users + jobs; never
+  refused at any depth.
+  `/mirror` keeps a second copy of the **sources** (`files-server/`: gapps,
+  package, bin, base - about 37 GB) on Google Drive, updated from SourceForge
+  with `web/gdrive-mirror.sh check|sync`. rclone reads the FRS over SFTP with
+  the same key as everything else (that account runs no commands, so the
+  source remote uses `shell_type=none` and no remote hashing; files are
+  compared by size and modification time) and streams straight to Drive, so
+  nothing is staged on this disk. It is `rclone copy`, **never `rclone
+  sync`** - the mirror only ever gains files, so a mistake on SourceForge
+  cannot wipe it. The rclone token (a plaintext OAuth refresh token) lives
+  **outside the checkout** in `${RCLONE_DIR:-~/.config/rclone}`, mounted
+  read-only and copied into the container by `docker-entrypoint.sh`, exactly
+  like the SourceForge key; `/files` and git therefore never see it. The page
+  reads `web/mirror-status.json` (written by the job, gitignored) and
+  `rcloneSetup()` for the local install - never rclone or the network inside a
+  request. The target remote and folder live in `settings` (`mirror.remote`,
+  `mirror.dir`). Restoring sources *from* the mirror is not wired in yet.
+  `/backup` dumps the database (users + jobs; never
   sessions) with `web/db-tool.mjs`, **always AES-256-GCM encrypted** with
   `DB_BACKUP_KEY` because the upload target `$HOMEE/db` is world readable,
   and uploads it with rsync of a staged directory (that restricted account
@@ -229,6 +272,60 @@ Logs: `log/make.log` and `log/make_live.log` — **read these first when a build
 - Do not commit generated/gitignored artifacts.
 - Only commit or push when the user asks.
 
+## Variants and where their gapps come from
+
+The variants are **not** the same files with different app lists: three
+different gapps bases feed them, which is why several rules elsewhere in this
+file key on the variant.
+
+| Variant | gapps zip restored | Set by |
+|---|---|---|
+| core, pixel, micro, nano, basic, user, go | `<sdk>.zip` | (default) |
+| lite | `<sdk>-lite.zip`, falling back to `<sdk>.zip` when the server has none | `restore.suffix=-lite` |
+| superlite | `superlite.zip` | `restore.filename=superlite` |
+
+**superlite is the odd one**: that zip is the gapps release the Android version
+originally shipped with, so its app versions differ from every other variant of
+the same SDK. It must always be built from its own gapps - never from another
+variant's files - which is what the per-gapps-base cache key below guarantees.
+Both superlite and go are built for arm64 SDK 29+ only (see Supported
+targets).
+
+## Releasing to SourceForge
+
+`web/build-batch.sh` uploads **per target, not per variant**: all variants of
+one `<arch>/<sdk>` are built first, then `release_target` sends the addon tree
+and the zip tree in one `rsync -a -R -v` each (`-R` is what creates the remote
+directories - that account cannot run `mkdir`). Consequences worth knowing:
+
+- Zips appear on the FRS in bursts, one target at a time; a run stopped
+  mid-target uploads nothing for that target.
+- rsync exits non-zero (23) if **any single file** fails and names it, so one
+  bad file marks the whole target `! zip upload failed <A/S>`, and the prune is
+  then skipped so no old release is lost over a broken upload. `-v` lists every
+  file that went up.
+- A target whose builds all failed has no output directory; that prints
+  `- nothing to upload <A/S>` instead of passing silently as a success.
+- `vps-build.sh` differs on purpose: it uploads **per variant**, right after
+  each one is built, with `scp_tree`.
+
+## Reading a failed batch run
+
+A batch job continues past a failure and ends non-zero; the panel's progress
+table lists every failure with its reason. In practice they are almost always
+the **sources**, not the build code, so read the reason before touching
+anything:
+
+- `restore gagal` / `Extract status : Failed !!` - the gapps zip on the server
+  is missing or truncated for that target (seen on `arm/33` and `arm/32`, where
+  `33-lite.zip` was absent and the `33.zip` fallback would not extract).
+- `! file <packages/zip-server/<arch>/<sdk>.zip> is not found` - no addon
+  source for that target; only the addon step fails, the zips still build.
+- `source tidak ada` - the gapps were missing and auto-restore was off.
+
+Rebuild only the failed targets afterwards (checklist, or Build > Satu
+perintah); nothing in the run needs to be repeated wholesale.
+
 ## Release retention on SourceForge
 
 Each variant folder on the FRS (`litegapps/<arch>/<sdk>/<variant>/`) keeps only
@@ -246,17 +343,47 @@ Build > Settings (`settings` rows `release.prune` / `release.keep`) and reach
 batch jobs as `SF_PRUNE` / `SF_KEEP_RELEASES`; `vps-build.sh` takes them from
 `.env`.
 
+## Shared files.tar (litegapps.tar=multi)
+
+`litegapps.tar=multi` in `config` (editable from the panel's `/config`) makes
+one arch/SDK build its `files.tar.<compression>` once and reuse it for the
+other variants, instead of running xz again per variant. It is a **per
+arch/SDK** cache, not one archive for several architectures.
+
+The variants do not all restore the same gapps, so the cache in
+`tmp_files/litegapps/<arch>/<sdk>/<gapps base>/` is keyed by gapps source as
+well: `sdk` (`<sdk>.zip`, most variants), `sdk-lite` (`lite`, `<sdk>-lite.zip`)
+and `superlite` (`superlite.zip`). **superlite carries a different gapps
+version** - the release the Android version originally shipped with - so it
+must always build from its own gapps and never inherit another variant's
+archive; the key is what guarantees that, in `_litegapps_build_variant`
+(`lib/litegapps.sh`). Keying it by arch/SDK alone would have put pixel's files
+in the lite and superlite zips.
+
 ## Supported targets
 
-x86 (32-bit) is supported **up to Android 15 (SDK 35) only** and arm (32-bit)
+Android 7.0 (SDK 24) is the **oldest** target on every arch; Android 5.0, 5.1
+and 6.0 (SDK 21-23) were dropped. The floor is `MIN_SDK` in `build.sh`
+(checked by `target_supported()`, copied into `packages/make`) and in
+`web/src/lib/targets.ts`, whose `SDKS`/`ANDROID` no longer list 21-23. The
+panel's shell argument checks (`web/build-batch.sh`, `web/sf-prune.sh`,
+`web/clean-sources.sh`), `vps-build.sh` and the full GitHub workflow start at
+24 too. Releases already published for 21-23 stay on the FRS. The device-side
+`get_android_version()` copies in `installer/` and `packages/utils/` keep the
+21-23 names on purpose, so an old zip still prints its Android version when it
+is flashed.
+
+x86 (32-bit) is supported **up to Android 11 (SDK 30) only** and arm (32-bit)
 **up to Android 16 (SDK 36) only**; arm64 and x86_64 have no limit. The rule
 lives in `target_supported()` / `X86_LAST_SDK` in `build.sh` (copied into standalone `packages/make`, and applied in
 `sf-build.sh`, `vps-build.sh` and both GitHub workflows), and in
 `targetSupported()` / `X86_LAST_SDK` in `web/src/lib/targets.ts` for the
 panel, which refuses such jobs server-side and disables those cells in its
-forms. Reason: Google publishes no 32-bit x86 phone image with GMS after
-Android 11, and x86 was ~0.5% of downloads (Sep 2025–Sep 2026). Do not add x86
-builds for SDK 36+; keep both copies of the constant in step if it ever moves.
+forms. Reason: Android 11 is the last version Google published a 32-bit x86
+phone image with GMS for, and x86 was ~0.5% of downloads (Sep 2025–Sep 2026).
+The cut-off was SDK 35 until 2026-09-23, when it moved down to SDK 30; x86
+releases already on the FRS for SDK 31-35 were left in place. Do not add x86
+builds for SDK 31+; keep both copies of the constant in step if it ever moves.
 The arm cut-off is `ARM_LAST_SDK` next to it, in the same places (and
 `unsupported_reason()` / `unsupportedReason()` name the right one in skip
 messages and refused jobs). Reason, checked 2026-09: Google's SDK repository
@@ -265,8 +392,10 @@ x86_64 only; MindTheGapps ships Android 17 for arm only as an Android TV
 build; LineageOS (newest 23.2 = Android 16) maintains no 32-bit arm phone at
 all. Do not add arm builds for SDK 37+.
 
-The **go** variant is built for **arm64 Android 10 (SDK 29) and up only**:
-Google's Go apps it is made of do not exist for the other targets. The rule is
+The **go** and **superlite** variants are built for **arm64 Android 10 (SDK
+29) and up only**: go because Google's Go apps it is made of do not exist for
+the other targets, superlite because it is only released for that range
+(since 2026-09-23; before that arm/x86/x86_64 got it from SDK 29). The rule is
 `variant_supported()` / `GO_MIN_SDK` in `build.sh` (checked by both the make
 and the restore loop in `lib/litegapps.sh`), `GO()` in `sf-build.sh`,
 `variants_for()` in `vps-build.sh`, and `variantSupported()` in
@@ -279,3 +408,33 @@ Add the SDK→version mapping in `get_android_version()` in `build.sh` (the `cas
 around line 296), add the SDK to the relevant variant `config` (`sdk=`/`restore.sdk=`),
 and ensure `restore/<arch>/<sdk>/` gapps exist. Commit `98396d6` (A17 = SDK 36) is
 the reference example.
+
+## In progress (handoff, updated 2026-09-23)
+
+Read this first; delete it once everything below is done.
+
+**Google Drive source mirror** (`/mirror`, `web/gdrive-mirror.sh`, rclone in
+the image, token mounted from `~/.config/rclone`) is deployed but idle:
+1. The user creates the Drive token - their own OAuth client in Google Cloud
+   Console (Drive API on, consent screen **published to production** or the
+   token dies every 7 days, "Desktop app" client, scope `drive.file`), then
+   `rclone config` on the VPS as their own user; never pasted into chat. Then
+   `bash web/start.sh` so the container picks it up.
+2. Run **Cek mirror** first and read its log, then **ask before the first
+   sync** - it copies ~37 GB into their Drive.
+3. Not requested yet: restoring sources *from* the mirror.
+
+**Other open items:**
+- Missing sources on SourceForge (the cause of every failed restore):
+  gapps `arm/32`, `arm/33`, `x86_64/31-33`; addon `package/arm/31`,
+  `x86/29`, `x86_64/29`, `x86_64/31`. A missing file downloads as a ~48 KB
+  HTML page and fails as "Extract status : Failed"; proposed: check the file
+  exists first and log "not on the server".
+- 2026-09-23: the non-arm64 `files-server/litegapps/*/<sdk>-lite.zip` were
+  deleted on the user's request (arm/34-36, x86/35, x86_64/34-37); lite on
+  those targets now restores from `<sdk>.zip`.
+- Offered, not done: `sf.mirror=phoenixnap` in `config` (measured 18 MB/s vs
+  9 MB/s default) - the user decides.
+- Unproven: the per-gapps-base `files.tar` cache key - build lite and superlite
+  for one target with `litegapps.tar=multi` and marker files, then compare the
+  two zips' `files.tar.xz`, on a free tree.

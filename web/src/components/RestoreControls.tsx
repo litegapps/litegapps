@@ -46,6 +46,7 @@ export function TargetPicker({ tab, arch, sdk }: { tab: string; arch: string; sd
 export function RunButton({
 	busy: initialBusy,
 	blocked = false,
+	blockedLabel = "Tidak didukung",
 	icon = "download",
 	label,
 	tone,
@@ -54,6 +55,8 @@ export function RunButton({
 	busy: boolean;
 	/** the action is not allowed at all here (e.g. an unsupported target) */
 	blocked?: boolean;
+	/** what the button says while blocked; the default is about targets */
+	blockedLabel?: string;
 	icon?: string;
 	label: string;
 	tone?: "tonal";
@@ -74,7 +77,7 @@ export function RunButton({
 			}}
 		>
 			<Icon name={blocked ? "block" : pending || busy ? "hourglass_top" : icon} />
-			{blocked ? "Tidak didukung" : pending ? "Memulai…" : busy ? "Ada job berjalan" : label}
+			{blocked ? blockedLabel : pending ? "Memulai…" : busy ? "Ada job berjalan" : label}
 		</button>
 	);
 }

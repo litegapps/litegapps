@@ -30,10 +30,18 @@ never reimplements build logic.
   `build.status=unofficial`). A maintainer's identity lives in the panel
   database and reaches builds as `LG_CFG_*`; never commit it back into
   `config`.
+- Android 7.0 (SDK 24) is the oldest target (`MIN_SDK`); Android 5.0-6.0
+  (SDK 21-23) were dropped. Do not add them back.
+- The variants restore three different gapps bases: `<sdk>.zip` (most),
+  `<sdk>-lite.zip` (lite), `superlite.zip` (superlite, the release the Android
+  version originally shipped with). superlite must always build from its own
+  gapps - never reuse another variant's `files.tar` for it.
+- The panel's batch uploads per target (one `rsync -R` for all variants of an
+  `<arch>/<sdk>`), `vps-build.sh` uploads per variant.
 - arm (32-bit) is supported up to Android 16 (SDK 36) only (`ARM_LAST_SDK`).
   Do not add arm builds or sources for SDK 37+.
-- x86 (32-bit) is supported up to Android 15 (SDK 35) only. Do not add x86
-  builds or sources for SDK 36+ (`target_supported()` in `build.sh`,
+- x86 (32-bit) is supported up to Android 11 (SDK 30) only. Do not add x86
+  builds or sources for SDK 31+ (`target_supported()` in `build.sh`,
   `targetSupported()` in `web/src/lib/targets.ts`).
 - Anything uploaded to `$HOMEE` (`/home/frs/project/litegapps`) is public.
   Database backups that go to `<project>/db/` are therefore always encrypted.

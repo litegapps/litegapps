@@ -44,7 +44,7 @@ case "$ARCH" in
 	*) print "[ERROR] bad arch <$ARCH>"; exit 1 ;;
 esac
 case "$SDK" in
-	2[1-9] | 3[0-7]) ;;
+	2[4-9] | 3[0-7]) ;;
 	*) print "[ERROR] bad sdk <$SDK>"; exit 1 ;;
 esac
 case "$KEEP" in

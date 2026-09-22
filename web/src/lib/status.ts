@@ -16,6 +16,9 @@ export type Target = {
 	package: boolean;
 	release: string;
 	variants: string[];
+	/** newest pre-dated-folder release ("v2.5"), when that is all a target has */
+	legacy?: string;
+	legacy_variants?: string[];
 };
 
 export type Status = {

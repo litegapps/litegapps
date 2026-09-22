@@ -72,7 +72,9 @@ about releases is stored there.
 | `db-backup.sh` / `db-restore.sh` / `db-list.sh` / `db-tool.mjs` | encrypted database backup to `<SF>/db/`, restore, and remote listing |
 | `sf-common.sh` | shared SourceForge settings and ssh options for the shell jobs |
 | `sf-prune.sh` | keeps the newest 15 dated releases per variant on the FRS, deletes older ones |
-| `build-batch.sh` | builds every ticked arch x SDK in one job (variants per target resolved by the panel), restoring sources first when asked |
+| `gdrive-mirror.sh` | `check`/`sync` the SourceForge sources to Google Drive via rclone (page: `/mirror`, state in `mirror-status.json`) |
+| `clear-output.sh` | deletes `output/`, `packages/output/` and `log/` (sources kept); run by the "Bersihkan data & log" button |
+| `build-batch.sh` | builds every ticked arch x SDK in one job (variants per target resolved by the panel), restoring sources first when asked; its log feeds the progress table (`src/lib/batchlog.ts`, `/api/jobs/<id>/batch`) |
 | `clean-sources.sh` | deletes one target's restored sources (mirrors `cleanup_target` in `vps-build.sh`; keeps `output/`) |
 | `make-status.sh` | regenerates `status.json` from the SourceForge listing |
 | `status.json` | **generated — do not hand-edit**, re-run the script |
@@ -141,6 +143,8 @@ Refreshing the matrix by hand, outside the panel:
 bash web/make-status.sh
 ```
 
+The oldest target is Android 7.0 (SDK 24, `MIN_SDK` in `src/lib/targets.ts`):
+SDK 21-23 are not listed and are refused server-side.
 When a new SDK is added, extend `SDK_MAP` in `make-status.sh` and `SDKS` in
 `src/lib/targets.ts`, alongside `get_android_version()` in `build.sh`.
 

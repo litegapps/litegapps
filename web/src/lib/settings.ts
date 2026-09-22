@@ -38,6 +38,20 @@ export async function autoBackupOn(): Promise<boolean> {
 	return (await getSetting(AUTO_BACKUP)) === "1";
 }
 
+/** Google Drive source mirror: rclone remote name and the folder inside it. */
+export const MIRROR_REMOTE = "mirror.remote";
+export const MIRROR_DIR = "mirror.dir";
+export const MIRROR_REMOTE_RE = /^[A-Za-z0-9_-]{1,40}$/;
+export const MIRROR_DIR_RE = /^(?!\/)(?!.*\.\.)[A-Za-z0-9_./-]{1,120}$/;
+
+export async function readMirror(): Promise<{ remote: string; dir: string }> {
+	const [r, d] = await Promise.all([getSetting(MIRROR_REMOTE), getSetting(MIRROR_DIR)]);
+	return {
+		remote: r && MIRROR_REMOTE_RE.test(r) ? r : "gdrive",
+		dir: d && MIRROR_DIR_RE.test(d) ? d : "litegapps-mirror",
+	};
+}
+
 /** Release retention as the build jobs get it (web/sf-prune.sh). */
 export async function readRetention(): Promise<{ on: boolean; keep: number }> {
 	const [on, keep] = await Promise.all([getSetting(RELEASE_PRUNE), getSetting(RELEASE_KEEP)]);

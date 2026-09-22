@@ -3,14 +3,19 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { currentUser, logout } from "@/lib/session";
-import { startJob, runningJob, stopJob } from "@/lib/jobs";
+import { startJob, runningJob, stopJob, clearJobs } from "@/lib/jobs";
 import { writeConfigDoc } from "@/lib/config";
 import { moveEntry, removeEntry, renameEntry } from "@/lib/files";
 import {
 	AUTO_BACKUP,
 	RELEASE_KEEP,
 	RELEASE_KEEP_MAX,
+	MIRROR_DIR,
+	MIRROR_DIR_RE,
+	MIRROR_REMOTE,
+	MIRROR_REMOTE_RE,
 	RELEASE_PRUNE,
+	readMirror,
 	readRetention,
 	setSetting,
 } from "@/lib/settings";
@@ -18,7 +23,7 @@ import { readOverrides, writeOverrides } from "@/lib/buildtargets";
 import { PACKAGE_LISTS, readPackageLists, writePackageLists } from "@/lib/packages";
 import { readSinglePrefs, writeBatchPrefs, writeSinglePrefs } from "@/lib/formstate";
 import { PANEL_KEYS, readPanelConfig, writePanelConfig } from "@/lib/panelconfig";
-import type { JobKind } from "@/lib/targets";
+import { KINDS_BATCH, KINDS_SINGLE, type JobKind } from "@/lib/targets";
 
 /*
  * Server Actions are public endpoints, so each one re-checks the session.
@@ -47,6 +52,8 @@ export async function startJobAction(formData: FormData) {
 			// Identity and version come from the panel, never from the repo file.
 			config: await readPanelConfig(),
 			retention: kind === "build-batch" ? await readRetention() : undefined,
+			// Which Drive the mirror jobs write to (Mirror page settings).
+			mirror: kind.startsWith("mirror-") ? await readMirror() : undefined,
 			kind,
 			variant: String(formData.get("variant") ?? "") || undefined,
 			name: String(formData.get("name") ?? "") || undefined,
@@ -77,7 +84,7 @@ export async function startJobAction(formData: FormData) {
 function backPath(raw: string): string {
 	const url = new URL(raw, "http://panel.invalid");
 	if (url.origin !== "http://panel.invalid") return "/";
-	if (!["/", "/restore", "/backup", "/info"].includes(url.pathname)) return "/";
+	if (!["/", "/restore", "/backup", "/info", "/mirror"].includes(url.pathname)) return "/";
 	// Keep the Build page's tab, so a job started on one tab returns to it.
 	const tab = url.searchParams.get("tab");
 	if (url.pathname === "/" && tab && !["single", "config", "settings"].includes(tab)) {
@@ -178,6 +185,57 @@ export async function toggleAutoBackupAction(formData: FormData) {
 	await setSetting(AUTO_BACKUP, formData.get("on") ? "1" : "0");
 	revalidatePath("/backup");
 	redirect("/backup");
+}
+
+/*
+ * Build > Multi / Single: wipe that tab's job history and its logs, then run
+ * web/clear-output.sh to delete the built zips and build logs as well. The
+ * zips are gone for good, so the button asks first; a running job blocks it,
+ * since its row is what guards the tree.
+ */
+export async function clearBuildDataAction(formData: FormData) {
+	await requireAdmin();
+	const back = backPath(String(formData.get("back") ?? "/"));
+	const group = String(formData.get("group") ?? "") === "single" ? KINDS_SINGLE : KINDS_BATCH;
+
+	if (await runningJob()) {
+		redirect(withParam(back, "error", "Ada job berjalan - hentikan dulu sebelum membersihkan"));
+	}
+
+	const gone = await clearJobs(group);
+
+	let id: number;
+	try {
+		id = await startJob({ kind: "clear-output" });
+	} catch (e) {
+		const reason = e instanceof Error ? e.message : "unknown error";
+		redirect(withParam(back, "error", reason));
+	}
+	revalidatePath(back.split("?")[0]);
+	redirect(withParam(withParam(back, "done", `${gone} riwayat job dihapus`), "job", String(id)));
+}
+
+/*
+ * Mirror page: which rclone remote and folder the Google Drive mirror writes
+ * to. Both are checked here as well as in the script - this is a public
+ * endpoint, and they end up on an rclone command line.
+ */
+export async function saveMirrorAction(formData: FormData) {
+	await requireAdmin();
+	const target = "/mirror";
+	const remote = String(formData.get("remote") ?? "").trim();
+	const dir = String(formData.get("dir") ?? "").trim();
+
+	if (!MIRROR_REMOTE_RE.test(remote)) {
+		redirect(withParam(target, "error", "Nama remote hanya huruf, angka, - dan _"));
+	}
+	if (!MIRROR_DIR_RE.test(dir)) {
+		redirect(withParam(target, "error", "Folder Drive tidak boleh diawali / atau memuat .."));
+	}
+	await setSetting(MIRROR_REMOTE, remote);
+	await setSetting(MIRROR_DIR, dir);
+	revalidatePath(target);
+	redirect(withParam(target, "done", "Tujuan mirror disimpan"));
 }
 
 /*

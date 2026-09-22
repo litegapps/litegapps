@@ -313,7 +313,15 @@ _litegapps_build_variant(){
 			printlog " "
 			[ -d $tmp ] && del $tmp && cdir $tmp || cdir $tmp
 			# copying gapps
-			tmpfiles=$base/tmp_files/litegapps/$W_ARCH/$W_SDK
+			# The variants do not share one gapps base: lite restores
+			# <sdk>-lite.zip, superlite its own fixed superlite.zip (the older
+			# gapps this Android version first shipped with), the rest
+			# <sdk>.zip. So the shared archive of litegapps.tar=multi is kept
+			# per gapps source, never per arch/sdk alone - superlite always
+			# builds its own files.tar and never reuses another variant's.
+			GAPPS_BASE=$(read_config restore.filename)
+			[ -z "$GAPPS_BASE" ] && GAPPS_BASE="sdk$(read_config restore.suffix)"
+			tmpfiles=$base/tmp_files/litegapps/$W_ARCH/$W_SDK/$GAPPS_BASE
 
 			if [ $(get_config litegapps.tar) = "multi" ] && [ -f $tmpfiles/files.tar.$(get_config compression) ]; then
 			printlog "- Skipping copying gapps files"

@@ -74,3 +74,6 @@ web/db-backups.json
 !web/src/
 !web/src/**
 web/.job.lock
+
+# Google Drive mirror state, written by web/gdrive-mirror.sh
+web/mirror-status.json

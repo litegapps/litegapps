@@ -32,12 +32,17 @@ get_android_version(){
 		37) echo 17.0 ;;
 	 esac
 	}
-# x86 (32-bit) is supported up to Android 15 (SDK 35) only, arm (32-bit) up
+# x86 (32-bit) is supported up to Android 11 (SDK 30) only, arm (32-bit) up
 # to Android 16 (SDK 36) - same rule as target_supported() in build.sh, which
 # this standalone tool cannot source.
-X86_LAST_SDK=35
+X86_LAST_SDK=30
 ARM_LAST_SDK=36
+# Android 7.0 (SDK 24) is the oldest target, as in build.sh.
+MIN_SDK=24
 target_supported(){
+	if [ "$2" -lt "$MIN_SDK" ] 2>/dev/null; then
+		return 1
+	fi
 	if [ "$1" = x86 ] && [ "$2" -gt "$X86_LAST_SDK" ] 2>/dev/null; then
 		return 1
 	fi
@@ -49,9 +54,13 @@ target_supported(){
 
 # unsupported_reason <arch> <sdk>: why target_supported() refused the target.
 unsupported_reason(){
+	if [ "$2" -lt "$MIN_SDK" ] 2>/dev/null; then
+		echo "Android $(get_android_version "$2") (SDK $2) is not supported any more, the oldest is Android 7.0 (SDK $MIN_SDK)"
+		return 0
+	fi
 	case "$1" in
 		arm) echo "arm (32-bit) is not supported after Android 16 (SDK $ARM_LAST_SDK)" ;;
-		*) echo "x86 (32-bit) is not supported after Android 15 (SDK $X86_LAST_SDK)" ;;
+		*) echo "x86 (32-bit) is not supported after Android 11 (SDK $X86_LAST_SDK)" ;;
 	esac
 }
 

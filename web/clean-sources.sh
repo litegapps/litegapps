@@ -14,7 +14,7 @@ case "$ARCH" in
 	*) echo "! bad arch <$ARCH>"; exit 1 ;;
 esac
 case "$SDK" in
-	2[1-9] | 3[0-7]) ;;
+	2[4-9] | 3[0-7]) ;;
 	*) echo "! bad sdk <$SDK>"; exit 1 ;;
 esac
 

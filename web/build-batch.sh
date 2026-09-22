@@ -71,7 +71,7 @@ for ENTRY in $PLAN; do
 		*) die "bad arch <$A>" ;;
 	esac
 	case "$S" in
-		2[1-9] | 3[0-7]) ;;
+		2[4-9] | 3[0-7]) ;;
 		*) die "bad sdk <$S>" ;;
 	esac
 	for V in $(echo "$LIST" | tr ',' ' '); do
@@ -107,9 +107,17 @@ build_addon(){
 # run mkdir and its rsync has no --mkpath.
 upload_dir(){
 	local SRC_ROOT="$1" REL="$2" DEST="$3"
-	[ -d "$SRC_ROOT/$REL" ] || return 0
+	# Nothing built for this target (every variant failed, or the addon was
+	# not built): say so rather than passing silently for "uploaded".
+	if [ ! -d "$SRC_ROOT/$REL" ]; then
+		echo "- nothing to upload <$REL> from <$SRC_ROOT>"
+		return 0
+	fi
 	echo "- Uploading <$REL> to <$DEST>"
-	( cd "$SRC_ROOT" && rsync -a -R -e "ssh $SSH_OPTS" "./$REL" "$SF_USER@$SF_HOST:$DEST/" )
+	# -v names every file that goes up, so the log shows what was released and
+	# not just that the target succeeded. rsync exits non-zero (23) when even
+	# one file fails, which is what marks the whole target failed below.
+	( cd "$SRC_ROOT" && rsync -a -R -v -e "ssh $SSH_OPTS" "./$REL" "$SF_USER@$SF_HOST:$DEST/" )
 }
 
 release_target(){

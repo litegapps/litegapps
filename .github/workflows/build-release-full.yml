@@ -70,9 +70,15 @@ jobs:
           SDK="${{ inputs.sdk }}"
           [ -z "$SDK" ] && SDK="36"
 
-          # x86 (32-bit) is supported up to Android 15 (SDK 35) only.
-          if [ "$ARCH" = "x86" ] && [ "$SDK" -gt 35 ]; then
-            echo "::error::x86 (32-bit) is not supported after Android 15 (SDK 35)"
+          # Android 7.0 (SDK 24) is the oldest target built.
+          if [ "$SDK" -lt 24 ]; then
+            echo "::error::Android 5.0-6.0 (SDK 21-23) are not supported any more; the oldest is Android 7.0 (SDK 24)"
+            exit 1
+          fi
+
+          # x86 (32-bit) is supported up to Android 11 (SDK 30) only.
+          if [ "$ARCH" = "x86" ] && [ "$SDK" -gt 30 ]; then
+            echo "::error::x86 (32-bit) is not supported after Android 11 (SDK 30)"
             exit 1
           fi
 

@@ -1040,3 +1040,48 @@ section.card.term .modal-head h3 .msr { color: var(--md-primary); }
 }
 .term-foot .cl-switch { flex: 1 1 200px; font-size: 13px; }
 table.targetcfg tr.unsupported td { opacity: 0.45; }
+
+/* ── Batch progress: variant state chips ─────────────────────────────── */
+.vchips { display: flex; flex-wrap: wrap; gap: 4px; }
+.vchips .pill { font-size: 11px; }
+.note.warn { border-left-color: var(--md-error); }
+.note.warn .msr { color: var(--md-error); }
+.faillist { margin: 6px 0 10px; padding-left: 18px; }
+.faillist li { margin: 2px 0; }
+
+/* ── Collapsible card header ─────────────────────────────────────────── */
+.headtoggle {
+	background: none;
+	border: 0;
+	padding: 0;
+	margin: 0;
+	cursor: pointer;
+	color: inherit;
+	font: inherit;
+	text-align: left;
+}
+.headtoggle h2 { margin: 0; }
+.headtoggle:hover h2 { color: var(--md-primary); }
+
+/* ── Foldable form sections (drawer style) ───────────────────────────── */
+.foldtoggle {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	background: none;
+	border: 0;
+	padding: 0;
+	margin: 0;
+	cursor: pointer;
+	color: inherit;
+	font: inherit;
+	font-weight: 600;
+}
+.foldtoggle:hover { color: var(--md-primary); }
+.foldtoggle .msr { font-size: 20px; }
+.foldsum {
+	margin-left: auto;
+	font-size: 12px;
+	color: var(--md-on-surface-variant);
+}
+.cl-group.folded { padding-bottom: 0; }

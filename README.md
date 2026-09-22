@@ -127,18 +127,22 @@ via `packages/make`, no extra step required.
 
 | Architecture | Android versions |
 |---|---|
-| arm64 | all |
-| **arm (32-bit)** | **up to Android 16 (SDK 36)** |
-| x86_64 | all |
-| **x86 (32-bit)** | **up to Android 15 (SDK 35)** |
+| arm64 | Android 7.0 (SDK 24) and up |
+| **arm (32-bit)** | **Android 7.0 - 16 (SDK 24-36)** |
+| x86_64 | Android 7.0 (SDK 24) and up |
+| **x86 (32-bit)** | **Android 7.0 - 11 (SDK 24-30)** |
 
-x86 (32-bit) is no longer built from Android 16 (SDK 36) on. Google stopped
-publishing 32-bit x86 phone system images with Google apps after Android 11,
-so every newer x86 base would have to be assembled from hand-picked APKs, and
-x86 accounts for about 0.5% of LiteGapps downloads. Releases up to Android 15
-stay available. `build.sh`, `packages/make`, `sf-build.sh`, `vps-build.sh`
-and both GitHub workflows skip x86 above SDK 35 (`target_supported()` /
-`X86_LAST_SDK` in `build.sh`).
+Android 5.0, 5.1 and 6.0 (SDK 21-23) are no longer built on any architecture
+(`MIN_SDK` in `build.sh`). Zips already released for them stay on the
+download server and still install.
+
+x86 (32-bit) is no longer built after Android 11 (SDK 30). Android 11 is the
+last version Google published a 32-bit x86 phone system image with Google
+apps for, so every newer x86 base would have to be assembled from hand-picked
+APKs, and x86 accounts for about 0.5% of LiteGapps downloads. Releases that
+were already published stay available. `build.sh`, `packages/make`,
+`sf-build.sh`, `vps-build.sh` and both GitHub workflows skip x86 above SDK 30
+(`target_supported()` / `X86_LAST_SDK` in `build.sh`).
 
 arm (32-bit) is no longer built from Android 17 (SDK 37) on, for the same
 reason: Google publishes no 32-bit arm phone image or GSI for Android 17, and
@@ -159,7 +163,7 @@ SSH key, or VPS required:
   as workflow inputs, or push a tag like `full-v1`.
 - **`build-release-lite.yml`** — builds `lite` only, across every SDK 29-36
   x arch (arm/arm64/x86/x86_64) combination as a GitHub Actions matrix (31
-  parallel jobs - x86 stops at SDK 35), publishing every zip produced to one
+  parallel jobs - x86 stops at SDK 30), publishing every zip produced to one
   release. Run manually,
   or push a tag like `lite-v1`.
 

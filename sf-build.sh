@@ -385,6 +385,11 @@ LITE (){
 
 SUPERLITE (){
 	local variant=superlite
+	# superlite is only released for arm64 Android 10 (SDK 29) and up.
+	if [ "$ARCH" != arm64 ] || [ "$SDK" -lt 29 ]; then
+		echo "! [SKIP] superlite is only built for arm64 Android 10 (SDK 29) and up, not <$ARCH $SDK>"
+		return 0
+	fi
 
 	local IN=$BASED/packages/output/$ARCH/$SDK/
 	local OUT=$BASED/core/litegapps/superlite/modules/$ARCH/$SDK/
@@ -440,9 +445,8 @@ MAKE_LITEGAPPS(){
 	fi
 	;;
 	arm | x86 | x86_64)
+	# superlite is arm64 only, see SUPERLITE
 	CORE
-	# same rule as arm64: superlite only makes sense from Android 10 (SDK 29) onward
-	[ $SDK -ge 29 ] && SUPERLITE
 	;;
 	esac
 	rm -rf $BASED/tmp_files
@@ -525,9 +529,9 @@ UNZIP_GAPPS(){
 # - Build All's progress tracking does not affect the manual menu at all.
 #################################################
 BUILD_ALL_STATE="$BASED/sf-build-progress.log"
-# x86 (32-bit) stops at Android 15 (SDK 35): Google ships no 32-bit x86 phone
+# x86 (32-bit) stops at Android 11 (SDK 30): Google ships no 32-bit x86 phone
 # image with GMS after Android 11. Build All skips x86 above this.
-X86_LAST_SDK=35
+X86_LAST_SDK=30
 # arm (32-bit) stops at Android 16 (SDK 36): no 32-bit arm phone build of
 # Android 17 exists. Build All skips arm above this.
 ARM_LAST_SDK=36
@@ -643,8 +647,8 @@ echo -n "    Select SDK : "
 read selsdk
 case $selsdk in
 25 | 26 | 27 | 28 | 29 | 30 | 31 | 32 | 33 | 34 | 35 | 36 | 37)
-if [ "$ARCH" = x86 ] && [ "$selsdk" -gt 35 ]; then
-echo "! x86 (32-bit) is not supported after Android 15 (SDK 35)"
+if [ "$ARCH" = x86 ] && [ "$selsdk" -gt 30 ]; then
+echo "! x86 (32-bit) is not supported after Android 11 (SDK 30)"
 continue
 fi
 if [ "$ARCH" = arm ] && [ "$selsdk" -gt 36 ]; then

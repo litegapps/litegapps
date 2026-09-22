@@ -1,6 +1,6 @@
 import { spawn } from "node:child_process";
 import { openSync, closeSync, mkdirSync, readFileSync } from "node:fs";
-import { appendFile, readFile, stat, writeFile } from "node:fs/promises";
+import { appendFile, readFile, stat, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
 import type { RowDataPacket, ResultSetHeader } from "mysql2";
 import { db, ensureSchema } from "./db";
@@ -17,6 +17,7 @@ import {
 	GO_UNSUPPORTED_MSG,
 } from "./targets";
 import { parseTargetKey, targetSpec } from "./buildtargets";
+import { eventLines } from "./batchlog";
 import { packageEnv } from "./packages";
 import { panelConfigEnv } from "./panelconfig";
 import type { Job, JobRequest } from "./targets";
@@ -158,6 +159,23 @@ function plan(req: JobRequest): Plan {
 			};
 		case "clean":
 			return { argv: ["sh", "build.sh", "clean"], label: "clean" };
+		case "mirror-check":
+		case "mirror-sync": {
+			// Remote and folder come from the Mirror page's settings; the script
+			// validates both again before rclone sees them.
+			const mode = req.kind === "mirror-sync" ? "sync" : "check";
+			return {
+				argv: ["bash", "web/gdrive-mirror.sh", mode],
+				label: mode === "sync" ? "mirror source ke Google Drive" : "cek mirror Google Drive",
+				env: {
+					GDRIVE_REMOTE: req.mirror?.remote ?? "gdrive",
+					GDRIVE_DIR: req.mirror?.dir ?? "litegapps-mirror",
+				},
+			};
+		}
+		case "clear-output":
+			// Zips and build logs only; the sources stay (that is "clean").
+			return { argv: ["bash", "web/clear-output.sh"], label: "clear output + log" };
 		case "status":
 			return { argv: ["bash", "web/make-status.sh"], label: "refresh status.json" };
 		default:
@@ -173,7 +191,7 @@ function plan(req: JobRequest): Plan {
 const BUILD_KINDS = new Set<string>([
 	"make", "packages", "build-batch",
 	"restore", "restore-bin", "restore-package", "restore-gapps",
-	"clean", "clean-sources",
+	"clean", "clean-sources", "clear-output",
 ]);
 
 /** Only one build may run at a time — they share output/ and log/. */
@@ -465,6 +483,56 @@ export async function getJob(id: number): Promise<Job | null> {
 }
 
 /** Tail of a job log. Capped so a multi-hour build cannot blow up a response. */
+/**
+ * Forget finished jobs of these kinds: their rows and the log files behind
+ * them. A running job is never touched - its row is what guards the tree.
+ * Returns how many rows went.
+ */
+export async function clearJobs(kinds: readonly string[]): Promise<number> {
+	await ensureSchema();
+	if (!kinds.length) return 0;
+	const holes = kinds.map(() => "?").join(",");
+	const [rows] = await db().query<RowDataPacket[]>(
+		`SELECT id, log_file FROM jobs WHERE kind IN (${holes}) AND status <> 'running'`,
+		[...kinds],
+	);
+	for (const r of rows) {
+		const f = r.log_file as string | null;
+		if (!f) continue;
+		// The runner writes "<log>" and "<log without .log>.exit" side by side.
+		for (const p of [f, f.replace(/\.log$/, ".exit")]) {
+			try {
+				await unlink(/*turbopackIgnore: true*/ p);
+			} catch {
+				// already gone, or never written
+			}
+		}
+	}
+	await db().query(`DELETE FROM jobs WHERE kind IN (${holes}) AND status <> 'running'`, [...kinds]);
+	return rows.length;
+}
+
+/**
+ * Only the lines the batch progress table is built from (see batchlog.ts).
+ * The plan header sits at byte 0 of a log that grows to megabytes, so the
+ * tail readJobLog() returns cannot be used for this - but the filtered result
+ * is a few KB, small enough to poll.
+ */
+export async function readJobEvents(id: number): Promise<string> {
+	await ensureSchema();
+	const [rows] = await db().query<RowDataPacket[]>(
+		"SELECT log_file FROM jobs WHERE id = ?",
+		[id],
+	);
+	if (!rows.length || !rows[0].log_file) return "";
+	try {
+		const buf = await readFile(/*turbopackIgnore: true*/ rows[0].log_file as string);
+		return eventLines(buf.toString("utf8"));
+	} catch {
+		return "";
+	}
+}
+
 export async function readJobLog(id: number, maxBytes = 200_000): Promise<string> {
 	await ensureSchema();
 	const [rows] = await db().query<RowDataPacket[]>(

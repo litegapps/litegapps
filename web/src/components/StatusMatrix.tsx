@@ -90,6 +90,11 @@ function Matrix({ s, kind }: { s: Status; kind: "gapps" | "package" | "release" 
 													</span>
 												)}
 											</span>
+										) : t.legacy ? (
+											<span className="rel" title="Rilis lama tanpa folder tanggal">
+												<b>{t.legacy}</b>
+												<em>{t.legacy_variants?.length ?? 0} varian &middot; lama</em>
+											</span>
 										) : (
 											<span className="rel none">—</span>
 										)}
@@ -166,6 +171,8 @@ export default function StatusMatrix({ status }: { status: Status }) {
 				<div className="legend">
 					<span className="item">
 						Tanggal build terbaru yang sudah ada di server, beserta jumlah varian pada tanggal itu.
+						Target yang hanya punya rilis lama (sebelum ada folder tanggal) menampilkan versinya,
+						misalnya <b>v2.5</b>.
 						Rilis lama dari target yang sudah tidak didukung tetap ditampilkan dengan tanda{" "}
 						<span className="tag">TIDAK DIDUKUNG</span>.
 					</span>

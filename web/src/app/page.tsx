@@ -23,6 +23,8 @@ import TargetConfigForm from "@/components/TargetConfigForm";
 import PackageListsForm from "@/components/PackageListsForm";
 import PanelConfigForm from "@/components/PanelConfigForm";
 import JobTerminal from "@/components/JobTerminal";
+import BatchProgress from "@/components/BatchProgress";
+import ClearDataButton from "@/components/ClearDataButton";
 import RetentionForm from "@/components/RetentionForm";
 import { RELEASE_KEEP_MAX, readRetention } from "@/lib/settings";
 import Link from "next/link";
@@ -115,11 +117,11 @@ export default async function Page({
 				<nav className="tabs card" aria-label="Halaman build" style={{ marginBottom: 0 }}>
 					<Link href="/" className={`tab${tab === "build" ? " active" : ""}`}>
 						<Icon name="checklist" />
-						<span>Build banyak</span>
+						<span>Multi</span>
 					</Link>
 					<Link href="/?tab=single" className={`tab${tab === "single" ? " active" : ""}`}>
 						<Icon name="play_circle" />
-						<span>Satu perintah</span>
+						<span>Single</span>
 					</Link>
 					<Link href="/?tab=config" className={`tab${tab === "config" ? " active" : ""}`}>
 						<Icon name="tune" />
@@ -163,8 +165,10 @@ export default async function Page({
 								<Icon name="history" />
 								Riwayat job
 							</h2>
+							<code>bash web/clear-output.sh</code>
 						</div>
 						<Jobs jobs={jobs} busy={busy} />
+						<ClearDataButton group="single" back="/?tab=single" busy={busy} />
 					</section>
 					</>
 				) : tab === "settings" && retention ? (
@@ -265,7 +269,7 @@ export default async function Page({
 					<div className="card-head">
 						<h2>
 							<Icon name="checklist" />
-							Build banyak target
+							Multi build
 						</h2>
 						<code>bash web/build-batch.sh &lt;arch&gt;:&lt;sdk&gt;=&lt;varian&gt;</code>
 					</div>
@@ -287,6 +291,8 @@ export default async function Page({
 					</div>
 				</section>
 
+				<BatchProgress />
+
 				<JobTerminal kinds={KINDS_BATCH} />
 
 				<section className="card">
@@ -295,8 +301,10 @@ export default async function Page({
 							<Icon name="history" />
 							Riwayat job
 						</h2>
+						<code>bash web/clear-output.sh</code>
 					</div>
 					<Jobs jobs={jobs} busy={busy} />
+					<ClearDataButton group="batch" back="/" busy={busy} />
 				</section>
 				</>
 				)}

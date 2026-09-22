@@ -36,6 +36,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 		default-jre-headless \
 	&& rm -rf /var/lib/apt/lists/*
 
+# rclone for the Google Drive source mirror (web/gdrive-mirror.sh). Debian's
+# package is too old; the official image ships one static binary, pinned here.
+COPY --from=rclone/rclone:1.68 /usr/local/bin/rclone /usr/local/bin/rclone
+
 WORKDIR /app
 ENV NODE_ENV=production
 ENV PORT=3000

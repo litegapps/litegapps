@@ -102,6 +102,10 @@ per variant (see the gapps-source overrides above).
 
 ## Common tasks
 
+**Supported range**: Android 7.0 (SDK 24) and up (`MIN_SDK`); arm (32-bit)
+stops at SDK 36 (`ARM_LAST_SDK`), x86 (32-bit) at SDK 30 (`X86_LAST_SDK`).
+`unsupported_reason()` says which rule skipped a target.
+
 **Add a new Android/SDK version** (e.g. A17 = SDK 37): add the mapping in
 `get_android_version()` in `build.sh` (the `case` around line ~310), add the SDK
 to the relevant variant `config` `sdk=`/`restore.sdk=`, and make sure the gapps

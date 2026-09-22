@@ -40,6 +40,11 @@ services:
       # Host ssh directory, read-only. docker-entrypoint.sh imports only the
       # SourceForge key from it at startup; nothing is baked into the image.
       - ${SSH_DIR:-~/.ssh}:/ssh-host:ro
+      # Host rclone config directory, read-only. It holds the Google Drive
+      # token (a plaintext OAuth refresh token), so it stays outside the
+      # checkout - /files and git never see it. docker-entrypoint.sh copies
+      # rclone.conf into the container so rclone can refresh its token.
+      - ${RCLONE_DIR:-~/.config/rclone}:/rclone-host:ro
       # The server page reports the HOST, but these two files inside the
       # container describe the image (container id, Debian). /proc and the
       # kernel version are already the host's, so only these need mounting.

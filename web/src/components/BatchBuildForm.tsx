@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useFormStatus } from "react-dom";
+import Fold from "./Fold";
 import Icon from "./Icon";
 import { startJobAction } from "@/app/actions";
 import {
@@ -121,9 +122,12 @@ export default function BatchBuildForm({
 				<input key={k} type="hidden" name="targets" value={k} />
 			))}
 
-			<div className="cl-group">
-				<div className="cl-head">
-					<span>Target</span>
+			<Fold
+				id="batch.targets"
+				title="Target"
+				icon="checklist"
+				summary={`${targets.length} target dicentang · ${count} zip`}
+				action={
 					<button
 						type="button"
 						className="btn text"
@@ -131,7 +135,8 @@ export default function BatchBuildForm({
 					>
 						{picked.length === allKeys.length ? "Kosongkan" : "Pilih semua"}
 					</button>
-				</div>
+				}
+			>
 
 				<div className="tscroll">
 					<table className="jobs targetcfg">
@@ -196,12 +201,23 @@ export default function BatchBuildForm({
 					versi Android untuk mencentang satu kolom/baris sekaligus. Varian
 					tiap target diambil dari tab <b>Config target</b> — hasil akhirnya ada di tabel di bawah.
 				</p>
-			</div>
+			</Fold>
 
-			<div className="cl-group">
-				<div className="cl-head">
-					<span>Opsi</span>
-				</div>
+			<Fold
+				id="batch.options"
+				title="Opsi"
+				icon="tune"
+				summary={
+					[
+						opts.restoreMissing ? "restore otomatis" : null,
+						opts.buildAddon ? "addon" : null,
+						opts.upload ? "upload SF" : null,
+						opts.cleanAfter ? "hapus source" : null,
+					]
+						.filter(Boolean)
+						.join(" · ") || "tidak ada opsi aktif"
+				}
+			>
 				<label className="cl-switch">
 					<input
 						type="checkbox"
@@ -241,7 +257,7 @@ export default function BatchBuildForm({
 					/>
 					<span>Hapus source tiap target setelah selesai (hemat disk)</span>
 				</label>
-			</div>
+			</Fold>
 
 			<div className="cl-foot">
 				<Submit busy={busy} count={count} />
@@ -251,6 +267,13 @@ export default function BatchBuildForm({
 			</div>
 
 			{targets.length > 0 && (
+				<Fold
+					id="batch.preview"
+					title="Rincian target"
+					icon="fact_check"
+					defaultOpen={false}
+					summary={`${targets.length} target · ${count} zip`}
+				>
 				<div className="tscroll">
 					<table className="jobs">
 						<thead>
@@ -299,6 +322,7 @@ export default function BatchBuildForm({
 						<p className="cl-hint">… dan {targets.length - 40} target lagi.</p>
 					)}
 				</div>
+				</Fold>
 			)}
 		</form>
 	);

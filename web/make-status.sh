@@ -48,7 +48,7 @@ ARCH_LIST="${ARCH_LIST:-arm64 arm x86 x86_64}"          # column order on the pa
 
 # SDK -> Android version, oldest first. Keep in sync with
 # get_android_version() in build.sh when a new SDK is added.
-SDK_MAP="${SDK_MAP:-27:8.1 28:9 29:10 30:11 31:12 32:12.1 33:13 34:14 35:15 36:16 37:17}"
+SDK_MAP="${SDK_MAP:-24:7.0 25:7.1 26:8.0 27:8.1 28:9 29:10 30:11 31:12 32:12.1 33:13 34:14 35:15 36:16 37:17}"
 
 # Normally ssh picks the key on its own (that is what vps-build.sh relies on).
 # Set SF_SSH_KEY when this machine has a ~/.ssh/config entry for SF_HOST that
@@ -131,6 +131,27 @@ REL_SUMMARY="$(printf '%s\n' "$REL_TUPLES" | awk '
 ' | sort)"
 
 LATEST_DATE="$(printf '%s\n' "$REL_TUPLES" | awk '{ print $4 }' | sort | tail -n1)"
+
+# Releases from before dated folders existed: the zips sit straight in the
+# variant folder and carry their version in the name, e.g.
+# arm64/24/core/[MAGISK]LiteGapps_Core_arm64_7.0_v2.5_official.zip. Android
+# 7.0-8.0 only have these, so without them /info would call those rows empty.
+# One line per arch+sdk: "<arch> <sdk> <newest version> <variant,variant,...>"
+LEGACY_SUMMARY="$(printf '%s\n' "$REL" | awk -F/ '
+	NF==4 && $4 ~ /\.zip$/ && match($4, /_v[0-9]+(\.[0-9]+)*_/) {
+		v = substr($4, RSTART + 1, RLENGTH - 2)
+		key = $1 " " $2
+		if (!(key in ver) || v > ver[key]) ver[key] = v
+		if (index("," vars[key] ",", "," $3 ",") == 0) vars[key] = (vars[key] ? vars[key] "," : "") $3
+	}
+	END { for (k in ver) print k, ver[k], vars[k] }
+' | sort)"
+legacy_version(){
+	printf '%s\n' "$LEGACY_SUMMARY" | awk -v a="$1" -v s="$2" '$1==a && $2==s { print $3 }'
+}
+legacy_variants(){
+	printf '%s\n' "$LEGACY_SUMMARY" | awk -v a="$1" -v s="$2" '$1==a && $2==s { print $4 }'
+}
 
 print "- Found $(printf '%s\n' "$REL_TUPLES" | grep -c .) released builds, newest ${LATEST_DATE:-none}"
 
@@ -216,8 +237,10 @@ V_STATUS="$(cfg build.status)"
 			have "$A/$S.zip"           "$PKG"   && P=true
 			RD="$(rel_date "$A" "$S")"
 			RV="$(json_list "$(rel_variants "$A" "$S")")"
-			printf '\t\t\t"%s": { "gapps": %s, "lite": %s, "superlite": %s, "package": %s, "release": "%s", "variants": [%s] }' \
-				"$S" "$G" "$L" "$SL" "$P" "$RD" "$RV"
+			LV="$(legacy_version "$A" "$S")"
+			LVAR="$(json_list "$(legacy_variants "$A" "$S")")"
+			printf '\t\t\t"%s": { "gapps": %s, "lite": %s, "superlite": %s, "package": %s, "release": "%s", "variants": [%s], "legacy": "%s", "legacy_variants": [%s] }' \
+				"$S" "$G" "$L" "$SL" "$P" "$RD" "$RV" "$LV" "$LVAR"
 		done
 		printf '\n\t\t}'
 	done

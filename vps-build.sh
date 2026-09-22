@@ -108,7 +108,7 @@ variants_for(){
 	local ARCH="$1" SDK="$2"
 	case "$ARCH" in
 	arm64)
-		if [ "$SDK" -ge 21 ] && [ "$SDK" -le 25 ]; then
+		if [ "$SDK" -le 25 ]; then
 			echo "core lite"
 		elif [ "$SDK" -le 28 ]; then
 			# go only exists for arm64 Android 10 (SDK 29) and up
@@ -356,16 +356,21 @@ preflight
 
 for CUR_ARCH in $ARCH_LIST; do
 	for CUR_SDK in $SDK_LIST; do
-		# x86 (32-bit) stops at Android 15 (SDK 35): Google ships no 32-bit x86
+		# x86 (32-bit) stops at Android 11 (SDK 30): Google ships no 32-bit x86
 		# phone image with GMS after Android 11.
-		if [ "$CUR_ARCH" = x86 ] && [ "$CUR_SDK" -gt 35 ]; then
-			log "Skip <$CUR_ARCH/$CUR_SDK>: x86 (32-bit) is not supported after Android 15"
+		if [ "$CUR_ARCH" = x86 ] && [ "$CUR_SDK" -gt 30 ]; then
+			log "Skip <$CUR_ARCH/$CUR_SDK>: x86 (32-bit) is not supported after Android 11"
 			continue
 		fi
 		# arm (32-bit) stops at Android 16 (SDK 36): no 32-bit arm phone image,
 		# GSI or phone build of Android 17 exists.
 		if [ "$CUR_ARCH" = arm ] && [ "$CUR_SDK" -gt 36 ]; then
 			log "Skip <$CUR_ARCH/$CUR_SDK>: arm (32-bit) is not supported after Android 16"
+			continue
+		fi
+		# Android 7.0 (SDK 24) is the oldest target built.
+		if [ "$CUR_SDK" -lt 24 ]; then
+			log "Skip <$CUR_ARCH/$CUR_SDK>: Android 5.0-6.0 (SDK 21-23) are not supported any more"
 			continue
 		fi
 		line

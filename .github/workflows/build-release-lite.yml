@@ -42,11 +42,15 @@ jobs:
       matrix:
         sdk: [29, 30, 31, 32, 33, 34, 35, 36]
         arch: [arm, arm64, x86, x86_64]
-        # x86 (32-bit) is supported up to Android 15 (SDK 35) only; arm
+        # x86 (32-bit) is supported up to Android 11 (SDK 30) only; arm
         # (32-bit) up to Android 16 (SDK 36), which is already the matrix top.
         exclude:
-          - arch: x86
-            sdk: 36
+          - { arch: x86, sdk: 31 }
+          - { arch: x86, sdk: 32 }
+          - { arch: x86, sdk: 33 }
+          - { arch: x86, sdk: 34 }
+          - { arch: x86, sdk: 35 }
+          - { arch: x86, sdk: 36 }
     runs-on: ubuntu-latest
     steps:
       - name: Checkout

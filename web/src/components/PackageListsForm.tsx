@@ -1,5 +1,6 @@
 "use client";
 
+import Fold from "./Fold";
 import { useState } from "react";
 import { useFormStatus } from "react-dom";
 import Icon from "./Icon";
@@ -42,16 +43,19 @@ export default function PackageListsForm({ lists, changed, labels, order }: Prop
 	return (
 		<form action={savePackagesAction} className="checklist">
 			{order.map((name) => (
-				<div className="cl-group" key={name}>
-					<div className="cl-head">
-						<span>
-							{labels[name] ?? name}
-							{changed.includes(name) ? "" : " · bawaan"}
-						</span>
+				<Fold
+					key={name}
+					id={`pkglist.${name}`}
+					title={`${labels[name] ?? name}${changed.includes(name) ? "" : " · bawaan"}`}
+					icon="list"
+					defaultOpen={false}
+					summary={`${text[name].split(/\s+/).filter(Boolean).length} paket`}
+					action={
 						<span className="cl-count">
 							{text[name].split(/\s+/).filter(Boolean).length} paket
 						</span>
-					</div>
+					}
+				>
 					<textarea
 						name={`pkg:${name}`}
 						rows={5}
@@ -59,7 +63,7 @@ export default function PackageListsForm({ lists, changed, labels, order }: Prop
 						onChange={(e) => setText((s) => ({ ...s, [name]: e.target.value }))}
 						spellCheck={false}
 					/>
-				</div>
+				</Fold>
 			))}
 
 			<Save dirty={dirty} />

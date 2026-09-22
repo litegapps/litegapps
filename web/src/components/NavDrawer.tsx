@@ -19,6 +19,7 @@ const LINKS = [
 	{ href: "/restore", icon: "cloud_download", label: "Restore" },
 	{ href: "/config", icon: "tune", label: "Config" },
 	{ href: "/files", icon: "folder_open", label: "File" },
+	{ href: "/mirror", icon: "cloud_sync", label: "Mirror source" },
 	{ href: "/backup", icon: "backup", label: "Backup DB" },
 	{ href: "/info", icon: "info", label: "Info" },
 	{ href: "/server", icon: "monitoring", label: "Server" },

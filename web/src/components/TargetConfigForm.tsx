@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useFormStatus } from "react-dom";
+import Fold from "./Fold";
 import Icon from "./Icon";
 import { saveBuildTargetsAction } from "@/app/actions";
 import {
@@ -105,6 +106,12 @@ export default function TargetConfigForm({ overrides, count }: Props) {
 				</div>
 			</div>
 
+			<Fold
+				id="targetcfg.matrix"
+				title="Varian per target"
+				icon="grid_view"
+				summary={`${arch} · ${count} target diatur sendiri`}
+			>
 			<div className="tscroll">
 				<table className="jobs targetcfg">
 					<thead>
@@ -163,6 +170,7 @@ export default function TargetConfigForm({ overrides, count }: Props) {
 					</tbody>
 				</table>
 			</div>
+			</Fold>
 
 			<Save dirty={dirty} />
 

@@ -154,7 +154,7 @@ export default async function RestorePage({
 								<b>{unsupportedReason(arch, sdk)}.</b>{" "}
 								{arch === "arm"
 									? "Tidak ada image ponsel, GSI, maupun build ponsel arm 32-bit untuk Android 17 (MindTheGapps pun hanya untuk TV), jadi target ini tidak di-restore maupun dibangun. Rilis arm sampai Android 16 tetap tersedia."
-									: "Google tidak lagi membuat image ponsel x86 32-bit dengan GMS sejak Android 11, jadi target ini tidak di-restore maupun dibangun. Rilis x86 sampai Android 15 tetap tersedia."}
+									: "Google tidak lagi membuat image ponsel x86 32-bit dengan GMS sejak Android 11, jadi target ini tidak di-restore maupun dibangun. Rilis x86 sampai Android 11 tetap tersedia."}
 							</div>
 						</div>
 					)}

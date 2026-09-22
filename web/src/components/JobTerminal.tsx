@@ -19,11 +19,11 @@ import Terminal from "./Terminal";
 
 /** Where each job kind's terminal lives. */
 const HOME: Record<string, { href: string; label: string }> = {
-	"build-batch": { href: "/", label: "Build banyak" },
-	make: { href: "/?tab=single", label: "Satu perintah" },
-	packages: { href: "/?tab=single", label: "Satu perintah" },
-	clean: { href: "/?tab=single", label: "Satu perintah" },
-	restore: { href: "/?tab=single", label: "Satu perintah" },
+	"build-batch": { href: "/", label: "Multi" },
+	make: { href: "/?tab=single", label: "Single" },
+	packages: { href: "/?tab=single", label: "Single" },
+	clean: { href: "/?tab=single", label: "Single" },
+	restore: { href: "/?tab=single", label: "Single" },
 	"restore-bin": { href: "/restore", label: "Restore" },
 	"restore-package": { href: "/restore", label: "Restore" },
 	"restore-gapps": { href: "/restore", label: "Restore" },
@@ -32,6 +32,9 @@ const HOME: Record<string, { href: string; label: string }> = {
 	"db-restore": { href: "/backup", label: "Backup DB" },
 	"db-list": { href: "/backup", label: "Backup DB" },
 	status: { href: "/info", label: "Info" },
+	"mirror-check": { href: "/mirror", label: "Mirror source" },
+	"mirror-sync": { href: "/mirror", label: "Mirror source" },
+	"clear-output": { href: "/", label: "Multi" },
 };
 
 type Meta = { id: number; kind: string; label: string } | null;

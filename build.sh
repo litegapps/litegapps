@@ -114,19 +114,27 @@ abort(){
 	[ -d $tmp ] && del $tmp
 	exit 1
 	}
-# x86 (32-bit) is supported up to Android 15 (SDK 35) only. Google ships no
-# 32-bit x86 phone system image with GMS after Android 11, so a newer x86
-# base needs hand-picked APKs, and it is downloaded by almost nobody.
-# Releases up to Android 15 stay where they are; nothing newer is built.
-X86_LAST_SDK=35
+# x86 (32-bit) is supported up to Android 11 (SDK 30) only: that is the last
+# version Google shipped a 32-bit x86 phone system image with GMS for, so
+# anything newer needs hand-picked APKs, and x86 is downloaded by almost
+# nobody. Releases already published stay where they are; nothing newer is
+# restored or built.
+X86_LAST_SDK=30
 # arm (32-bit) is supported up to Android 16 (SDK 36) only. Google ships no
 # 32-bit arm phone image or GSI with GMS for Android 17, MindTheGapps has no
 # Android 17 arm phone build (TV only), and no custom ROM runs Android 17 on a
 # 32-bit phone. Releases up to Android 16 stay; nothing newer is built.
 ARM_LAST_SDK=36
+# Android 7.0 (SDK 24) is the oldest target built, on every arch. Android
+# 5.0, 5.1 and 6.0 (SDK 21-23) were dropped; their releases stay where they
+# are, nothing new is restored or built for them.
+MIN_SDK=24
 
 # target_supported <arch> <sdk>: 0 when that target may be restored/built.
 target_supported(){
+	if [ "$2" -lt "$MIN_SDK" ] 2>/dev/null; then
+		return 1
+	fi
 	if [ "$1" = x86 ] && [ "$2" -gt "$X86_LAST_SDK" ] 2>/dev/null; then
 		return 1
 	fi
@@ -138,19 +146,24 @@ target_supported(){
 
 # unsupported_reason <arch> <sdk>: why target_supported() refused the target.
 unsupported_reason(){
+	if [ "$2" -lt "$MIN_SDK" ] 2>/dev/null; then
+		echo "Android $(get_android_version "$2") (SDK $2) is not supported any more, the oldest is Android 7.0 (SDK $MIN_SDK)"
+		return 0
+	fi
 	case "$1" in
 		arm) echo "arm (32-bit) is not supported after Android 16 (SDK $ARM_LAST_SDK)" ;;
-		*) echo "x86 (32-bit) is not supported after Android 15 (SDK $X86_LAST_SDK)" ;;
+		*) echo "x86 (32-bit) is not supported after Android 11 (SDK $X86_LAST_SDK)" ;;
 	esac
 }
 
 # variant_supported <variant> <arch> <sdk>: 0 when that variant is built for
-# the target. Go is made of Google's Go apps, which only exist for arm64 from
-# Android 10 (SDK 29), so every other target skips it.
+# the target. go and superlite are arm64 Android 10 (SDK 29) and up only:
+# go is made of Google's Go apps, which only exist there, and superlite is
+# only released for that range. Every other target skips them.
 GO_MIN_SDK=29
 variant_supported(){
 	case "$1" in
-		go) [ "$2" = arm64 ] && [ "$3" -ge "$GO_MIN_SDK" ] 2>/dev/null ;;
+		go | superlite) [ "$2" = arm64 ] && [ "$3" -ge "$GO_MIN_SDK" ] 2>/dev/null ;;
 		*) return 0 ;;
 	esac
 }

@@ -226,6 +226,11 @@ if unset_env SSH_DIR && [ -n "$REPO_HOME" ]; then
 	set_env SSH_DIR "$REPO_HOME/.ssh"; ok "[OK] SSH_DIR set to $REPO_HOME/.ssh"
 fi
 unset_env SSH_KEY_NAME && set_env SSH_KEY_NAME "id_rsa"
+if unset_env RCLONE_DIR && [ -n "$REPO_HOME" ]; then
+	set_env RCLONE_DIR "$REPO_HOME/.config/rclone"
+fi
+# Must exist before compose mounts it, or Docker creates it owned by root.
+mkdir -p "$(get_env RCLONE_DIR)" 2>/dev/null && chmod 700 "$(get_env RCLONE_DIR)" 2>/dev/null
 unset_env WEB_BIND && set_env WEB_BIND "0.0.0.0"
 unset_env WEB_PORT && set_env WEB_PORT "3020"
 
