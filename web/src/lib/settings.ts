@@ -52,6 +52,14 @@ export async function readMirror(): Promise<{ remote: string; dir: string }> {
 	};
 }
 
+/** Where restores download sources from: "sf" (SourceForge) or "drive" (mirror first). */
+export const SOURCE_PREFER = "source.prefer";
+
+export async function readSource(): Promise<{ prefer: "sf" | "drive"; remote: string; dir: string }> {
+	const [p, m] = await Promise.all([getSetting(SOURCE_PREFER), readMirror()]);
+	return { prefer: p === "drive" ? "drive" : "sf", ...m };
+}
+
 /** Release retention as the build jobs get it (web/sf-prune.sh). */
 export async function readRetention(): Promise<{ on: boolean; keep: number }> {
 	const [on, keep] = await Promise.all([getSetting(RELEASE_PRUNE), getSetting(RELEASE_KEEP)]);

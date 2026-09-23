@@ -1085,3 +1085,54 @@ table.targetcfg tr.unsupported td { opacity: 0.45; }
 	color: var(--md-on-surface-variant);
 }
 .cl-group.folded { padding-bottom: 0; }
+
+/* ── Mirror file list: three-dot row menu ────────────────────────────── */
+.menucell { width: 44px; text-align: right; }
+.rowmenu { position: relative; display: inline-block; }
+.rowmenu > summary {
+	list-style: none;
+	cursor: pointer;
+	border-radius: 999px;
+	padding: 4px;
+	display: inline-flex;
+}
+.rowmenu > summary::-webkit-details-marker { display: none; }
+.rowmenu > summary:hover { background: var(--md-surface-container-high, var(--md-surface-container)); }
+.rowmenu .menu {
+	position: absolute;
+	right: 0;
+	top: 100%;
+	z-index: 20;
+	min-width: 180px;
+	display: flex;
+	flex-direction: column;
+	padding: 6px;
+	background: var(--md-surface-container, var(--md-surface));
+	border: 1px solid var(--md-outline-variant);
+	border-radius: var(--r-md);
+	box-shadow: 0 6px 20px rgb(0 0 0 / 0.18);
+}
+.rowmenu .menu form { display: contents; }
+.menu-item {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	width: 100%;
+	padding: 8px 10px;
+	border: 0;
+	background: none;
+	color: inherit;
+	font: inherit;
+	font-size: 13px;
+	text-align: left;
+	border-radius: var(--r-sm, 8px);
+	cursor: pointer;
+}
+.menu-item:hover:not(:disabled) { background: var(--md-surface-container-high, rgb(127 127 127 / 0.12)); }
+.menu-item:disabled { opacity: 0.6; cursor: default; }
+.detailrow td { background: var(--md-surface-container); }
+.kv { display: grid; grid-template-columns: max-content 1fr; gap: 6px 16px; margin: 4px 0; font-size: 13px; }
+.kv dt { color: var(--md-on-surface-variant); }
+.kv dd { margin: 0; }
+@media (max-width: 600px) { .kv { grid-template-columns: 1fr; } .kv dd { margin-bottom: 6px; } }
+.mirrorfiles td { vertical-align: middle; }

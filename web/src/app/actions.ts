@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { currentUser, logout } from "@/lib/session";
-import { startJob, runningJob, stopJob, clearJobs } from "@/lib/jobs";
+import { startJob, runningJob, stopJob, clearJobs, SOURCE_KINDS } from "@/lib/jobs";
 import { writeConfigDoc } from "@/lib/config";
 import { moveEntry, removeEntry, renameEntry } from "@/lib/files";
 import {
@@ -17,6 +17,8 @@ import {
 	RELEASE_PRUNE,
 	readMirror,
 	readRetention,
+	readSource,
+	SOURCE_PREFER,
 	setSetting,
 } from "@/lib/settings";
 import { readOverrides, writeOverrides } from "@/lib/buildtargets";
@@ -52,8 +54,10 @@ export async function startJobAction(formData: FormData) {
 			// Identity and version come from the panel, never from the repo file.
 			config: await readPanelConfig(),
 			retention: kind === "build-batch" ? await readRetention() : undefined,
+			source: SOURCE_KINDS.has(kind) ? await readSource() : undefined,
 			// Which Drive the mirror jobs write to (Mirror page settings).
 			mirror: kind.startsWith("mirror-") ? await readMirror() : undefined,
+			path: String(formData.get("path") ?? "") || undefined,
 			kind,
 			variant: String(formData.get("variant") ?? "") || undefined,
 			name: String(formData.get("name") ?? "") || undefined,
@@ -236,6 +240,21 @@ export async function saveMirrorAction(formData: FormData) {
 	await setSetting(MIRROR_DIR, dir);
 	revalidatePath(target);
 	redirect(withParam(target, "done", "Tujuan mirror disimpan"));
+}
+
+/* Build > Settings: which server restores download sources from. */
+export async function saveSourceAction(formData: FormData) {
+	await requireAdmin();
+	const prefer = String(formData.get("prefer") ?? "") === "drive" ? "drive" : "sf";
+	await setSetting(SOURCE_PREFER, prefer);
+	revalidatePath("/");
+	redirect(
+		withParam(
+			"/?tab=settings",
+			"done",
+			prefer === "drive" ? "Restore memakai Google Drive (cadangan SourceForge)" : "Restore memakai SourceForge",
+		),
+	);
 }
 
 /*

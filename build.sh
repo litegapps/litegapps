@@ -40,6 +40,31 @@ sf_url(){
 	fi
 }
 
+# fetch_source <path under files-server/> <local file>: download one source
+# zip (gapps, bin or package). With LG_SOURCE=drive it is taken from the
+# Google Drive mirror first (rclone and the panel's token, remote
+# LG_GDRIVE_REMOTE, folder LG_GDRIVE_DIR). Anything that goes wrong there -
+# no rclone (a hand-run build on the host), the file not in the mirror, a
+# broken copy - falls back to SourceForge, so the switch is safe to leave on.
+fetch_source(){
+	local rel="$1" out="$2"
+	if [ "$LG_SOURCE" = drive ]; then
+		if command -v rclone >/dev/null 2>&1; then
+			printlog "     Source : Google Drive mirror"
+			if rclone copyto "${LG_GDRIVE_REMOTE:-gdrive}:${LG_GDRIVE_DIR:-litegapps-mirror}/files-server/$rel" "$out" 2>/dev/null \
+				&& unzip -tq "$out" >/dev/null 2>&1; then
+				return 0
+			fi
+			printlog "     ! <$rel> not on the Drive mirror (or broken) - falling back to SourceForge"
+			del "$out"
+		else
+			printlog "     ! rclone not installed - downloading from SourceForge"
+		fi
+	fi
+	printlog "     Source : SourceForge"
+	curl --progress-bar -L -o "$out" "$(sf_url "https://sourceforge.net/projects/litegapps/files/files-server/$rel/download")"
+}
+
 
 printmid() {
   local CHAR=$(printf "$@" | sed 's|\\e[[0-9;]*m||g' | wc -m)
@@ -633,7 +658,7 @@ RESTORE(){
 		fi
 	else
 		printlog "1. Downloading : bin.zip"
-       curl --progress-bar -L -o $base/files/bin.zip "$(sf_url https://sourceforge.net/projects/litegapps/files/files-server/bin/bin.zip/download)"
+       fetch_source bin/bin.zip "$base/files/bin.zip"
        if [  $? -eq 0 ]; then
        	printlog "     Downloading status : Successful"
        	printlog "     File size : $(du -sh $base/files/bin.zip | cut -f1)"

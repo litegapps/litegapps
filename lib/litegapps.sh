@@ -455,7 +455,7 @@ for D_ARCH in $LIST_ARCH; do
 		else
 			del "$ZIP"
 			printlog "${NUM_6070}. Downloading : $D_ARCH/$D_SDK/$GZIP.zip"
-			curl --progress-bar -L -o "$ZIP" "$(sf_url "$SERVER_GAPPS/$D_ARCH/$D_SDK/$GZIP.zip/download")"
+			fetch_source "litegapps/$D_ARCH/$D_SDK/$GZIP.zip" "$ZIP"
 			# fallback to plain <sdk>.zip if the suffixed/named zip isn't on the server
 			if [ "$GZIP" != "$D_SDK" ] && ! unzip -tq "$ZIP" >/dev/null 2>&1; then
 				printlog "     <$GZIP.zip> unavailable, falling back to ${D_SDK}.zip"
@@ -463,7 +463,7 @@ for D_ARCH in $LIST_ARCH; do
 				GZIP="${D_SDK}"; ZIP="$GAPPS_FILES/$D_ARCH/$D_SDK/$GZIP.zip"
 				if ! { [ -f "$ZIP" ] && unzip -tq "$ZIP" >/dev/null 2>&1; }; then
 					del "$ZIP"
-					curl --progress-bar -L -o "$ZIP" "$(sf_url "$SERVER_GAPPS/$D_ARCH/$D_SDK/$GZIP.zip/download")"
+					fetch_source "litegapps/$D_ARCH/$D_SDK/$GZIP.zip" "$ZIP"
 				fi
 			fi
 			printlog "     File size : $(du -sh "$ZIP" 2>/dev/null | cut -f1)"

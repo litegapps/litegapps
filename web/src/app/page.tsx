@@ -26,7 +26,9 @@ import JobTerminal from "@/components/JobTerminal";
 import BatchProgress from "@/components/BatchProgress";
 import ClearDataButton from "@/components/ClearDataButton";
 import RetentionForm from "@/components/RetentionForm";
-import { RELEASE_KEEP_MAX, readRetention } from "@/lib/settings";
+import SourceForm from "@/components/SourceForm";
+import { readMirrorFiles, rcloneSetup } from "@/lib/mirror";
+import { RELEASE_KEEP_MAX, readRetention, readSource } from "@/lib/settings";
 import Link from "next/link";
 
 // Sessions, job rows and status.json all change outside the render, so this
@@ -61,6 +63,13 @@ export default async function Page({
 		PACKAGE_LISTS.map((n) => [n, resolveList(n, storedPackages)]),
 	);
 	const retention = tab === "settings" ? await readRetention() : null;
+	const source = tab === "settings" ? await readSource() : null;
+	const mirrorReady =
+		tab === "settings"
+			? await Promise.all([rcloneSetup(), readMirrorFiles()]).then(
+					([s, f]) => s.remotes.length > 0 && (f?.files.length ?? 0) > 0,
+				)
+			: false;
 	const busy = running !== null;
 
 	// Source state for the checklist: what the release server has, and what
@@ -172,6 +181,26 @@ export default async function Page({
 					</section>
 					</>
 				) : tab === "settings" && retention ? (
+					<>
+					<section className="card">
+						<div className="card-head">
+							<h2>
+								<Icon name="cloud_download" />
+								Sumber restore
+							</h2>
+							<code>fetch_source()</code>
+						</div>
+						<div className="note" style={{ margin: "0 16px" }}>
+							<Icon name="info" />
+							<div>
+								Dari mana source gapps, <code>bin.zip</code> dan source addon diunduh saat restore
+								(tab Multi, Single, dan menu Restore). Google Drive memakai token yang sama dengan menu
+								Mirror source, tanpa login lagi. Addon modul per varian (<code>addon/</code>) selalu
+								dari SourceForge karena tidak di-mirror.
+							</div>
+						</div>
+						{source && <SourceForm prefer={source.prefer} mirrorReady={mirrorReady} />}
+					</section>
 					<section className="card">
 						<div className="card-head">
 							<h2>
@@ -193,6 +222,7 @@ export default async function Page({
 						</div>
 						<RetentionForm on={retention.on} keep={retention.keep} max={RELEASE_KEEP_MAX} />
 					</section>
+					</>
 				) : tab === "config" ? (
 					<>
 					<section className="card">

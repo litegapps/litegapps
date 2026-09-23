@@ -77,3 +77,6 @@ web/.job.lock
 
 # Google Drive mirror state, written by web/gdrive-mirror.sh
 web/mirror-status.json
+
+web/mirror-files.json
+web/mirror-copied.tsv

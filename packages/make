@@ -245,6 +245,35 @@ for LIST_PROP in $(find * -name build.info -type f); do
 	
 	}
 
+# fetch_package <path under files-server/> <local file>: download one source
+# zip (gapps, bin or package). With LG_SOURCE=drive it is taken from the
+# Google Drive mirror first (rclone and the panel's token, remote
+# LG_GDRIVE_REMOTE, folder LG_GDRIVE_DIR). Anything that goes wrong there -
+# no rclone (a hand-run build on the host), the file not in the mirror, a
+# broken copy - falls back to SourceForge, so the switch is safe to leave on.
+# Same rule as fetch_source() in build.sh, which this standalone tool cannot
+# source.
+fetch_package(){
+	local rel="$1" out="$2"
+	if [ "$LG_SOURCE" = drive ]; then
+		if command -v rclone >/dev/null 2>&1; then
+			print "- Source : Google Drive mirror <$rel>"
+			if rclone copyto "${LG_GDRIVE_REMOTE:-gdrive}:${LG_GDRIVE_DIR:-litegapps-mirror}/files-server/$rel" "$out" 2>/dev/null \
+				&& unzip -tq "$out" >/dev/null 2>&1; then
+				return 0
+			fi
+			print "! <$rel> not on the Drive mirror (or broken) - falling back to SourceForge"
+			rm -f "$out"
+		else
+			print "! rclone not installed - downloading from SourceForge"
+		fi
+	fi
+	local URL="https://sourceforge.net/projects/litegapps/files/files-server/$rel/download"
+	[ -n "$SF_MIRROR" ] && URL="${URL}?use_mirror=${SF_MIRROR}"
+	print "- Downloading <${URL}>"
+	curl --progress-bar -fL -o "$out" "$URL"
+}
+
 RESTORE(){
 	clear
 	print
@@ -285,10 +314,7 @@ RESTORE(){
 				fi
 			else
 				mkdir -p $BASED/zip-server/$A
-				URL=https://sourceforge.net/projects/litegapps/files/files-server/package/$A/${B}.zip/download
-				[ -n "$SF_MIRROR" ] && URL="${URL}?use_mirror=${SF_MIRROR}"
-				print "- Downloading <${URL}>"
-				curl --progress-bar -fL -o $BASED/zip-server/$A/${B}.zip $URL || rm -f $BASED/zip-server/$A/${B}.zip
+				fetch_package "package/$A/${B}.zip" "$BASED/zip-server/$A/${B}.zip" || rm -f $BASED/zip-server/$A/${B}.zip
 				if [ -f $BASED/zip-server/$A/${B}.zip ]; then
 					print "- Extract ZIP to $BASED/files/$A/$B"
 					mkdir -p $BASED/files/$A/$B

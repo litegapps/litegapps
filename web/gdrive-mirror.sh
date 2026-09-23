@@ -6,8 +6,10 @@
 # package, bin, base) to a Google Drive folder, so a second copy exists
 # outside SourceForge.
 #
-# usage: bash web/gdrive-mirror.sh check   # what would be copied, Drive quota
-#        bash web/gdrive-mirror.sh sync    # copy new/changed files to Drive
+# usage: bash web/gdrive-mirror.sh check        # what would be copied, Drive quota
+#        bash web/gdrive-mirror.sh sync         # copy new/changed files to Drive
+#        bash web/gdrive-mirror.sh file <path>  # re-copy one file, e.g.
+#                                               # litegapps/arm64/36/36.zip
 #
 # Config (environment, set by the panel's Mirror page):
 #   GDRIVE_REMOTE  rclone remote name for the Drive      (default: gdrive)
@@ -24,8 +26,9 @@
 # `rclone sync` - so a file deleted on SourceForge by mistake is not deleted
 # from the mirror too.
 #
-# The result is written to web/mirror-status.json for the panel to show; the
-# page never calls rclone itself.
+# The result is written to web/mirror-status.json (per-folder totals) and
+# web/mirror-files.json (every file with its size and modification time on
+# both sides) for the panel to show; the page never calls rclone itself.
 #
 # Copyright 2020 - 2026 The LiteGapps Project
 #################################################
@@ -33,14 +36,30 @@ set -u
 . "$(dirname "$(readlink -f "$0")")/sf-common.sh"
 
 MODE="${1:-}"
+FILE="${2:-}"
 REMOTE="${GDRIVE_REMOTE:-gdrive}"
 DIR="${GDRIVE_DIR:-litegapps-mirror}"
 STATUS="$SF_WEB/mirror-status.json"
+FILES="$SF_WEB/mirror-files.json"
+# "<path>\t<UTC time>" per copy the mirror made; Drive keeps the SourceForge
+# mtime on each file and its own creation time never moves on an update, so
+# this is the only record of when a file was last refreshed.
+COPIED="$SF_WEB/mirror-copied.tsv"
 FOLDERS="litegapps package bin base"
 
 case "$MODE" in
 	check | sync) ;;
-	*) print "usage: bash web/gdrive-mirror.sh check|sync"; exit 1 ;;
+	file)
+		# Only a plain path inside one of the mirrored folders.
+		case "$FILE" in
+			litegapps/* | package/* | bin/* | base/*) ;;
+			*) print "[ERROR] bad path <$FILE>"; exit 1 ;;
+		esac
+		case "$FILE" in
+			*..* | *[!A-Za-z0-9_./-]* | */) print "[ERROR] bad path <$FILE>"; exit 1 ;;
+		esac
+		;;
+	*) print "usage: bash web/gdrive-mirror.sh check|sync|file <path>"; exit 1 ;;
 esac
 case "$REMOTE" in
 	'' | *[!A-Za-z0-9_-]*) print "[ERROR] bad remote name <$REMOTE>"; exit 1 ;;
@@ -59,6 +78,13 @@ fi
 
 KEY="${SF_SSH_KEY:-$HOME/.ssh/id_rsa}"
 [ -f "$KEY" ] || { print "[ERROR] SourceForge key <$KEY> not found"; exit 1; }
+# grep/sed in the pipes below run line-buffered: writing into the job log
+# they would otherwise hold everything back until rclone exits, and the
+# panel's live view would stay empty for the whole copy.
+# A full stats block every 5 s: totals plus one "* <path>: <pct>% /<size>,
+# <speed>, <eta>" line per file in flight, names never shortened. The panel's
+# Mirror page reads the latest block from the job log (src/lib/mirrorlog.ts).
+STATS="--stats 5s --stats-file-name-length 0"
 SRC=":sftp,host=$SF_HOST,user=$SF_USER,key_file=$KEY,shell_type=none,disable_hashcheck=true,md5sum_command=none,sha1sum_command=none:$SF_FRS/files-server"
 DST="$REMOTE:$DIR/files-server"
 
@@ -77,15 +103,53 @@ print " "
 if [ "$MODE" = check ]; then
 	print "--- Files that a sync would copy (dry run) ---"
 	rclone copy "$SRC" "$DST" --dry-run --stats-one-line --stats 0 -v 2>&1 \
-		| grep -E "Skipped copy|NOTICE|ERROR|Transferred" | sed 's/^/  /'
+		| grep --line-buffered -E "Skipped copy|NOTICE|ERROR|Transferred" | sed -u 's/^/  /'
 	RC=${PIPESTATUS[0]}
+elif [ "$MODE" = file ]; then
+	print "--- Copying <$FILE> from SourceForge ---"
+	OUT="$(mktemp)"
+	rclone copyto "$SRC/$FILE" "$DST/$FILE" $STATS -v 2>&1 \
+		| grep --line-buffered -vE "DEBUG" | tee "$OUT" | sed -u 's/^/  /'
+	RC=${PIPESTATUS[0]}
+	if [ "$RC" -eq 0 ]; then
+		if grep -q ": Copied (" "$OUT"; then
+			printf '%s\t%s\n' "$FILE" "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" >> "$COPIED"
+		else
+			# rclone skips a file whose size and time already match
+			print "  - <$FILE> is already up to date on Drive - nothing copied"
+		fi
+	fi
+	rm -f "$OUT"
 else
 	print "--- Copying new and changed files ---"
+	OUT="$(mktemp)"
 	rclone copy "$SRC" "$DST" \
 		--transfers 4 --checkers 8 \
-		--stats 30s --stats-one-line -v 2>&1 \
-		| grep -vE "DEBUG" | sed 's/^/  /'
+		$STATS -v 2>&1 \
+		| grep --line-buffered -vE "DEBUG" | tee "$OUT" | sed -u 's/^/  /'
 	RC=${PIPESTATUS[0]}
+	# "... INFO  : litegapps/arm64/36/36.zip: Copied (new)"
+	NOW_ISO="$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+	sed -n 's/.*INFO  : \(.*\): Copied (.*/\1/p' "$OUT" | while IFS= read -r P; do
+		printf '%s\t%s\n' "$P" "$NOW_ISO"
+	done >> "$COPIED"
+	rm -f "$OUT"
+fi
+
+# Every file on both sides, for the page's file list. rclone lsjson prints a
+# JSON array, so the two listings are embedded as they come.
+print " "
+print "--- Listing files on both sides ---"
+SF_LIST="$(rclone lsjson -R --files-only "$SRC" 2>/dev/null)"
+# --metadata adds Drive's "btime": when the file was first uploaded there.
+DR_LIST="$(rclone lsjson -R --files-only --metadata "$DST" 2>/dev/null)"
+if [ -n "$SF_LIST" ] && [ -n "$DR_LIST" ]; then
+	printf '{\n"generated": "%s",\n"sourceforge": %s,\n"drive": %s\n}\n' \
+		"$(date -u '+%Y-%m-%d %H:%M UTC')" "$SF_LIST" "$DR_LIST" > "$FILES.tmp" \
+		&& mv "$FILES.tmp" "$FILES"
+	print "  written <$FILES>"
+else
+	print "! could not list one side - file list not updated"
 fi
 
 # What the mirror holds now, per folder, for the page.

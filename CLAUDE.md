@@ -214,7 +214,28 @@ Logs: `log/make.log` and `log/make_live.log` — **read these first when a build
   reads `web/mirror-status.json` (written by the job, gitignored) and
   `rcloneSetup()` for the local install - never rclone or the network inside a
   request. The target remote and folder live in `settings` (`mirror.remote`,
-  `mirror.dir`). Restoring sources *from* the mirror is not wired in yet.
+  `mirror.dir`). Every check/sync/file job also writes `web/mirror-files.json`
+  (`rclone lsjson` of both sides, Drive with `--metadata` for its upload time)
+  and appends each copy to `web/mirror-copied.tsv`, because Drive keeps the
+  SourceForge mtime and its own creation time never moves on an update; the
+  page's file list (`MirrorFileList.tsx`) shows per file whether the copy is
+  current and a three-dot menu with **Update source** (`gdrive-mirror.sh file
+  <path>`, job `mirror-file`) and **Detail** (last copied to Drive, last
+  changed on SourceForge). rclone prints a stats block every 5 s
+  (`--stats 5s --stats-file-name-length 0`); `src/lib/mirrorlog.ts` parses
+  the latest one for the live per-file progress card (`MirrorProgress.tsx`).
+  The pipes in that script must stay line-buffered (`grep --line-buffered`,
+  `sed -u`) or the log - and the live view - stays empty until rclone exits.
+  **Restore can download from the mirror**: Build > Settings "Sumber restore"
+  (`settings` row `source.prefer`, `sf`/`drive`) reaches every job that can
+  restore (`SOURCE_KINDS` in `jobs.ts`) as `LG_SOURCE` / `LG_GDRIVE_REMOTE` /
+  `LG_GDRIVE_DIR`. `fetch_source()` in `build.sh` (gapps via
+  `lib/litegapps.sh`, `bin.zip`) and its copy `fetch_package()` in
+  `packages/make` then try `rclone copyto` from the mirror first and fall back
+  to SourceForge when rclone is missing, the file is not mirrored or the copy
+  fails `unzip -t`. Per-variant addon modules (`addon/`) are not mirrored and
+  always come from SourceForge. Measured 2026-09-23 on the same 128 MB zip:
+  Drive 22.7 MB/s, SourceForge 2 MB/s.
   `/backup` dumps the database (users + jobs; never
   sessions) with `web/db-tool.mjs`, **always AES-256-GCM encrypted** with
   `DB_BACKUP_KEY` because the upload target `$HOMEE/db` is world readable,
@@ -413,16 +434,25 @@ the reference example.
 
 Read this first; delete it once everything below is done.
 
-**Google Drive source mirror** (`/mirror`, `web/gdrive-mirror.sh`, rclone in
-the image, token mounted from `~/.config/rclone`) is deployed but idle:
-1. The user creates the Drive token - their own OAuth client in Google Cloud
-   Console (Drive API on, consent screen **published to production** or the
-   token dies every 7 days, "Desktop app" client, scope `drive.file`), then
-   `rclone config` on the VPS as their own user; never pasted into chat. Then
-   `bash web/start.sh` so the container picks it up.
-2. Run **Cek mirror** first and read its log, then **ask before the first
-   sync** - it copies ~37 GB into their Drive.
-3. Not requested yet: restoring sources *from* the mirror.
+**Google Drive source mirror** is live: first sync (job #65, 2026-09-22,
+~5 h, no errors) copied all of `files-server/` - litegapps 56 files, package
+37, bin 1, base 5, ~37 GB - to `gdrive:litegapps-mirror/files-server`, and a
+check afterwards found nothing left to copy. Things learned setting it up:
+- The token is **reused from `../unpackgamesnew/.env`** (`GDRIVE_CLIENT_ID`,
+  `GDRIVE_CLIENT_SECRET`, `GDRIVE_REFRESH_TOKEN`, full `drive` scope, same
+  Google account, 5 TiB). The refresh token does not expire; rclone refreshes
+  the hourly access token itself.
+- rclone **rejects a `token` whose `access_token` is empty** ("Loaded invalid
+  token ... ignoring") and then overwrites it without the refresh token. Build
+  `rclone.conf` with a real access token from one refresh call plus its
+  expiry, and never print the file (it holds the client secret).
+- `web/start.sh` does not recreate the container when the image is unchanged,
+  so a new or changed `~/.config/rclone/rclone.conf` needs
+  `sudo docker compose -p litegapps-web restart web` for the entrypoint to
+  copy it in.
+- Restoring from the mirror is wired in and verified (panel job #70 restored
+  lite arm64/29 from Drive; a missing Drive folder fell back to SourceForge).
+  The setting was left on **Google Drive** after that test.
 
 **Other open items:**
 - Missing sources on SourceForge (the cause of every failed restore):

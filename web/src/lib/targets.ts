@@ -19,7 +19,7 @@ export const SDKS = [
 export type JobKind =
 	| "make" | "restore" | "packages" | "status" | "clean"
 	| "restore-bin" | "restore-package" | "restore-gapps" | "clean-sources" | "clear-output"
-	| "mirror-check" | "mirror-sync"
+	| "mirror-check" | "mirror-sync" | "mirror-file"
 	| "build-batch"
 	| "db-backup" | "db-restore" | "db-list";
 
@@ -118,7 +118,10 @@ export const KINDS_RESTORE = [
 	"restore-bin", "restore-package", "restore-gapps", "clean-sources",
 ] as const;
 export const KINDS_BACKUP = ["db-backup", "db-restore", "db-list"] as const;
-export const KINDS_MIRROR = ["mirror-check", "mirror-sync"] as const;
+export const KINDS_MIRROR = ["mirror-check", "mirror-sync", "mirror-file"] as const;
+
+/** One mirrored source file, as web/gdrive-mirror.sh accepts it. */
+export const MIRROR_PATH_RE = /^(litegapps|package|bin|base)\/(?!.*\.\.)[A-Za-z0-9_./-]+[A-Za-z0-9_-]$/;
 
 export type JobRequest = {
 	kind: JobKind;
@@ -148,6 +151,10 @@ export type JobRequest = {
 	retention?: { on: boolean; keep: number };
 	/** Google Drive mirror target, resolved by the caller (server side only) */
 	mirror?: { remote: string; dir: string };
+	/** one mirrored file for mirror-file, relative to files-server/ */
+	path?: string;
+	/** where restores download sources from, resolved by the caller */
+	source?: { prefer: "sf" | "drive"; remote: string; dir: string };
 };
 
 /** Backup file names are produced by web/db-backup.sh; nothing else is accepted. */

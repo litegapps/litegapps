@@ -6,9 +6,12 @@ import JobTerminal from "@/components/JobTerminal";
 import { RunButton } from "@/components/RestoreControls";
 import { startJobAction } from "@/app/actions";
 import MirrorTargetForm from "@/components/MirrorTargetForm";
+import MirrorFileList from "@/components/MirrorFileList";
+import Fold from "@/components/Fold";
+import MirrorProgress from "@/components/MirrorProgress";
 import { currentUser } from "@/lib/session";
 import { listJobs, runningJob } from "@/lib/jobs";
-import { readMirrorStatus, rcloneSetup } from "@/lib/mirror";
+import { readMirrorFiles, readMirrorStatus, rcloneSetup } from "@/lib/mirror";
 import { readMirror } from "@/lib/settings";
 import { KINDS_MIRROR } from "@/lib/targets";
 import { formatBytes } from "@/lib/restore";
@@ -32,13 +35,15 @@ export default async function MirrorPage({
 	if (!user) redirect("/login");
 
 	const { error, done } = await searchParams;
-	const [setup, status, target, jobs, running] = await Promise.all([
+	const [setup, status, target, jobs, running, list] = await Promise.all([
 		rcloneSetup(),
 		readMirrorStatus(),
 		readMirror(),
 		listJobs(8, KINDS_MIRROR),
 		runningJob(),
+		readMirrorFiles(),
 	]);
+	const count = (s: string) => list?.files.filter((f) => f.state === s).length ?? 0;
 	const busy = running !== null;
 	const ready = setup.installed && setup.config && setup.remotes.length > 0;
 	const totalFiles = status?.folders.reduce((n, f) => n + f.files, 0) ?? 0;
@@ -178,6 +183,41 @@ export default async function MirrorPage({
 				<section className="card">
 					<div className="card-head">
 						<h2>
+							<Icon name="list" />
+							File yang di-mirror
+						</h2>
+						<code>{list ? list.generated : "belum ada daftar"}</code>
+					</div>
+					{list ? (
+						<div className="checklist" style={{ paddingTop: 0 }}>
+							<Fold
+								id="mirror.files"
+								title={`${list.files.length} file`}
+								icon="folder_zip"
+								summary={`${count("same")} sama · ${count("differ")} beda · ${count("missing")} belum di Drive`}
+							>
+								<MirrorFileList files={list.files} busy={busy} />
+							</Fold>
+							<p className="cl-hint">
+								Tombol <b>⋮</b> di tiap baris: <b>Update source</b> menyalin ulang satu file itu dari
+								SourceForge ke Drive, <b>Detail</b> menampilkan kapan file terakhir diperbarui di mirror
+								dan di SourceForge. Daftar ini diperbarui setiap kali Cek, Sinkron, atau Update source
+								dijalankan.
+							</p>
+						</div>
+					) : (
+						<div className="note" style={{ margin: "0 16px 16px" }}>
+							<Icon name="info" />
+							<div>
+								Daftar file muncul setelah <b>Cek mirror</b> dijalankan sekali.
+							</div>
+						</div>
+					)}
+				</section>
+
+				<section className="card">
+					<div className="card-head">
+						<h2>
 							<Icon name="settings" />
 							Tujuan di Google Drive
 						</h2>
@@ -241,6 +281,8 @@ export default async function MirrorPage({
 						</div>
 					)}
 				</section>
+
+				<MirrorProgress />
 
 				<JobTerminal kinds={KINDS_MIRROR} />
 

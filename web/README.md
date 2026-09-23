@@ -72,7 +72,7 @@ about releases is stored there.
 | `db-backup.sh` / `db-restore.sh` / `db-list.sh` / `db-tool.mjs` | encrypted database backup to `<SF>/db/`, restore, and remote listing |
 | `sf-common.sh` | shared SourceForge settings and ssh options for the shell jobs |
 | `sf-prune.sh` | keeps the newest 15 dated releases per variant on the FRS, deletes older ones |
-| `gdrive-mirror.sh` | `check`/`sync` the SourceForge sources to Google Drive via rclone (page: `/mirror`, state in `mirror-status.json`) |
+| `gdrive-mirror.sh` | `check`/`sync`/`file <path>` the SourceForge sources to Google Drive via rclone (page: `/mirror`; writes `mirror-status.json`, `mirror-files.json`, `mirror-copied.tsv`) |
 | `clear-output.sh` | deletes `output/`, `packages/output/` and `log/` (sources kept); run by the "Bersihkan data & log" button |
 | `build-batch.sh` | builds every ticked arch x SDK in one job (variants per target resolved by the panel), restoring sources first when asked; its log feeds the progress table (`src/lib/batchlog.ts`, `/api/jobs/<id>/batch`) |
 | `clean-sources.sh` | deletes one target's restored sources (mirrors `cleanup_target` in `vps-build.sh`; keeps `output/`) |

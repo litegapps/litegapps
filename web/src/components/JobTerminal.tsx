@@ -34,6 +34,7 @@ const HOME: Record<string, { href: string; label: string }> = {
 	status: { href: "/info", label: "Info" },
 	"mirror-check": { href: "/mirror", label: "Mirror source" },
 	"mirror-sync": { href: "/mirror", label: "Mirror source" },
+	"mirror-file": { href: "/mirror", label: "Mirror source" },
 	"clear-output": { href: "/", label: "Multi" },
 };
 

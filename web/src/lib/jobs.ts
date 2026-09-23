@@ -11,6 +11,7 @@ import {
 	BACKUP_NAME,
 	SDKS,
 	unsupportedReason,
+	MIRROR_PATH_RE,
 	VARIANTS,
 	targetSupported,
 	variantSupported,
@@ -42,6 +43,11 @@ type Plan = { argv: string[]; label: string; env?: Record<string, string> };
  */
 const CONFIG_KINDS = new Set<string>([
 	"make", "build-batch", "packages", "restore", "restore-gapps", "restore-bin", "status",
+]);
+
+/** Job kinds that may download sources, and so follow the restore source setting. */
+export const SOURCE_KINDS = new Set<string>([
+	"restore", "restore-bin", "restore-package", "restore-gapps", "build-batch",
 ]);
 
 /** Placeholder in a plan's argv, replaced with the job's own id in startJob. */
@@ -159,6 +165,18 @@ function plan(req: JobRequest): Plan {
 			};
 		case "clean":
 			return { argv: ["sh", "build.sh", "clean"], label: "clean" };
+		case "mirror-file": {
+			const file = req.path ?? "";
+			if (!MIRROR_PATH_RE.test(file)) throw new Error(`bad mirror path: ${file}`);
+			return {
+				argv: ["bash", "web/gdrive-mirror.sh", "file", file],
+				label: `mirror ${file}`,
+				env: {
+					GDRIVE_REMOTE: req.mirror?.remote ?? "gdrive",
+					GDRIVE_DIR: req.mirror?.dir ?? "litegapps-mirror",
+				},
+			};
+		}
 		case "mirror-check":
 		case "mirror-sync": {
 			// Remote and folder come from the Mirror page's settings; the script
@@ -222,6 +240,16 @@ export async function startJob(req: JobRequest): Promise<number> {
 
 	const { argv: planned, label, env: planEnv } = plan(req);
 	const configEnv = CONFIG_KINDS.has(req.kind) ? panelConfigEnv(req.config ?? {}) : {};
+	// Build > Settings "Sumber restore": fetch_source() in build.sh (and its
+	// copy in packages/make) reads these; SourceForge stays the fallback.
+	const sourceEnv: Record<string, string> =
+		req.source && SOURCE_KINDS.has(req.kind)
+			? {
+					LG_SOURCE: req.source.prefer,
+					LG_GDRIVE_REMOTE: req.source.remote,
+					LG_GDRIVE_DIR: req.source.dir,
+				}
+			: {};
 	const root = repoRoot();
 	const dir = jobLogDir();
 	mkdirSync(dir, { recursive: true });
@@ -276,7 +304,7 @@ export async function startJob(req: JobRequest): Promise<number> {
 			detached: true,
 			// planEnv carries the panel's package lists (LG_PKGS_*), which the
 			// build reads instead of its built-in ones.
-			env: { ...process.env, ...configEnv, ...planEnv },
+			env: { ...process.env, ...configEnv, ...sourceEnv, ...planEnv },
 		},
 	);
 
