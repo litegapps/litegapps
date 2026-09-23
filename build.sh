@@ -46,12 +46,30 @@ sf_url(){
 # LG_GDRIVE_REMOTE, folder LG_GDRIVE_DIR). Anything that goes wrong there -
 # no rclone (a hand-run build on the host), the file not in the mirror, a
 # broken copy - falls back to SourceForge, so the switch is safe to leave on.
+# rclone_get <remote path> <local file>: one download with visible progress,
+# the way curl --progress-bar shows it for SourceForge. On a terminal that is
+# rclone's live progress; in a panel job log (no terminal) rclone itself
+# prints "12.000 MiB / 64.000 MiB, 18%, 20 MiB/s, ETA 2s" every 3 seconds.
+# No pipe: build.sh runs under plain sh, which has no PIPESTATUS, and the
+# exit code is what decides the fallback to SourceForge.
+# --drive-acknowledge-abuse: Google flags some sources (bin.zip, full of
+# Android binaries) as "malware or spam" and refuses them with a 403 unless
+# the owner acknowledges it - without it they always fell back to SourceForge.
+rclone_get(){
+	if [ -t 2 ]; then
+		rclone copyto "$1" "$2" --drive-acknowledge-abuse --progress --stats-one-line
+	else
+		rclone copyto "$1" "$2" --drive-acknowledge-abuse \
+			--stats 3s --stats-one-line --stats-log-level NOTICE --log-format time
+	fi
+}
+
 fetch_source(){
 	local rel="$1" out="$2"
 	if [ "$LG_SOURCE" = drive ]; then
 		if command -v rclone >/dev/null 2>&1; then
 			printlog "     Source : Google Drive mirror"
-			if rclone copyto "${LG_GDRIVE_REMOTE:-gdrive}:${LG_GDRIVE_DIR:-litegapps-mirror}/files-server/$rel" "$out" 2>/dev/null \
+			if rclone_get "${LG_GDRIVE_REMOTE:-gdrive}:${LG_GDRIVE_DIR:-litegapps-mirror}/files-server/$rel" "$out" \
 				&& unzip -tq "$out" >/dev/null 2>&1; then
 				return 0
 			fi
@@ -302,6 +320,31 @@ make_tar_arch(){
     	fi
 	done
 }
+# xz_threads: how many xz threads this machine can afford, for
+# corecompressing=multi. Builds run on very different hardware (this VPS,
+# GitHub runners, phones in Termux), so it is worked out here rather than
+# left to "-T0": some xz versions (5.4.1, the panel image's) then cap
+# themselves at 25 % of RAM - 4 of 8 cores on a 24 GB VPS - and others take
+# every core however little memory there is. One -9e thread needs ~1250 MiB
+# (xz -vv: 9993 MiB for 8); use at most 80 % of the memory that is actually
+# available, never more threads than cores, never fewer than one. The
+# LG_XZ_THREADS variable overrides it (the parallel batch sets 1 per worker).
+xz_threads(){
+	local cores avail n
+	if [ -n "$LG_XZ_THREADS" ]; then
+		echo "$LG_XZ_THREADS"
+		return 0
+	fi
+	cores=$(nproc 2>/dev/null || grep -c '^processor' /proc/cpuinfo 2>/dev/null)
+	avail=$(awk '/^MemAvailable:/ { print int($2 / 1024) }' /proc/meminfo 2>/dev/null)
+	case "$cores" in '' | *[!0-9]* | 0) cores=1 ;; esac
+	case "$avail" in '' | *[!0-9]*) echo 1; return 0 ;; esac
+	n=$(( avail * 8 / 10 / 1250 ))
+	[ "$n" -gt "$cores" ] && n=$cores
+	[ "$n" -lt 1 ] && n=1
+	echo "$n"
+}
+
 make_archive(){
 	compression=$(get_config compression)
 	lvlcom=$(get_config compression.level)
@@ -316,8 +359,8 @@ make_archive(){
        	# to the one in bin.zip. corecompressing=multi (the default) runs xz
        	# with -T0, every core; single keeps it on one. The block size is left
        	# at xz's default so the archive stays as small as -9e makes it.
-       	local XZ=`BIN_TEST xz` XZ_T=-T0
-       	[ "$(get_config corecompressing)" = single ] && XZ_T=-T1
+       	local XZ=`BIN_TEST xz` XZ_T=-T1
+       	[ "$(get_config corecompressing)" = single ] || XZ_T="-T$(xz_threads)"
        	printlog "- Using executable <$XZ> ($XZ_T)"
        	$XZ $XZ_T -${lvlcom}e $tmp/$archi
        	del $archi

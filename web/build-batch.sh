@@ -82,6 +82,12 @@ for ENTRY in $PLAN; do
 "
 done
 
+# took <start epoch>: "3m12s" since then, for the per-step timings in the log
+took(){
+	local s=$(( $(date +%s) - $1 ))
+	printf '%dm%02ds' $((s / 60)) $((s % 60))
+}
+
 has_gapps(){
 	local D="$BASED/core/litegapps/$1/gapps/$2/$3"
 	[ -d "$D" ] && [ -n "$(ls -A "$D" 2>/dev/null)" ]
@@ -182,8 +188,9 @@ for LINE in $PARSED; do
 	if [ "$DO_ADDON" = 1 ]; then
 		echo " "
 		echo "=== addon $A sdk $S ==="
+		T0=$(date +%s)
 		if build_addon "$A" "$S"; then
-			echo "- addon ok <$A $S>"
+			echo "- addon ok <$A $S> ($(took "$T0"))"
 		else
 			echo "! addon failed <$A $S>"
 			FAILED=$((FAILED + 1)); FAILED_LIST="$FAILED_LIST addon/$A/$S"
@@ -210,16 +217,21 @@ for LINE in $PARSED; do
 			fi
 		fi
 
+		T0=$(date +%s)
 		if bash build.sh make litegapps "$V" "$A" "$S"; then
-			echo "- build ok <$V $A $S>"
+			echo "- build ok <$V $A $S> ($(took "$T0"))"
 			OK=$((OK + 1))
 		else
-			echo "! build failed <$V $A $S>"
+			echo "! build failed <$V $A $S> ($(took "$T0"))"
 			FAILED=$((FAILED + 1)); FAILED_LIST="$FAILED_LIST $V/$A/$S(build)"
 		fi
 	done
 
-	[ "$DO_UPLOAD" = 1 ] && release_target "$A" "$S"
+	if [ "$DO_UPLOAD" = 1 ]; then
+		T0=$(date +%s)
+		release_target "$A" "$S"
+		echo "- release <$A/$S> took $(took "$T0")"
+	fi
 
 	if [ "$DO_CLEAN" = 1 ]; then
 		echo " "

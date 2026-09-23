@@ -319,8 +319,22 @@ _litegapps_build_variant(){
 			# <sdk>.zip. So the shared archive of litegapps.tar=multi is kept
 			# per gapps source, never per arch/sdk alone - superlite always
 			# builds its own files.tar and never reuses another variant's.
-			GAPPS_BASE=$(read_config restore.filename)
-			[ -z "$GAPPS_BASE" ] && GAPPS_BASE="sdk$(read_config restore.suffix)"
+			#
+			# The key is the zip the gapps were actually extracted from
+			# (.gapps-source, written by the restore), so variants that ended
+			# up on the same zip share one archive: lite on arm/x86/x86_64 has
+			# no <sdk>-lite.zip any more and falls back to <sdk>.zip, and so
+			# does superlite while no superlite.zip exists - identical files,
+			# so one xz run instead of three. A real superlite.zip or
+			# <sdk>-lite.zip gets a key of its own. Sources restored before
+			# the marker existed fall back to the key from the variant config.
+			GAPPS_BASE=
+			[ -f "$BASED/gapps/$W_ARCH/$W_SDK/.gapps-source" ] && \
+				GAPPS_BASE="src-$(head -n1 "$BASED/gapps/$W_ARCH/$W_SDK/.gapps-source" | tr -cd 'A-Za-z0-9._-')"
+			if [ "$GAPPS_BASE" = src- ] || [ -z "$GAPPS_BASE" ]; then
+				GAPPS_BASE=$(read_config restore.filename)
+				[ -z "$GAPPS_BASE" ] && GAPPS_BASE="sdk$(read_config restore.suffix)"
+			fi
 			tmpfiles=$base/tmp_files/litegapps/$W_ARCH/$W_SDK/$GAPPS_BASE
 
 			if [ $(get_config litegapps.tar) = "multi" ] && [ -f $tmpfiles/files.tar.$(get_config compression) ]; then
@@ -471,6 +485,10 @@ for D_ARCH in $LIST_ARCH; do
 		printlog "     Extracting : $D_ARCH/$D_SDK/$GZIP.zip"
 		if unzip -o "$ZIP" -d "$GAPPS/$D_ARCH/$D_SDK" >/dev/null 2>&1; then
 			printlog "     Extract status : Successful"
+			# Which zip these gapps really came from (after any fallback), for
+			# the shared files.tar cache in _litegapps_build_variant. A dot
+			# file, so the "*" copy into the build never picks it up.
+			printf '%s\n' "$GZIP" > "$GAPPS/$D_ARCH/$D_SDK/.gapps-source"
 		else
 			printlog "     Extract status : Failed !!"
 			printlog "     REMOVING FILES"

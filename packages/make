@@ -258,8 +258,15 @@ fetch_package(){
 	if [ "$LG_SOURCE" = drive ]; then
 		if command -v rclone >/dev/null 2>&1; then
 			print "- Source : Google Drive mirror <$rel>"
-			if rclone copyto "${LG_GDRIVE_REMOTE:-gdrive}:${LG_GDRIVE_DIR:-litegapps-mirror}/files-server/$rel" "$out" 2>/dev/null \
-				&& unzip -tq "$out" >/dev/null 2>&1; then
+			# --drive-acknowledge-abuse: Google refuses files it flags as
+			# malware (Android binaries) with a 403 unless the owner accepts it.
+			local ok=1 progress="--stats 3s --stats-one-line --stats-log-level NOTICE --log-format time"
+			# Visible progress like curl's bar: live on a terminal, a line every
+			# 3 s in a panel job log. Same as rclone_get() in build.sh.
+			[ -t 2 ] && progress="--progress --stats-one-line"
+			rclone copyto "${LG_GDRIVE_REMOTE:-gdrive}:${LG_GDRIVE_DIR:-litegapps-mirror}/files-server/$rel" "$out" \
+				--drive-acknowledge-abuse $progress && ok=0
+			if [ "$ok" = 0 ] && unzip -tq "$out" >/dev/null 2>&1; then
 				return 0
 			fi
 			print "! <$rel> not on the Drive mirror (or broken) - falling back to SourceForge"

@@ -11,6 +11,37 @@ with no compiler and no test suite; `web/` is the one exception — a Next.js
 admin panel with its own `package.json`, which drives those same shell
 scripts rather than replacing them.
 
+## Who builds this, and on what
+
+The build is **not** only run on the maintainer's VPS. Anyone may clone the
+repo and build LiteGapps on their own hardware, and the devices differ a lot:
+
+- the maintainer's VPS (8 cores, 24 GB RAM) through the web panel;
+- GitHub Actions runners (4 cores, 16 GB);
+- ordinary Linux PCs and laptops of any size;
+- **Android phones in Termux, without root** - often 4-8 slow cores that
+  throttle when hot, 1-8 GB RAM, and an Android that kills processes which
+  use too much memory.
+
+So never tune the build for one machine. Anything that depends on the
+hardware must adapt to the machine it runs on and fail safe on a small one:
+
+- read the real core count (`nproc`) and **available** memory
+  (`MemAvailable` in `/proc/meminfo`) at run time instead of assuming them,
+  and fall back to one thread / one job when they cannot be read;
+- keep the default the safe, sequential behaviour; extra parallelism is
+  opt-in or capped by what the machine can afford (`xz_threads()` is the
+  example: 8 threads on the VPS, 1 on a 1-3 GB phone);
+- no root, no `sudo`, no system packages beyond what a normal Termux or
+  Linux install has; `build.sh` runs under plain `sh`, so no bash-only
+  syntax there (`PIPESTATUS`, arrays, `wait -n` belong in bash scripts only);
+- never change the output to make a small machine cope (e.g. lowering the
+  xz level behind the user's back) - warn in the log and let the builder
+  decide; the official releases stay at `xz -9e` / zip 9.
+
+Installing is a different matter: a finished zip only needs ~65 MiB to
+decompress on the phone, whatever machine built it.
+
 For the full working guide, see the `build-litegapps` skill
 (`.claude/skills/build-litegapps/SKILL.md`). `AGENTS.md` is the short version
 of the rules in this file, for agents that do not read this one.
@@ -234,7 +265,13 @@ Logs: `log/make.log` and `log/make_live.log` — **read these first when a build
   `packages/make` then try `rclone copyto` from the mirror first and fall back
   to SourceForge when rclone is missing, the file is not mirrored or the copy
   fails `unzip -t`. Per-variant addon modules (`addon/`) are not mirrored and
-  always come from SourceForge. Measured 2026-09-23 on the same 128 MB zip:
+  always come from SourceForge. Downloads go through `rclone_get()`, which
+  shows progress (rclone's live bar on a terminal, a stats line every 3 s in a
+  job log - no pipe, since `build.sh` runs under plain `sh` without
+  `PIPESTATUS`) and passes `--drive-acknowledge-abuse`: Google flags
+  `bin.zip` (Android binaries) as "malware or spam" and answers 403
+  `cannotDownloadAbusiveFile` without it, which made that file always fall
+  back to SourceForge unnoticed. Measured 2026-09-23 on the same 128 MB zip:
   Drive 22.7 MB/s, SourceForge 2 MB/s.
   `/backup` dumps the database (users + jobs; never
   sessions) with `web/db-tool.mjs`, **always AES-256-GCM encrypted** with
@@ -370,10 +407,20 @@ batch jobs as `SF_PRUNE` / `SF_KEEP_RELEASES`; `vps-build.sh` takes them from
 
 ## Compression: smallest output first
 
-`files.tar` is compressed with **`xz -T0 -9e`** (`make_archive` in
+`files.tar` is compressed with **`xz -T<n> -9e`** (`make_archive` in
 `build.sh`), and the zip around it with `zip -9`. The thread count is the
-`corecompressing` key in `config`: `multi` (default, `-T0`, every core) or
-`single` (`-T1`); the output is the same size either way. The repo `config`
+`corecompressing` key in `config`: `multi` (default) or `single` (`-T1`); the
+output is the same size either way. `multi` does **not** pass `-T0`:
+`xz_threads()` in `build.sh` counts the machine's cores (`nproc`) and
+`MemAvailable`, allows ~1250 MiB per `-9e` thread within 80 % of that, and
+passes the number explicitly (`LG_XZ_THREADS` overrides). Builds run on very
+different hardware, and `-T0` behaves differently per xz version: the panel
+image's xz 5.4.1 caps itself at 25 % of RAM ("Reduced the number of threads
+from 8 to 4" on the 24 GB VPS), the host's 5.4.5 takes every core however
+little memory is free. Examples: 24 GB VPS -> 8, 6 GB free -> 3, 1-3 GB -> 1.
+More threads only help a `files.tar` with more blocks than threads (see
+below), so on typical gapps sizes the real gain comes from building several
+targets at once, not from xz alone. The repo `config`
 carries the key too (editable from the panel's `/config`), because the
 `/config` editor can only change keys a file already has. **xz is used because it is
 designed to make the output as small as possible**, and that is the goal for
@@ -408,15 +455,27 @@ one arch/SDK build its `files.tar.<compression>` once and reuse it for the
 other variants, instead of running xz again per variant. It is a **per
 arch/SDK** cache, not one archive for several architectures.
 
-The variants do not all restore the same gapps, so the cache in
-`tmp_files/litegapps/<arch>/<sdk>/<gapps base>/` is keyed by gapps source as
-well: `sdk` (`<sdk>.zip`, most variants), `sdk-lite` (`lite`, `<sdk>-lite.zip`)
-and `superlite` (`superlite.zip`). **superlite carries a different gapps
-version** - the release the Android version originally shipped with - so it
-must always build from its own gapps and never inherit another variant's
-archive; the key is what guarantees that, in `_litegapps_build_variant`
-(`lib/litegapps.sh`). Keying it by arch/SDK alone would have put pixel's files
-in the lite and superlite zips.
+The cache lives in `tmp_files/litegapps/<arch>/<sdk>/<key>/`, and the key is
+**the zip the gapps were really extracted from**: the restore writes it to
+`gapps/<arch>/<sdk>/.gapps-source` (a dot file, so the `*` copy into the build
+never packs it) and `_litegapps_build_variant` (`lib/litegapps.sh`) reads it
+as `src-<zip>`. Variants that ended up on the same zip share one archive -
+identical files, identical output - and anything with a zip of its own gets
+its own key:
+
+- lite on arm/x86/x86_64 has no `<sdk>-lite.zip` any more, falls back to
+  `<sdk>.zip` and now shares core's archive (one xz run per target instead
+  of two; batch #71 ran xz 7 times for 7 zips and reused nothing);
+- **superlite carries a different gapps version** - the release the Android
+  version originally shipped with - *when `superlite.zip` exists*; then its
+  key is `src-superlite` and it never inherits another variant's archive.
+  While the server has no `superlite.zip` it falls back to `<sdk>.zip` and
+  shares that archive, because the files are then literally the same;
+- sources restored before the marker existed use the old key from the
+  variant config (`sdk`, `sdk-lite`, `superlite`).
+
+`web/build-batch.sh` prints how long each build, addon and release took
+(`- build ok <V A S> (3m12s)`), so further speed-ups can be measured.
 
 ## Supported targets
 

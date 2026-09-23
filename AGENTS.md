@@ -13,6 +13,7 @@ never reimplements build logic.
 
 ## Hard rules
 
+- Builds run on very different hardware (VPS, GitHub runners, Linux PCs, Android phones in Termux without root): adapt to the machine at run time (`nproc`, `MemAvailable`), default to safe/sequential, no root, POSIX `sh` in `build.sh`.
 - **Everything inside files is English** — `#` comments, `print`/`ui_print`
   strings, log messages, commit messages. Replies to the user can be
   Indonesian; the code stays English. (User-facing panel strings are
