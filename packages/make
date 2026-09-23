@@ -271,11 +271,14 @@ fetch_package(){
 	local URL="https://sourceforge.net/projects/litegapps/files/files-server/$rel/download"
 	[ -n "$SF_MIRROR" ] && URL="${URL}?use_mirror=${SF_MIRROR}"
 	print "- Downloading <${URL}>"
-	curl --progress-bar -fL -o "$out" "$URL"
+	if ! curl --progress-bar -fL -o "$out" "$URL"; then
+		print "! <$rel> is not on SourceForge either"
+		return 1
+	fi
 }
 
 RESTORE(){
-	clear
+	[ -t 1 ] && clear  # only on a terminal; panel jobs have none (no TERM)
 	print
 	printmid "Restoring Files"
 	print
@@ -336,7 +339,7 @@ RESTORE(){
 	done
 	}
 CHECK(){
-	clear
+	[ -t 1 ] && clear  # only on a terminal; panel jobs have none (no TERM)
 	print
 	printmid "Cheking package"
 	print
@@ -378,7 +381,7 @@ CHECK(){
 	exit 0
 	}
 CLEAN(){
-	clear
+	[ -t 1 ] && clear  # only on a terminal; panel jobs have none (no TERM)
 	print
 	printmid "Cleaning Dir/Files"
 	print
@@ -417,7 +420,7 @@ CLEAN(){
 	}
 	
 UPLOAD(){
-	clear
+	[ -t 1 ] && clear  # only on a terminal; panel jobs have none (no TERM)
 	print
 	printmid "Cheking package"
 	print
@@ -447,7 +450,7 @@ UPLOAD(){
 	done
 	}
 zip_make(){
-	clear
+	[ -t 1 ] && clear  # only on a terminal; panel jobs have none (no TERM)
 	print
 	printmid "Make ZIP"
 	print
@@ -471,7 +474,7 @@ zip_make(){
 	
 	}
 zip_upload(){
-	clear
+	[ -t 1 ] && clear  # only on a terminal; panel jobs have none (no TERM)
 	print
 	printmid "Upload ZIP to sourceforge"
 	print

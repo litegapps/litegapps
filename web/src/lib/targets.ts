@@ -120,6 +120,14 @@ export const KINDS_RESTORE = [
 export const KINDS_BACKUP = ["db-backup", "db-restore", "db-list"] as const;
 export const KINDS_MIRROR = ["mirror-check", "mirror-sync", "mirror-file"] as const;
 
+/*
+ * Job history is kept on the build tabs only: Multi and Single each list
+ * their own kinds plus the mirror jobs, and the Mirror page shows no history
+ * of its own (its terminal still follows a running mirror job live).
+ */
+export const HISTORY_BATCH = [...KINDS_BATCH, ...KINDS_MIRROR] as const;
+export const HISTORY_SINGLE = [...KINDS_SINGLE, ...KINDS_MIRROR] as const;
+
 /** One mirrored source file, as web/gdrive-mirror.sh accepts it. */
 export const MIRROR_PATH_RE = /^(litegapps|package|bin|base)\/(?!.*\.\.)[A-Za-z0-9_./-]+[A-Za-z0-9_-]$/;
 

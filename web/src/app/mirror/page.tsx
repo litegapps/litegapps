@@ -1,16 +1,14 @@
 import { redirect } from "next/navigation";
 import AppBar from "@/components/AppBar";
 import Icon from "@/components/Icon";
-import Jobs from "@/components/Jobs";
 import JobTerminal from "@/components/JobTerminal";
 import { RunButton } from "@/components/RestoreControls";
 import { startJobAction } from "@/app/actions";
 import MirrorTargetForm from "@/components/MirrorTargetForm";
 import MirrorFileList from "@/components/MirrorFileList";
-import Fold from "@/components/Fold";
 import MirrorProgress from "@/components/MirrorProgress";
 import { currentUser } from "@/lib/session";
-import { listJobs, runningJob } from "@/lib/jobs";
+import { runningJob } from "@/lib/jobs";
 import { readMirrorFiles, readMirrorStatus, rcloneSetup } from "@/lib/mirror";
 import { readMirror } from "@/lib/settings";
 import { KINDS_MIRROR } from "@/lib/targets";
@@ -35,15 +33,13 @@ export default async function MirrorPage({
 	if (!user) redirect("/login");
 
 	const { error, done } = await searchParams;
-	const [setup, status, target, jobs, running, list] = await Promise.all([
+	const [setup, status, target, running, list] = await Promise.all([
 		rcloneSetup(),
 		readMirrorStatus(),
 		readMirror(),
-		listJobs(8, KINDS_MIRROR),
 		runningJob(),
 		readMirrorFiles(),
 	]);
-	const count = (s: string) => list?.files.filter((f) => f.state === s).length ?? 0;
 	const busy = running !== null;
 	const ready = setup.installed && setup.config && setup.remotes.length > 0;
 	const totalFiles = status?.folders.reduce((n, f) => n + f.files, 0) ?? 0;
@@ -102,28 +98,75 @@ export default async function MirrorPage({
 									{totalFiles} file &middot; {formatBytes(totalBytes)}
 								</span>
 							</div>
-							<div className="tscroll">
-								<table className="jobs">
-									<thead>
-										<tr>
-											<th>Folder source</th>
-											<th>File di Drive</th>
-											<th>Ukuran</th>
-										</tr>
-									</thead>
-									<tbody>
-										{status.folders.map((f) => (
-											<tr key={f.name}>
-												<td>
-													<b>{f.name}</b>
-												</td>
-												<td>{f.files}</td>
-												<td>{formatBytes(f.bytes)}</td>
-											</tr>
-										))}
-									</tbody>
-								</table>
+							{/* actions sit above the list so opening a folder never pushes them away */}
+							{busy && running && (
+								<div className="note" style={{ margin: "12px 16px 0" }}>
+									<Icon name="hourglass_top" />
+									<div>
+										Sedang ada job lain: <b>{running.label}</b> (#{running.id}). Tombol mirror aktif lagi
+										setelah job itu selesai - panel hanya menjalankan satu job pada satu waktu.
+									</div>
+								</div>
+							)}
+							<div className="actions">
+								<form action={startJobAction}>
+									<input type="hidden" name="kind" value="mirror-check" />
+									<input type="hidden" name="back" value="/mirror" />
+									<RunButton
+										busy={busy}
+										blocked={!ready}
+										blockedLabel="Token belum ada"
+										icon="fact_check"
+										label="Cek mirror"
+										tone="tonal"
+										keepLabel
+									/>
+								</form>
+								<form action={startJobAction}>
+									<input type="hidden" name="kind" value="mirror-sync" />
+									<input type="hidden" name="back" value="/mirror" />
+									<RunButton
+										busy={busy}
+										blocked={!ready}
+										blockedLabel="Token belum ada"
+										icon="cloud_upload"
+										label="Sinkron sekarang"
+										keepLabel
+										confirmText={
+											"Salin source dari SourceForge ke Google Drive?\n\n" +
+											"Seluruh files-server (± 37 GB kalau mirror masih kosong) dibaca dari " +
+											"SourceForge dan diunggah ke Drive Anda. File yang sudah sama dilewati.\n\n" +
+											"File di Drive tidak pernah dihapus oleh proses ini."
+										}
+									/>
+								</form>
 							</div>
+							{list ? (
+								<MirrorFileList files={list.files} busy={busy} />
+							) : (
+								<div className="tscroll">
+									<table className="jobs">
+										<thead>
+											<tr>
+												<th>Folder source</th>
+												<th>File di Drive</th>
+												<th>Ukuran</th>
+											</tr>
+										</thead>
+										<tbody>
+											{status.folders.map((f) => (
+												<tr key={f.name}>
+													<td>
+														<b>{f.name}</b>
+													</td>
+													<td>{f.files}</td>
+													<td>{formatBytes(f.bytes)}</td>
+												</tr>
+											))}
+										</tbody>
+									</table>
+								</div>
+							)}
 						</>
 					) : (
 						<div className="note" style={{ margin: "0 16px 16px" }}>
@@ -135,84 +178,18 @@ export default async function MirrorPage({
 						</div>
 					)}
 
-					<div className="actions">
-						<form action={startJobAction}>
-							<input type="hidden" name="kind" value="mirror-check" />
-							<input type="hidden" name="back" value="/mirror" />
-							<RunButton
-								busy={busy}
-								blocked={!ready}
-								blockedLabel="Token belum ada"
-								icon="fact_check"
-								label="Cek mirror"
-								tone="tonal"
-							/>
-						</form>
-						<form action={startJobAction}>
-							<input type="hidden" name="kind" value="mirror-sync" />
-							<input type="hidden" name="back" value="/mirror" />
-							<RunButton
-								busy={busy}
-								blocked={!ready}
-								blockedLabel="Token belum ada"
-								icon="cloud_upload"
-								label="Sinkron sekarang"
-								confirmText={
-									"Salin source dari SourceForge ke Google Drive?\n\n" +
-									"Seluruh files-server (± 37 GB kalau mirror masih kosong) dibaca dari " +
-									"SourceForge dan diunggah ke Drive Anda. File yang sudah sama dilewati.\n\n" +
-									"File di Drive tidak pernah dihapus oleh proses ini."
-								}
-							/>
-						</form>
-					</div>
-
 					<div className="legend">
 						<span className="item">
 							<Icon name="info" />
 							<span>
 								Hanya menyalin dan menimpa, tidak pernah menghapus file di Drive. Source dibaca
-								langsung dari SourceForge lewat SFTP, jadi disk VPS tidak terpakai. Sinkron tidak
-								bisa jalan bersamaan dengan build — panel hanya menjalankan satu job pada satu
-								waktu.
+								langsung dari SourceForge lewat SFTP, jadi disk VPS tidak terpakai. Buka folder dan
+								arsitektur untuk melihat filenya; tombol <b>⋮</b> di tiap file berisi{" "}
+								<b>Update source</b> (salin ulang satu file) dan <b>Detail</b> (kapan terakhir
+								diperbarui di mirror dan di SourceForge).
 							</span>
 						</span>
 					</div>
-				</section>
-
-				<section className="card">
-					<div className="card-head">
-						<h2>
-							<Icon name="list" />
-							File yang di-mirror
-						</h2>
-						<code>{list ? list.generated : "belum ada daftar"}</code>
-					</div>
-					{list ? (
-						<div className="checklist" style={{ paddingTop: 0 }}>
-							<Fold
-								id="mirror.files"
-								title={`${list.files.length} file`}
-								icon="folder_zip"
-								summary={`${count("same")} sama · ${count("differ")} beda · ${count("missing")} belum di Drive`}
-							>
-								<MirrorFileList files={list.files} busy={busy} />
-							</Fold>
-							<p className="cl-hint">
-								Tombol <b>⋮</b> di tiap baris: <b>Update source</b> menyalin ulang satu file itu dari
-								SourceForge ke Drive, <b>Detail</b> menampilkan kapan file terakhir diperbarui di mirror
-								dan di SourceForge. Daftar ini diperbarui setiap kali Cek, Sinkron, atau Update source
-								dijalankan.
-							</p>
-						</div>
-					) : (
-						<div className="note" style={{ margin: "0 16px 16px" }}>
-							<Icon name="info" />
-							<div>
-								Daftar file muncul setelah <b>Cek mirror</b> dijalankan sekali.
-							</div>
-						</div>
-					)}
 				</section>
 
 				<section className="card">
@@ -285,16 +262,6 @@ export default async function MirrorPage({
 				<MirrorProgress />
 
 				<JobTerminal kinds={KINDS_MIRROR} />
-
-				<section className="card">
-					<div className="card-head">
-						<h2>
-							<Icon name="history" />
-							Riwayat job mirror
-						</h2>
-					</div>
-					<Jobs jobs={jobs} busy={busy} />
-				</section>
 			</div>
 		</>
 	);

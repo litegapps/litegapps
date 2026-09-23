@@ -337,9 +337,13 @@ table lists every failure with its reason. In practice they are almost always
 the **sources**, not the build code, so read the reason before touching
 anything:
 
-- `restore gagal` / `Extract status : Failed !!` - the gapps zip on the server
-  is missing or truncated for that target (seen on `arm/33` and `arm/32`, where
-  `33-lite.zip` was absent and the `33.zip` fallback would not extract).
+- `restore gagal` with `! <path> is not on SourceForge either` - that source
+  zip exists nowhere (seen on `arm/32`, `arm/33`, `x86_64/31-33`). Downloads
+  use `curl -f`, so SourceForge's 404 page (~48 KB of HTML) is no longer
+  saved as the zip and misreported as `Extract status : Failed`.
+- `! <...>-lite.zip not on the Drive mirror ... falling back` followed by
+  `<N-lite.zip> unavailable, falling back to N.zip` is normal for lite on
+  non-arm64 targets: their `-lite.zip` sources were deleted on purpose.
 - `! file <packages/zip-server/<arch>/<sdk>.zip> is not found` - no addon
   source for that target; only the addon step fails, the zips still build.
 - `source tidak ada` - the gapps were missing and auto-restore was off.
@@ -363,6 +367,39 @@ deleted. `web/sf-prune.sh ... --dry-run` shows what would go.
 Build > Settings (`settings` rows `release.prune` / `release.keep`) and reach
 batch jobs as `SF_PRUNE` / `SF_KEEP_RELEASES`; `vps-build.sh` takes them from
 `.env`.
+
+## Compression: smallest output first
+
+`files.tar` is compressed with **`xz -T0 -9e`** (`make_archive` in
+`build.sh`), and the zip around it with `zip -9`. The thread count is the
+`corecompressing` key in `config`: `multi` (default, `-T0`, every core) or
+`single` (`-T1`); the output is the same size either way. The repo `config`
+carries the key too (editable from the panel's `/config`), because the
+`/config` editor can only change keys a file already has. **xz is used because it is
+designed to make the output as small as possible**, and that is the goal for
+every release: the maintainer chose `-9e` and zip level 9 on purpose, so do
+not lower them or trade size for speed.
+
+`-T0` only adds threads. xz splits its input into blocks and compresses one
+block per thread; at `-9` the default block is 3 x the 64 MiB dictionary =
+192 MiB, so a `files.tar` smaller than that is still one block on one core,
+and a 260 MiB one is two blocks. That default is kept deliberately - do **not**
+add `--block-size`. Measured 2026-09-23 on a real 260 MiB arm64/36 tar with
+8 cores:
+
+| xz options | time | output |
+|---|---|---|
+| `-9e` (before) | 262 s | 94.01 MiB |
+| `-9e -T0` (used) | 190-199 s | 94.14 MiB |
+| `-9e -T0 --block-size=32MiB` | 36 s | 94.98 MiB (+1 %) |
+
+The smaller blocks were rejected: faster, but every release would grow ~1 %.
+A multi-block `.xz` is plain standard xz: the `xz` in `bin.zip` (XZ Utils
+5.2.4, what devices decompress with) and busybox `unxz` (XZ Embedded) both
+read it byte-identical. `BIN_TEST` prefers the host's own `xz` and only falls
+back to `bin/<arch>/xz`, which is an Android binary and hangs on the VPS - so
+the host must have xz installed (the panel image does). `zip -9` on an
+already-xz'd file costs ~3 s and is not worth parallelising.
 
 ## Shared files.tar (litegapps.tar=multi)
 
@@ -457,9 +494,8 @@ check afterwards found nothing left to copy. Things learned setting it up:
 **Other open items:**
 - Missing sources on SourceForge (the cause of every failed restore):
   gapps `arm/32`, `arm/33`, `x86_64/31-33`; addon `package/arm/31`,
-  `x86/29`, `x86_64/29`, `x86_64/31`. A missing file downloads as a ~48 KB
-  HTML page and fails as "Extract status : Failed"; proposed: check the file
-  exists first and log "not on the server".
+  `x86/29`, `x86_64/29`, `x86_64/31`. They now fail with "not on SourceForge
+  either" instead of a bogus extract error; the files still need uploading.
 - 2026-09-23: the non-arm64 `files-server/litegapps/*/<sdk>-lite.zip` were
   deleted on the user's request (arm/34-36, x86/35, x86_64/34-37); lite on
   those targets now restores from `<sdk>.zip`.

@@ -51,6 +51,7 @@ export function RunButton({
 	label,
 	tone,
 	confirmText,
+	keepLabel = false,
 }: {
 	busy: boolean;
 	/** the action is not allowed at all here (e.g. an unsupported target) */
@@ -61,6 +62,8 @@ export function RunButton({
 	label: string;
 	tone?: "tonal";
 	confirmText?: string;
+	/** keep showing the label while another job runs (several buttons side by side) */
+	keepLabel?: boolean;
 }) {
 	const { pending } = useFormStatus();
 	// Live, so a job started elsewhere disables this button without a reload.
@@ -77,7 +80,7 @@ export function RunButton({
 			}}
 		>
 			<Icon name={blocked ? "block" : pending || busy ? "hourglass_top" : icon} />
-			{blocked ? blockedLabel : pending ? "Memulai…" : busy ? "Ada job berjalan" : label}
+			{blocked ? blockedLabel : pending ? "Memulai…" : busy && !keepLabel ? "Ada job berjalan" : label}
 		</button>
 	);
 }

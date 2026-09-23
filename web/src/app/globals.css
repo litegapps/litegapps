@@ -1136,3 +1136,60 @@ table.targetcfg tr.unsupported td { opacity: 0.45; }
 .kv dd { margin: 0; }
 @media (max-width: 600px) { .kv { grid-template-columns: 1fr; } .kv dd { margin-bottom: 6px; } }
 .mirrorfiles td { vertical-align: middle; }
+
+/* ── Mirror file tree (folder -> arch -> file) ───────────────────────── */
+.mf { padding: 0 16px 12px; display: flex; flex-direction: column; gap: 6px; }
+.mf-search {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	margin: 12px 0 6px;
+	padding: 0 12px;
+	border: 1px solid var(--md-outline-variant);
+	border-radius: 999px;
+	background: var(--md-surface);
+}
+.mf-search input {
+	flex: 1;
+	min-width: 0;
+	border: 0;
+	background: none;
+	color: inherit;
+	font: inherit;
+	padding: 10px 0;
+	outline: none;
+}
+.mf-search .msr { color: var(--md-on-surface-variant); }
+.mf-group { border: 1px solid var(--md-outline-variant); border-radius: var(--r-md); overflow: visible; }
+.mf-l2 { border-radius: var(--r-sm, 8px); }
+.mf-head {
+	display: flex;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: 6px 10px;
+	width: 100%;
+	padding: 10px 12px;
+	border: 0;
+	background: none;
+	color: inherit;
+	font: inherit;
+	text-align: left;
+	cursor: pointer;
+	border-radius: inherit;
+}
+.mf-head:hover { background: rgb(127 127 127 / 0.08); }
+.mf-l1 > .mf-head b { font-size: 15px; }
+.mf-l2 > .mf-head b { font-size: 14px; }
+.mf-count { font-size: 12px; color: var(--md-on-surface-variant); }
+.mf-state { margin-left: auto; font-size: 11px; }
+.mf-body { padding: 0 8px 8px; display: flex; flex-direction: column; gap: 6px; }
+.mf-list { list-style: none; margin: 0; padding: 0; }
+.mf-row { border-top: 1px solid var(--md-outline-variant); }
+.mf-row:first-child { border-top: 0; }
+.mf-main { display: flex; align-items: center; gap: 8px; padding: 8px 4px; }
+.mf-name { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.mf-name code { overflow-wrap: anywhere; background: none; padding: 0; font-size: 13px; }
+.mf-name small { color: var(--md-on-surface-variant); font-size: 12px; }
+.mf-main .pill { font-size: 11px; white-space: nowrap; }
+.mf-detail { margin: 0 4px 10px; padding: 10px 12px; border-radius: var(--r-sm, 8px); background: var(--md-surface-container); }
+.mf-detail code { overflow-wrap: anywhere; }

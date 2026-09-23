@@ -13,6 +13,8 @@ date.time=202007122239
 compression=br
 # 1-9
 compression.level=1
+# single/multi
+corecompressing=multi
 # 1-9
 zip.level=1
 # true/false

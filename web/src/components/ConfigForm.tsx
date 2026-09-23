@@ -36,6 +36,8 @@ function fieldFor(key: string, value: string): Field {
 			return { kind: "choice", options: LEVELS };
 		case "litegapps.tar":
 			return { kind: "choice", options: ["single", "multi"] };
+		case "corecompressing":
+			return { kind: "choice", options: ["multi", "single"] };
 		case "litegapps.restore":
 		case "litegapps.type":
 			return { kind: "list", options: [...VARIANTS] };

@@ -25,7 +25,7 @@ import { readOverrides, writeOverrides } from "@/lib/buildtargets";
 import { PACKAGE_LISTS, readPackageLists, writePackageLists } from "@/lib/packages";
 import { readSinglePrefs, writeBatchPrefs, writeSinglePrefs } from "@/lib/formstate";
 import { PANEL_KEYS, readPanelConfig, writePanelConfig } from "@/lib/panelconfig";
-import { KINDS_BATCH, KINDS_SINGLE, type JobKind } from "@/lib/targets";
+import { HISTORY_BATCH, HISTORY_SINGLE, type JobKind } from "@/lib/targets";
 
 /*
  * Server Actions are public endpoints, so each one re-checks the session.
@@ -200,7 +200,7 @@ export async function toggleAutoBackupAction(formData: FormData) {
 export async function clearBuildDataAction(formData: FormData) {
 	await requireAdmin();
 	const back = backPath(String(formData.get("back") ?? "/"));
-	const group = String(formData.get("group") ?? "") === "single" ? KINDS_SINGLE : KINDS_BATCH;
+	const group = String(formData.get("group") ?? "") === "single" ? HISTORY_SINGLE : HISTORY_BATCH;
 
 	if (await runningJob()) {
 		redirect(withParam(back, "error", "Ada job berjalan - hentikan dulu sebelum membersihkan"));

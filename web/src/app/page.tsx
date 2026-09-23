@@ -18,7 +18,7 @@ import {
 } from "@/lib/panelconfig";
 import { readConfigDoc } from "@/lib/config";
 import { readBatchPrefs, readSinglePrefs } from "@/lib/formstate";
-import { KINDS_BATCH, KINDS_SINGLE } from "@/lib/targets";
+import { HISTORY_BATCH, HISTORY_SINGLE } from "@/lib/targets";
 import TargetConfigForm from "@/components/TargetConfigForm";
 import PackageListsForm from "@/components/PackageListsForm";
 import PanelConfigForm from "@/components/PanelConfigForm";
@@ -46,7 +46,7 @@ export default async function Page({
 	const { error, done, tab: rawTab } = await searchParams;
 	const tab =
 		rawTab === "config" || rawTab === "single" || rawTab === "settings" ? rawTab : "build";
-	const kinds = tab === "single" ? KINDS_SINGLE : KINDS_BATCH;
+	const kinds = tab === "single" ? HISTORY_SINGLE : HISTORY_BATCH;
 	const [status, jobs, running, overview, overrides] = await Promise.all([
 		readStatus(),
 		listJobs(20, kinds),
@@ -166,7 +166,7 @@ export default async function Page({
 					)}
 				</section>
 
-				<JobTerminal kinds={KINDS_SINGLE} />
+				<JobTerminal kinds={HISTORY_SINGLE} />
 
 					<section className="card">
 						<div className="card-head">
@@ -323,7 +323,7 @@ export default async function Page({
 
 				<BatchProgress />
 
-				<JobTerminal kinds={KINDS_BATCH} />
+				<JobTerminal kinds={HISTORY_BATCH} />
 
 				<section className="card">
 					<div className="card-head">

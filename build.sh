@@ -62,7 +62,13 @@ fetch_source(){
 		fi
 	fi
 	printlog "     Source : SourceForge"
-	curl --progress-bar -L -o "$out" "$(sf_url "https://sourceforge.net/projects/litegapps/files/files-server/$rel/download")"
+	# -f: a missing file is a 404 with a ~48 KB HTML page, which would
+	# otherwise be saved as the zip and only fail later as "Extract Failed".
+	if ! curl --progress-bar -fL -o "$out" "$(sf_url "https://sourceforge.net/projects/litegapps/files/files-server/$rel/download")"; then
+		printlog "     ! <$rel> is not on SourceForge either"
+		del "$out"
+		return 1
+	fi
 }
 
 
@@ -306,9 +312,14 @@ make_archive(){
 		case $compression in
 		xz)
 		if [ $lvlcom -lt 10 ]; then
-       	local XZ=`BIN_TEST xz`
-       	printlog "- Using executable <$XZ>"
-       	$XZ -${lvlcom}e $tmp/$archi
+       	# BIN_TEST prefers the system xz (the VPS's own) and only falls back
+       	# to the one in bin.zip. corecompressing=multi (the default) runs xz
+       	# with -T0, every core; single keeps it on one. The block size is left
+       	# at xz's default so the archive stays as small as -9e makes it.
+       	local XZ=`BIN_TEST xz` XZ_T=-T0
+       	[ "$(get_config corecompressing)" = single ] && XZ_T=-T1
+       	printlog "- Using executable <$XZ> ($XZ_T)"
+       	$XZ $XZ_T -${lvlcom}e $tmp/$archi
        	del $archi
         else
         	abort "xz level 1-9"
