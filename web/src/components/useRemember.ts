@@ -8,7 +8,7 @@ import { useEffect, useRef } from "react";
  * Debounced, because ticking five boxes should be one write, and skipped on
  * the first render: that value came from the database a moment ago.
  */
-export function useRemember(form: "batch" | "single", value: Record<string, unknown>) {
+export function useRemember(form: "batch" | "single" | "auto", value: Record<string, unknown>) {
 	const json = JSON.stringify(value);
 	const first = useRef(true);
 

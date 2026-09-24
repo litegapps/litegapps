@@ -17,7 +17,7 @@ import {
 	readPanelConfig,
 } from "@/lib/panelconfig";
 import { readConfigDoc } from "@/lib/config";
-import { readBatchPrefs, readSinglePrefs } from "@/lib/formstate";
+import { readAutoPrefs, readBatchPrefs, readSinglePrefs } from "@/lib/formstate";
 import { HISTORY_BATCH, HISTORY_SINGLE } from "@/lib/targets";
 import TargetConfigForm from "@/components/TargetConfigForm";
 import PackageListsForm from "@/components/PackageListsForm";
@@ -27,8 +27,9 @@ import BatchProgress from "@/components/BatchProgress";
 import ClearDataButton from "@/components/ClearDataButton";
 import RetentionForm from "@/components/RetentionForm";
 import SourceForm from "@/components/SourceForm";
+import AutoBuildForm from "@/components/AutoBuildForm";
 import { readMirrorFiles, rcloneSetup } from "@/lib/mirror";
-import { RELEASE_KEEP_MAX, readRetention, readSource } from "@/lib/settings";
+import { RELEASE_KEEP_MAX, readAutoBuild, readRetention, readSource } from "@/lib/settings";
 import Link from "next/link";
 
 // Sessions, job rows and status.json all change outside the render, so this
@@ -45,7 +46,9 @@ export default async function Page({
 
 	const { error, done, tab: rawTab } = await searchParams;
 	const tab =
-		rawTab === "config" || rawTab === "single" || rawTab === "settings" ? rawTab : "build";
+		rawTab === "config" || rawTab === "single" || rawTab === "settings" || rawTab === "auto"
+			? rawTab
+			: "build";
 	const kinds = tab === "single" ? HISTORY_SINGLE : HISTORY_BATCH;
 	const [status, jobs, running, overview, overrides] = await Promise.all([
 		readStatus(),
@@ -54,7 +57,11 @@ export default async function Page({
 		readRestoreOverview(),
 		readOverrides(),
 	]);
-	const [batchPrefs, singlePrefs] = await Promise.all([readBatchPrefs(), readSinglePrefs()]);
+	const [batchPrefs, singlePrefs, autoPrefs] = await Promise.all([
+		readBatchPrefs(),
+		readSinglePrefs(),
+		tab === "auto" ? readAutoPrefs() : Promise.resolve(null),
+	]);
 	const storedPackages = tab === "config" ? await readPackageLists() : {};
 	const panelConfig = tab === "config" ? await readPanelConfig() : {};
 	const repoDoc = tab === "config" ? await readConfigDoc("main") : null;
@@ -63,6 +70,8 @@ export default async function Page({
 		PACKAGE_LISTS.map((n) => [n, resolveList(n, storedPackages)]),
 	);
 	const retention = tab === "settings" ? await readRetention() : null;
+	const [autoBuild, restoreSource] =
+		tab === "auto" ? await Promise.all([readAutoBuild(), readSource()]) : [null, null];
 	const source = tab === "settings" ? await readSource() : null;
 	const mirrorReady =
 		tab === "settings"
@@ -132,6 +141,10 @@ export default async function Page({
 						<Icon name="play_circle" />
 						<span>Single</span>
 					</Link>
+					<Link href="/?tab=auto" className={`tab${tab === "auto" ? " active" : ""}`}>
+						<Icon name="event_repeat" />
+						<span>Auto</span>
+					</Link>
 					<Link href="/?tab=config" className={`tab${tab === "config" ? " active" : ""}`}>
 						<Icon name="tune" />
 						<span>Config target</span>
@@ -179,6 +192,62 @@ export default async function Page({
 						<Jobs jobs={jobs} busy={busy} />
 						<ClearDataButton group="single" back="/?tab=single" busy={busy} />
 					</section>
+					</>
+				) : tab === "auto" && autoPrefs ? (
+					<>
+				{autoBuild && restoreSource && (
+					<section className="card">
+						<div className="card-head">
+							<h2>
+								<Icon name="event_repeat" />
+								Auto build bulanan
+							</h2>
+							<code>src/lib/scheduler.ts</code>
+						</div>
+						<AutoBuildForm
+							on={autoBuild.on}
+							day={autoBuild.day}
+							hour={autoBuild.hour}
+							last={autoBuild.last}
+							prefs={autoPrefs}
+							overrides={overrides}
+							source={restoreSource.prefer}
+							timeZone={process.env.TZ || "UTC"}
+						/>
+					</section>
+				)}
+
+					<section className="card">
+						<div className="card-head">
+							<h2>
+								<Icon name="checklist" />
+								Checklist auto build
+							</h2>
+							<code>terpisah dari Multi</code>
+						</div>
+						<BatchBuildForm
+							busy={busy}
+							prefs={autoPrefs}
+							overrides={overrides}
+							serverGapps={serverGapps}
+							localGapps={localGapps}
+							profile="auto"
+						/>
+						<div className="legend">
+							<span className="item">
+								<Icon name="info" />
+								<span>
+									Centang di sini hanya untuk auto build bulanan dan tidak mengubah tab Multi, begitu
+									juga sebaliknya. Auto build dan build manual memakai satu antrean job: build manual di
+									Multi bisa jalan kapan saja selama auto build sedang tidak berjalan.
+								</span>
+							</span>
+						</div>
+					</section>
+
+					<BatchProgress />
+
+					<JobTerminal kinds={HISTORY_BATCH} />
 					</>
 				) : tab === "settings" && retention ? (
 					<>

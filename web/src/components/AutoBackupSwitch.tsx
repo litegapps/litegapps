@@ -25,7 +25,7 @@ export default function AutoBackupSwitch({ on, hour }: { on: boolean; hour: numb
 
 	return (
 		<form action={toggleAutoBackupAction} ref={form} className="autoswitch">
-			<label className="cl-switch">
+			<label className="cl-switch toggle">
 				<input
 					type="checkbox"
 					name="on"

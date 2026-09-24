@@ -26,6 +26,10 @@
 # `rclone sync` - so a file deleted on SourceForge by mistake is not deleted
 # from the mirror too.
 #
+# MIRROR_QUICK=1 (set when a restore mirrors one missing file on the fly)
+# skips the quota and the two full listings below: they take a while and the
+# restore only needs the copy.
+#
 # The result is written to web/mirror-status.json (per-folder totals) and
 # web/mirror-files.json (every file with its size and modification time on
 # both sides) for the panel to show; the page never calls rclone itself.
@@ -94,9 +98,11 @@ print " From : $SF_HOST:$SF_FRS/files-server"
 print " To   : $DST"
 print "==================================================="
 
-print " "
-print "--- Drive quota ---"
-rclone about "$REMOTE:" 2>&1 | sed 's/^/  /' || print "! could not read the Drive quota"
+if [ -z "${MIRROR_QUICK:-}" ]; then
+	print " "
+	print "--- Drive quota ---"
+	rclone about "$REMOTE:" 2>&1 | sed 's/^/  /' || print "! could not read the Drive quota"
+fi
 
 RC=0
 print " "
@@ -134,6 +140,11 @@ else
 		printf '%s\t%s\n' "$P" "$NOW_ISO"
 	done >> "$COPIED"
 	rm -f "$OUT"
+fi
+
+if [ -n "${MIRROR_QUICK:-}" ]; then
+	[ "$RC" -eq 0 ] && print "- Mirrored <$FILE>" || print "! could not mirror <$FILE> (rclone exited with $RC)"
+	exit "$RC"
 fi
 
 # Every file on both sides, for the page's file list. rclone lsjson prints a

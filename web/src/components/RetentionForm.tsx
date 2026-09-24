@@ -44,7 +44,7 @@ export default function RetentionForm({
 
 	return (
 		<form action={saveRetentionAction} ref={form} className="autoswitch">
-			<label className="cl-switch">
+			<label className="cl-switch toggle">
 				<input
 					type="checkbox"
 					name="on"

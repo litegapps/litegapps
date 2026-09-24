@@ -4,9 +4,13 @@ A Next.js app that runs the build work from a browser instead of the VPS
 terminal: pick a target, start the job, watch the log, and see what already
 exists on the SourceForge release server.
 
-**The whole site is the admin panel.** There is no public page — `/` requires
-a login and the app sends `noindex` on every route. It is opened directly at
-`http://<VPS IP>:<WEB_PORT>` (default 3020), with no domain or reverse proxy.
+**The whole site is the admin panel.** `/` requires a login and the app sends
+`noindex` on every route. The deliberate exceptions are `/api/addon/*` (the
+addon index the LiteGapps Controller app downloads) and `/api/litegapps/*`
+(newest release per variant) - File API, see below; never put a login on
+them. The panel is opened at
+`http://<VPS IP>:<WEB_PORT>` (default 3020) and also at
+`https://litegapps.magisk.dev` through Cloudflare.
 
 ## How it works
 
@@ -25,6 +29,8 @@ scripts that already own it:
 | Restore → Hapus source | `bash web/clean-sources.sh <arch> <sdk>` |
 | Clean | `sh build.sh clean` |
 | Segarkan status | `bash web/make-status.sh` |
+| File API → Addon → Perbarui | `bash web/make-addon-api.sh [<arch> <sdk>]` |
+| File API → Rilis → Perbarui | `bash web/make-release-api.sh [<arch> <sdk>]` |
 
 Three things keep two builds from ever running at once, since they share
 `output/`, `log/` and the gapps tree:
@@ -77,6 +83,9 @@ about releases is stored there.
 | `build-batch.sh` | builds every ticked arch x SDK in one job (variants per target resolved by the panel), restoring sources first when asked; its log feeds the progress table (`src/lib/batchlog.ts`, `/api/jobs/<id>/batch`) |
 | `clean-sources.sh` | deletes one target's restored sources (mirrors `cleanup_target` in `vps-build.sh`; keeps `output/`) |
 | `make-status.sh` | regenerates `status.json` from the SourceForge listing |
+| `make-addon-api.sh` / `addon-api.mjs` | regenerate the public addon index `api/addon/<arch>/<sdk>.json` + `index.json` (gitignored) from `<FRS>/addon/`, and upload the same list as `README.md` to the `addon/` folders on SourceForge; served **without login** at `/api/addon/...` for the LiteGapps Controller app, managed on `/file-api` |
+| `make-release-api.sh` / `release-api.mjs` | regenerate the public release index `api/litegapps/<arch>/<sdk>.json` + `index.json` (newest release per variant: link, md5, upload time) from `<FRS>/litegapps/`; served **without login** at `/api/litegapps/...` |
+| `api-common.mjs` | helpers shared by both generators (listing parser, md5 from local file or RSS, atomic writes) |
 | `status.json` | **generated — do not hand-edit**, re-run the script |
 
 ## Deploying while a job runs

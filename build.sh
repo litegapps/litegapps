@@ -57,9 +57,9 @@ sf_url(){
 # the owner acknowledges it - without it they always fell back to SourceForge.
 rclone_get(){
 	if [ -t 2 ]; then
-		rclone copyto "$1" "$2" --drive-acknowledge-abuse --progress --stats-one-line
+		rclone copyto "$1" "$2" --drive-acknowledge-abuse --retries 1 --progress --stats-one-line
 	else
-		rclone copyto "$1" "$2" --drive-acknowledge-abuse \
+		rclone copyto "$1" "$2" --drive-acknowledge-abuse --retries 1 \
 			--stats 3s --stats-one-line --stats-log-level NOTICE --log-format time
 	fi
 }
@@ -73,8 +73,22 @@ fetch_source(){
 				&& unzip -tq "$out" >/dev/null 2>&1; then
 				return 0
 			fi
-			printlog "     ! <$rel> not on the Drive mirror (or broken) - falling back to SourceForge"
 			del "$out"
+			# Not on the mirror yet: copy it there from SourceForge first
+			# (web/gdrive-mirror.sh file, same SFTP key as every other SF job),
+			# then take it from Drive. Only where that script and SF access
+			# exist - the panel; a plain clone goes straight to SourceForge.
+			if [ -f "$base/web/gdrive-mirror.sh" ] && [ -n "$SF_USER" ]; then
+				printlog "     ! <$rel> not on the Drive mirror - mirroring it from SourceForge"
+				if GDRIVE_REMOTE="${LG_GDRIVE_REMOTE:-gdrive}" GDRIVE_DIR="${LG_GDRIVE_DIR:-litegapps-mirror}" \
+					MIRROR_QUICK=1 bash "$base/web/gdrive-mirror.sh" file "$rel" \
+					&& rclone_get "${LG_GDRIVE_REMOTE:-gdrive}:${LG_GDRIVE_DIR:-litegapps-mirror}/files-server/$rel" "$out" \
+					&& unzip -tq "$out" >/dev/null 2>&1; then
+					return 0
+				fi
+				del "$out"
+			fi
+			printlog "     ! <$rel> not on the Drive mirror - falling back to SourceForge"
 		else
 			printlog "     ! rclone not installed - downloading from SourceForge"
 		fi

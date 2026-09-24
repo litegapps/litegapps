@@ -146,6 +146,7 @@ function plan(req: JobRequest): Plan {
 					req.upload ? "1" : "0",
 				],
 				label:
+					(req.auto ? "auto bulanan · " : "") +
 					`build ${count} zip · ${targets.length} target` +
 					(req.buildAddon ? " · addon" : "") +
 					(req.upload ? " · upload SF" : ""),
@@ -196,6 +197,27 @@ function plan(req: JobRequest): Plan {
 			return { argv: ["bash", "web/clear-output.sh"], label: "clear output + log" };
 		case "status":
 			return { argv: ["bash", "web/make-status.sh"], label: "refresh status.json" };
+		case "addon-api":
+			// Reads SourceForge only and writes web/api/addon/, never the build
+			// tree, so like "status" it runs without the build lock.
+			if (arch || sdk) {
+				needArch(); needSdk();
+				return {
+					argv: ["bash", "web/make-addon-api.sh", arch, sdk],
+					label: `file api addon ${arch} sdk ${sdk}`,
+				};
+			}
+			return { argv: ["bash", "web/make-addon-api.sh"], label: "file api addon (semua target)" };
+		case "release-api":
+			// Same rules as addon-api: reads SourceForge, writes web/api/litegapps/.
+			if (arch || sdk) {
+				needArch(); needSdk();
+				return {
+					argv: ["bash", "web/make-release-api.sh", arch, sdk],
+					label: `file api rilis ${arch} sdk ${sdk}`,
+				};
+			}
+			return { argv: ["bash", "web/make-release-api.sh"], label: "file api rilis (semua target)" };
 		default:
 			throw new Error(`unknown job kind: ${req.kind}`);
 	}

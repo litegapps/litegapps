@@ -1193,3 +1193,40 @@ table.targetcfg tr.unsupported td { opacity: 0.45; }
 .mf-main .pill { font-size: 11px; white-space: nowrap; }
 .mf-detail { margin: 0 4px 10px; padding: 10px 12px; border-radius: var(--r-sm, 8px); background: var(--md-surface-container); }
 .mf-detail code { overflow-wrap: anywhere; }
+
+/* ── Monthly auto build card ─────────────────────────────────────────── */
+.autobuild { display: flex; flex-direction: column; gap: 12px; padding: 16px; }
+.autobuild > .cl-switch { flex-wrap: wrap; }
+.autobuild > .cl-switch .pill { margin-left: auto; }
+
+/* ── On/off toggle (a real switch, not a tick box) ───────────────────── */
+.toggle { display: inline-flex; align-items: center; gap: 10px; cursor: pointer; }
+.toggle input {
+	appearance: none;
+	-webkit-appearance: none;
+	flex: 0 0 auto;
+	width: 46px;
+	height: 26px;
+	margin: 0;
+	border-radius: 999px;
+	background: var(--md-outline-variant);
+	position: relative;
+	cursor: pointer;
+	transition: background 0.18s;
+}
+.toggle input::after {
+	content: "";
+	position: absolute;
+	top: 3px;
+	left: 3px;
+	width: 20px;
+	height: 20px;
+	border-radius: 50%;
+	background: #fff;
+	box-shadow: 0 1px 3px rgb(0 0 0 / 0.3);
+	transition: transform 0.18s;
+}
+.toggle input:checked { background: var(--md-primary); }
+.toggle input:checked::after { transform: translateX(20px); }
+.toggle input:focus-visible { outline: 2px solid var(--md-primary); outline-offset: 2px; }
+.toggle input:disabled { opacity: 0.5; cursor: default; }

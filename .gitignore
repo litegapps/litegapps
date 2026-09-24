@@ -80,3 +80,6 @@ web/mirror-status.json
 
 web/mirror-files.json
 web/mirror-copied.tsv
+
+# Public addon index, written by web/make-addon-api.sh and served at /api/addon/
+web/api/

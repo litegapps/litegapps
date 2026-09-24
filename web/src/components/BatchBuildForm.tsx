@@ -43,9 +43,15 @@ type Props = {
 	serverGapps: Record<string, boolean>;
 	/** "<arch>-<sdk>" -> variants already restored in this checkout */
 	localGapps: Record<string, string[]>;
+	/**
+	 * "manual" is the Multi tab. "auto" is the Auto tab: the same checklist,
+	 * saved to its own list (what the monthly auto build builds), and its
+	 * button runs that auto build now instead of a manual one.
+	 */
+	profile?: "manual" | "auto";
 };
 
-function Submit({ busy: initialBusy, count }: { busy: boolean; count: number }) {
+function Submit({ busy: initialBusy, count, auto }: { busy: boolean; count: number; auto: boolean }) {
 	const { pending } = useFormStatus();
 	const busy = useBusy(initialBusy);
 	const disabled = busy || pending || count === 0;
@@ -58,7 +64,9 @@ function Submit({ busy: initialBusy, count }: { busy: boolean; count: number }) 
 					? "Memulai…"
 					: count === 0
 						? "Pilih target dulu"
-						: `Build ${count} zip`}
+						: auto
+							? `Jalankan auto sekarang (${count} zip)`
+							: `Build ${count} zip`}
 		</button>
 	);
 }
@@ -69,7 +77,9 @@ export default function BatchBuildForm({
 	overrides,
 	serverGapps,
 	localGapps,
+	profile = "manual",
 }: Props) {
+	const auto = profile === "auto";
 	const [picked, setPicked] = useState<string[]>(
 		prefs.targets.filter((k) => {
 			const i = k.lastIndexOf("-");
@@ -85,7 +95,7 @@ export default function BatchBuildForm({
 	const setOpt = (k: keyof typeof opts) => setOpts((o) => ({ ...o, [k]: !o[k] }));
 
 	// Ticking a box is enough: leaving for another menu must not lose it.
-	useRemember("batch", { targets: picked, ...opts });
+	useRemember(auto ? "auto" : "batch", { targets: picked, ...opts });
 
 	const key = (a: string, s: number) => `${a}-${s}`;
 	const configured = (a: string, s: number) => overrides[key(a, s)] ?? defaultVariants(a, s);
@@ -118,12 +128,14 @@ export default function BatchBuildForm({
 	return (
 		<form action={startJobAction} className="checklist">
 			<input type="hidden" name="kind" value="build-batch" />
+			{auto && <input type="hidden" name="profile" value="auto" />}
+			<input type="hidden" name="back" value={auto ? "/?tab=auto" : "/"} />
 			{picked.map((k) => (
 				<input key={k} type="hidden" name="targets" value={k} />
 			))}
 
 			<Fold
-				id="batch.targets"
+				id={auto ? "auto.targets" : "batch.targets"}
 				title="Target"
 				icon="checklist"
 				summary={`${targets.length} target dicentang · ${count} zip`}
@@ -204,7 +216,7 @@ export default function BatchBuildForm({
 			</Fold>
 
 			<Fold
-				id="batch.options"
+				id={auto ? "auto.options" : "batch.options"}
 				title="Opsi"
 				icon="tune"
 				summary={
@@ -260,7 +272,7 @@ export default function BatchBuildForm({
 			</Fold>
 
 			<div className="cl-foot">
-				<Submit busy={busy} count={count} />
+				<Submit busy={busy} count={count} auto={auto} />
 				<span className="cl-count">
 					{targets.length} target &middot; {count} zip
 				</span>
@@ -268,7 +280,7 @@ export default function BatchBuildForm({
 
 			{targets.length > 0 && (
 				<Fold
-					id="batch.preview"
+					id={auto ? "auto.preview" : "batch.preview"}
 					title="Rincian target"
 					icon="fact_check"
 					defaultOpen={false}

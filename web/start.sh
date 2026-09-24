@@ -232,6 +232,12 @@ fi
 # Must exist before compose mounts it, or Docker creates it owned by root.
 mkdir -p "$(get_env RCLONE_DIR)" 2>/dev/null && chmod 700 "$(get_env RCLONE_DIR)" 2>/dev/null
 unset_env WEB_BIND && set_env WEB_BIND "0.0.0.0"
+# The container runs in UTC unless told otherwise; the monthly auto build and
+# the daily backup go by the panel's clock, so give it the host's time zone.
+if unset_env TZ; then
+	HOST_TZ="$(timedatectl show -p Timezone --value 2>/dev/null || cat /etc/timezone 2>/dev/null)"
+	[ -n "$HOST_TZ" ] && set_env TZ "$HOST_TZ" && ok "[OK] TZ set to $HOST_TZ (host time zone)"
+fi
 unset_env WEB_PORT && set_env WEB_PORT "3020"
 
 # Snap Docker resolves /etc/os-release inside its snap base ("Ubuntu Core"),

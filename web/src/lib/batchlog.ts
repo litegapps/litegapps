@@ -57,7 +57,7 @@ export type BatchProgress = {
 
 /** Lines worth keeping; everything else in a multi-megabyte log is noise. */
 export const EVENT_LINE =
-	/^(?: *Builds +:| *Restore +:| *- [a-z0-9_]+ sdk \d+ :|=== |--- Release |- build ok |! build failed |- addon ok |! addon failed |! restore failed |- gapps source missing|! gapps source missing|- nothing to upload |! zip upload failed |! addon upload failed |! prune failed | *Batch build done )/;
+	/^(?: *Builds +:| *Restore +:| *- [a-z0-9_]+ sdk \d+ :|=== |--- Release |- build ok |! build failed |- addon ok |! addon failed |! restore failed |- gapps source missing|! gapps source missing|- nothing to upload |! zip upload failed |! addon upload failed |! addon api failed |! release api failed |! prune failed | *Batch build done )/;
 
 export function eventLines(log: string): string {
 	return log
@@ -222,10 +222,20 @@ export function parseBatchLog(log: string): BatchProgress {
 			if (uploading === t) uploading = null;
 			continue;
 		}
-		// The zips are what matters; these two only annotate the target.
+		// The zips are what matters; these only annotate the target.
 		if ((m = line.match(/^! addon upload failed <(\S+)\/(\d+)>/))) {
 			const t = target(m[1], Number(m[2]));
 			if (t) t.uploadWarning = "upload addon gagal";
+			continue;
+		}
+		if ((m = line.match(/^! addon api failed <(\S+)\/(\d+)>/))) {
+			const t = target(m[1], Number(m[2]));
+			if (t) t.uploadWarning = "JSON addon (File API) gagal diperbarui";
+			continue;
+		}
+		if ((m = line.match(/^! release api failed <(\S+)\/(\d+)>/))) {
+			const t = target(m[1], Number(m[2]));
+			if (t) t.uploadWarning = "JSON rilis (File API) gagal diperbarui";
 			continue;
 		}
 		if (line.startsWith("- nothing to upload ") && uploading) {

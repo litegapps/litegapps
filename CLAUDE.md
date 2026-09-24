@@ -154,9 +154,11 @@ Logs: `log/make.log` and `log/make_live.log` — **read these first when a build
   `docker-compose.yml`) or `tmux`/`nohup`.
 - `web/` — **build panel**: a Next.js app (MySQL + Docker) that runs the build work
   from a browser. The whole site is admin-only — `/` requires a login and every
-  route sends `noindex`; it is opened directly at `http://<VPS IP>:3020` (no
-  domain, no reverse proxy — `WEB_PORT` because 3000/3010 are taken by other
-  projects on the VPS). The container imports only the SourceForge key from a
+  route sends `noindex` — **except `/api/addon/*` and `/api/litegapps/*`**,
+  the public JSON indexes (see File API below; never put a login on them). It is opened at
+  `http://<VPS IP>:3020` (`WEB_PORT` because 3000/3010 are taken by other
+  projects on the VPS) and also served at `https://litegapps.magisk.dev`
+  through Cloudflare. The container imports only the SourceForge key from a
   read-only mount and runs as the host uid (`PUID`/`PGID`), so builds never
   leave root-owned files in the checkout. It never reimplements build logic: every action shells out to
   `build.sh` / `packages/make` / `web/make-status.sh` through a fixed allowlist
@@ -273,6 +275,65 @@ Logs: `log/make.log` and `log/make_live.log` — **read these first when a build
   `cannotDownloadAbusiveFile` without it, which made that file always fall
   back to SourceForge unnoticed. Measured 2026-09-23 on the same 128 MB zip:
   Drive 22.7 MB/s, SourceForge 2 MB/s.
+  **Monthly auto build** has its own Build tab, **Auto**: the schedule
+  (on/off toggle, day, hour - `AutoBuildForm.tsx`, `settings` rows
+  `autobuild.on/day/hour/last`) and its **own checklist** of targets and
+  options, the Multi form in `profile="auto"` saved under `form.auto`
+  (`readAutoPrefs()`, seeded once from Multi's list), so ticking something
+  for a manual Multi build never changes the monthly release. The
+  in-process scheduler (`buildTick()` in `src/lib/scheduler.ts`) starts one
+  `build-batch` per calendar month from that list - Config target variants,
+  Build > Settings restore source (Drive when on) and retention - labelled
+  `auto bulanan`; nothing ticked skips the month. It catches up on a missed
+  slot (VPS off, another job running) but **switching it on or moving the
+  slot after this month's slot has passed marks the month done**
+  (`saveAutoBuildAction`), so enabling it never fires a build at once - the
+  first version did, and started job #73 the moment it was switched on.
+  Auto and manual builds share the one job slot. The panel container runs in
+  the host's time zone (`TZ` in `web/.env`, filled by `start.sh`), so
+  "00:00" means midnight WIB.
+  A restore from Drive that misses a file first mirrors it from SourceForge
+  (`gdrive-mirror.sh file` with `MIRROR_QUICK=1`), then errors only if
+  SourceForge lacks it too.
+  **File API** (`/file-api`, tabs Addon / Rilis LiteGapps) publishes two
+  JSON indexes on `https://litegapps.magisk.dev` (the panel behind
+  Cloudflare): the addon list the LiteGapps Controller app
+  ([lico-source](https://github.com/litegapps/lico-source)) downloads addons
+  from, `GET /api/addon/<arch>/<sdk>.json` + `/api/addon/index.json`, and the
+  newest release of every variant per target, `GET
+  /api/litegapps/<arch>/<sdk>.json` + `/api/litegapps/index.json`. These
+  routes are the **only public, login-free routes** in the panel, on purpose
+  - apps fetch them anonymously; the `/file-api` page itself is admin-only.
+  The files live in `web/api/` (gitignored), written by
+  `web/make-addon-api.sh` / `web/make-release-api.sh [<arch> <sdk>]` (jobs
+  `addon-api` / `release-api`, no build lock): an `rsync --list-only` of
+  `<FRS>/addon/` or `<FRS>/litegapps/` run with `TZ=UTC`, turned into JSON by
+  `web/addon-api.mjs` / `web/release-api.mjs` (shared helpers in
+  `web/api-common.mjs`). The addon job also writes the same list as
+  `README.md` into `addon/`, `addon/<arch>/` and `addon/<arch>/<sdk>/` and
+  uploads them (rsync from inside `addon/`: from the project root rsync fails
+  to set its permissions, exit 23), so SourceForge's Files page shows the
+  full list under each folder; the per-target one replaces the short README
+  `packages/make` writes. The release index takes each variant's newest
+  `YYYY-MM-DD` folder, lists every zip in it (`files`, flavours `auto` /
+  `maksu` / `recovery` on 2024 releases) and repeats the first at the top;
+  variants with only undated zips (Android 7.0-8.0, `[AUTO]..._v2.5_...`) are
+  `legacy`. Both are refreshed by the scheduler every `addonapi.days` days
+  (default 4, switch `addonapi.auto`, own `addonapi.last` /
+  `releaseapi.last`; one job per tick). The format is
+  lico's own `assets/addon-index` schema 1 (`arch` is an object keyed by
+  arch; entries `id name category file url size md5 updated`), so keep it
+  compatible: `url` must stay `sourceforge.net/projects/litegapps/files/
+  <path>/download` (the app derives its mirror fallbacks from it), and `md5`
+  is only filled from provably the same file (previous index or
+  `packages/output` with equal size+mtime, else SourceForge's RSS feed) and
+  left empty otherwise, because the app rejects a download whose md5
+  differs. An empty or failed listing keeps the existing file, and writes are
+  atomic (tmp + rename). `web/build-batch.sh` regenerates a target's addon
+  JSON after its addons uploaded and its release JSON after the zips uploaded
+  and old releases were pruned (`! addon api failed <A/S>` / `! release api
+  failed <A/S>` are warnings on the progress row). Verified 2026-09-24: all 1388 entries matched lico's bundled
+  index.
   `/backup` dumps the database (users + jobs; never
   sessions) with `web/db-tool.mjs`, **always AES-256-GCM encrypted** with
   `DB_BACKUP_KEY` because the upload target `$HOMEE/db` is world readable,

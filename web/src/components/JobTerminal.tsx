@@ -36,6 +36,8 @@ const HOME: Record<string, { href: string; label: string }> = {
 	"mirror-sync": { href: "/mirror", label: "Mirror source" },
 	"mirror-file": { href: "/mirror", label: "Mirror source" },
 	"clear-output": { href: "/", label: "Multi" },
+	"addon-api": { href: "/file-api", label: "File API" },
+	"release-api": { href: "/file-api?tab=release", label: "File API" },
 };
 
 type Meta = { id: number; kind: string; label: string } | null;

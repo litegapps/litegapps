@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { currentUser } from "@/lib/session";
-import { writeBatchPrefs, writeSinglePrefs } from "@/lib/formstate";
+import { writeAutoPrefs, writeBatchPrefs, writeSinglePrefs } from "@/lib/formstate";
 
 /*
  * Remember what the build forms are set to, as soon as they are changed -
@@ -23,8 +23,8 @@ export async function POST(req: Request) {
 	}
 
 	try {
-		if (body.form === "batch") {
-			await writeBatchPrefs({
+		if (body.form === "batch" || body.form === "auto") {
+			await (body.form === "auto" ? writeAutoPrefs : writeBatchPrefs)({
 				targets: (body.targets as string[]) ?? [],
 				restoreMissing: body.restoreMissing !== false,
 				cleanAfter: body.cleanAfter === true,

@@ -27,6 +27,12 @@ export type SinglePrefs = {
 };
 
 const BATCH_KEY = "form.batch";
+/**
+ * The Auto tab's own checklist - what the monthly auto build builds. Kept
+ * apart from the Multi tab's manual one so ticking a target for a quick test
+ * build never changes the monthly release.
+ */
+const AUTO_KEY = "form.auto";
 const SINGLE_KEY = "form.single";
 
 export const DEFAULT_BATCH: BatchPrefs = {
@@ -72,10 +78,16 @@ function keepTargets(v: unknown): string[] {
 }
 
 
-export async function readBatchPrefs(): Promise<BatchPrefs> {
+/**
+ * The Multi tab's saved selection. `fallback` fills an empty target list with
+ * the form's default (arm64-36) so the page never opens blank; the monthly
+ * auto build passes false, because nothing ticked must mean nothing built.
+ */
+export async function readBatchPrefs(fallback = true, key = BATCH_KEY): Promise<BatchPrefs> {
+	const empty = fallback ? DEFAULT_BATCH.targets : [];
 	try {
-		const raw = await getSetting(BATCH_KEY);
-		if (!raw) return DEFAULT_BATCH;
+		const raw = await getSetting(key);
+		if (!raw) return { ...DEFAULT_BATCH, targets: empty };
 		const p = JSON.parse(raw) as Partial<BatchPrefs> & { archs?: unknown; sdks?: unknown };
 		// Rows written before the checklist became a matrix held arch x sdk
 		// lists; they turn into the same set of targets.
@@ -86,7 +98,7 @@ export async function readBatchPrefs(): Promise<BatchPrefs> {
 			targets = archs.flatMap((a) => sdks.map((s) => `${a}-${s}`));
 		}
 		return {
-			targets: targets.length ? targets : DEFAULT_BATCH.targets,
+			targets: targets.length ? targets : empty,
 			restoreMissing: p.restoreMissing !== false,
 			cleanAfter: p.cleanAfter === true,
 			buildAddon: p.buildAddon === true,
@@ -94,13 +106,13 @@ export async function readBatchPrefs(): Promise<BatchPrefs> {
 		};
 	} catch {
 		// Unreadable or from an older shape: fall back rather than fail a page.
-		return DEFAULT_BATCH;
+		return { ...DEFAULT_BATCH, targets: empty };
 	}
 }
 
-export async function writeBatchPrefs(p: BatchPrefs): Promise<void> {
+export async function writeBatchPrefs(p: BatchPrefs, key = BATCH_KEY): Promise<void> {
 	await setSetting(
-		BATCH_KEY,
+		key,
 		JSON.stringify({
 			targets: keepTargets(p.targets),
 			restoreMissing: p.restoreMissing,
@@ -109,6 +121,22 @@ export async function writeBatchPrefs(p: BatchPrefs): Promise<void> {
 			upload: p.upload,
 		}),
 	);
+}
+
+/**
+ * The Auto tab's checklist. The first time it is read it starts as a copy of
+ * the Multi tab's current one, so switching the monthly build over to its own
+ * list does not suddenly leave it empty; from then on the two are separate.
+ */
+export async function readAutoPrefs(): Promise<BatchPrefs> {
+	if ((await getSetting(AUTO_KEY)) === null) {
+		await writeBatchPrefs(await readBatchPrefs(false), AUTO_KEY);
+	}
+	return readBatchPrefs(false, AUTO_KEY);
+}
+
+export async function writeAutoPrefs(p: BatchPrefs): Promise<void> {
+	await writeBatchPrefs(p, AUTO_KEY);
 }
 
 export async function readSinglePrefs(): Promise<SinglePrefs> {

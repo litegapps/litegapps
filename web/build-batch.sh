@@ -17,10 +17,12 @@
 #   addon     1 = build the addon packages for the target first
 #             (bash packages/make make <arch> <sdk>)
 #   upload    1 = release the results to SourceForge afterwards:
-#             addon -> <FRS>/addon/<arch>/<sdk>/
+#             addon -> <FRS>/addon/<arch>/<sdk>/, then the public addon
+#                      index web/api/addon/<arch>/<sdk>.json is regenerated
 #             zips  -> <FRS>/litegapps/<arch>/<sdk>/<variant>/<date>/
 #             then only the newest 15 dated releases per variant are kept
-#             (web/sf-prune.sh, SF_KEEP_RELEASES)
+#             (web/sf-prune.sh, SF_KEEP_RELEASES) and the public release
+#             index web/api/litegapps/<arch>/<sdk>.json is regenerated
 #
 # The panel resolves the variant list per target (Build > Config target,
 # stored in its database) and passes it here, so this script never reads any
@@ -130,12 +132,22 @@ release_target(){
 	local A="$1" S="$2"
 	echo " "
 	echo "--- Release $A/$S to SourceForge ---"
-	upload_dir "$BASED/packages/output" "$A/$S" "$SF_FRS/addon" ||
+	if upload_dir "$BASED/packages/output" "$A/$S" "$SF_FRS/addon"; then
+		# The public addon index (/api/addon/<arch>/<sdk>.json, read by the
+		# LiteGapps Controller app) follows every addon upload.
+		if [ -d "$BASED/packages/output/$A/$S" ]; then
+			bash "$BASED/web/make-addon-api.sh" "$A" "$S" || echo "! addon api failed <$A/$S>"
+		fi
+	else
 		echo "! addon upload failed <$A/$S>"
+	fi
 	if upload_dir "$BASED/output/litegapps" "$A/$S" "$SF_FRS/litegapps"; then
 		# Keep the newest SF_KEEP_RELEASES (15) releases per variant; only after
 		# a successful upload, so a failed one never costs an old release.
 		bash "$BASED/web/sf-prune.sh" "$A" "$S" || echo "! prune failed <$A/$S>"
+		# The public release index (/api/litegapps/<arch>/<sdk>.json) follows
+		# the new release, after the prune so it never points at a deleted one.
+		bash "$BASED/web/make-release-api.sh" "$A" "$S" || echo "! release api failed <$A/$S>"
 	else
 		echo "! zip upload failed <$A/$S>"
 	fi

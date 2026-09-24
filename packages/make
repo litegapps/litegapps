@@ -265,9 +265,23 @@ fetch_package(){
 			# 3 s in a panel job log. Same as rclone_get() in build.sh.
 			[ -t 2 ] && progress="--progress --stats-one-line"
 			rclone copyto "${LG_GDRIVE_REMOTE:-gdrive}:${LG_GDRIVE_DIR:-litegapps-mirror}/files-server/$rel" "$out" \
-				--drive-acknowledge-abuse $progress && ok=0
+				--drive-acknowledge-abuse --retries 1 $progress && ok=0
 			if [ "$ok" = 0 ] && unzip -tq "$out" >/dev/null 2>&1; then
 				return 0
+			fi
+			rm -f "$out"
+			# Not on the mirror yet: copy it there from SourceForge first, then
+			# take it from Drive (same as fetch_source() in build.sh).
+			if [ -f "$BASED/../web/gdrive-mirror.sh" ] && [ -n "$SF_USER" ]; then
+				print "! <$rel> not on the Drive mirror - mirroring it from SourceForge"
+				if GDRIVE_REMOTE="${LG_GDRIVE_REMOTE:-gdrive}" GDRIVE_DIR="${LG_GDRIVE_DIR:-litegapps-mirror}" \
+					MIRROR_QUICK=1 bash "$BASED/../web/gdrive-mirror.sh" file "$rel" \
+					&& rclone copyto "${LG_GDRIVE_REMOTE:-gdrive}:${LG_GDRIVE_DIR:-litegapps-mirror}/files-server/$rel" "$out" \
+						--drive-acknowledge-abuse --retries 1 $progress \
+					&& unzip -tq "$out" >/dev/null 2>&1; then
+					return 0
+				fi
+				rm -f "$out"
 			fi
 			print "! <$rel> not on the Drive mirror (or broken) - falling back to SourceForge"
 			rm -f "$out"

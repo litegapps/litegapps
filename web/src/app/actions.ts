@@ -7,6 +7,11 @@ import { startJob, runningJob, stopJob, clearJobs, SOURCE_KINDS } from "@/lib/jo
 import { writeConfigDoc } from "@/lib/config";
 import { moveEntry, removeEntry, renameEntry } from "@/lib/files";
 import {
+	ADDONAPI_DAYS,
+	ADDONAPI_DAYS_MAX,
+	ADDONAPI_LAST,
+	ADDONAPI_ON,
+	RELEASEAPI_LAST,
 	AUTO_BACKUP,
 	RELEASE_KEEP,
 	RELEASE_KEEP_MAX,
@@ -15,6 +20,12 @@ import {
 	MIRROR_REMOTE,
 	MIRROR_REMOTE_RE,
 	RELEASE_PRUNE,
+	AUTOBUILD_DAY,
+	AUTOBUILD_HOUR,
+	AUTOBUILD_LAST,
+	AUTOBUILD_ON,
+	month,
+	readAutoBuild,
 	readMirror,
 	readRetention,
 	readSource,
@@ -23,7 +34,7 @@ import {
 } from "@/lib/settings";
 import { readOverrides, writeOverrides } from "@/lib/buildtargets";
 import { PACKAGE_LISTS, readPackageLists, writePackageLists } from "@/lib/packages";
-import { readSinglePrefs, writeBatchPrefs, writeSinglePrefs } from "@/lib/formstate";
+import { readSinglePrefs, writeAutoPrefs, writeBatchPrefs, writeSinglePrefs } from "@/lib/formstate";
 import { PANEL_KEYS, readPanelConfig, writePanelConfig } from "@/lib/panelconfig";
 import { HISTORY_BATCH, HISTORY_SINGLE, type JobKind } from "@/lib/targets";
 
@@ -42,7 +53,8 @@ export async function startJobAction(formData: FormData) {
 	const back = backPath(String(formData.get("back") ?? "/"));
 	// Remember the selection before anything can fail, so a refused run still
 	// comes back with the same form filled in.
-	await rememberForm(kind, formData);
+	const auto = formData.get("profile") === "auto";
+	await rememberForm(kind, formData, auto);
 
 	let id: number;
 	try {
@@ -58,6 +70,7 @@ export async function startJobAction(formData: FormData) {
 			// Which Drive the mirror jobs write to (Mirror page settings).
 			mirror: kind.startsWith("mirror-") ? await readMirror() : undefined,
 			path: String(formData.get("path") ?? "") || undefined,
+			auto: auto || undefined,
 			kind,
 			variant: String(formData.get("variant") ?? "") || undefined,
 			name: String(formData.get("name") ?? "") || undefined,
@@ -75,6 +88,11 @@ export async function startJobAction(formData: FormData) {
 		redirect(withParam(back, "error", reason));
 	}
 
+	// A full File API run from the page restarts its automatic interval.
+	if ((kind === "addon-api" || kind === "release-api") && !formData.get("arch")) {
+		await setSetting(kind === "addon-api" ? ADDONAPI_LAST : RELEASEAPI_LAST, new Date().toISOString());
+	}
+
 	revalidatePath(back.split("?")[0]);
 	// The terminal dialog opens on this id, so even a job that finishes in a
 	// second still shows its output.
@@ -88,10 +106,10 @@ export async function startJobAction(formData: FormData) {
 function backPath(raw: string): string {
 	const url = new URL(raw, "http://panel.invalid");
 	if (url.origin !== "http://panel.invalid") return "/";
-	if (!["/", "/restore", "/backup", "/info", "/mirror"].includes(url.pathname)) return "/";
+	if (!["/", "/restore", "/backup", "/info", "/mirror", "/file-api"].includes(url.pathname)) return "/";
 	// Keep the Build page's tab, so a job started on one tab returns to it.
 	const tab = url.searchParams.get("tab");
-	if (url.pathname === "/" && tab && !["single", "config", "settings"].includes(tab)) {
+	if (url.pathname === "/" && tab && !["single", "config", "settings", "auto"].includes(tab)) {
 		url.searchParams.delete("tab");
 	}
 	url.searchParams.delete("error");
@@ -183,6 +201,19 @@ export async function fileMoveAction(formData: FormData) {
 	});
 }
 
+/** File API: automatic refresh every N days (src/lib/scheduler.ts does the work). */
+export async function saveAddonApiAutoAction(formData: FormData) {
+	await requireAdmin();
+	const days = Number(formData.get("days"));
+	if (!Number.isInteger(days) || days < 1 || days > ADDONAPI_DAYS_MAX) {
+		redirect(withParam("/file-api", "error", `interval harus 1-${ADDONAPI_DAYS_MAX} hari`));
+	}
+	await setSetting(ADDONAPI_ON, formData.get("on") ? "1" : "0");
+	await setSetting(ADDONAPI_DAYS, String(days));
+	revalidatePath("/file-api");
+	redirect(withParam("/file-api", "done", "Jadwal File API disimpan"));
+}
+
 /** On/off switch for the daily backup (src/lib/scheduler.ts does the work). */
 export async function toggleAutoBackupAction(formData: FormData) {
 	await requireAdmin();
@@ -240,6 +271,35 @@ export async function saveMirrorAction(formData: FormData) {
 	await setSetting(MIRROR_DIR, dir);
 	revalidatePath(target);
 	redirect(withParam(target, "done", "Tujuan mirror disimpan"));
+}
+
+/*
+ * Build > Multi: the monthly auto build. The switch posts on its own (no
+ * "keepOn"); the schedule button posts day/hour with keepOn set to
+ * the switch's current state.
+ */
+export async function saveAutoBuildAction(formData: FormData) {
+	await requireAdmin();
+	const day = Number(formData.get("day"));
+	const hour = Number(formData.get("hour"));
+	if (!Number.isInteger(day) || day < 1 || day > 28 || !Number.isInteger(hour) || hour < 0 || hour > 23) {
+		redirect(withParam("/", "error", "Tanggal harus 1-28 dan jam 0-23"));
+	}
+	const on = formData.get("on") === "on" || formData.get("keepOn") === "1";
+	const was = await readAutoBuild();
+	// Switching it on (or moving the slot) after this month's slot has passed
+	// must not start a build right away: the scheduler catches up on a missed
+	// slot, so the month is marked done and the first run is the next slot.
+	const now = new Date();
+	const passed = now.getDate() > day || (now.getDate() === day && now.getHours() >= hour);
+	if (on && passed && (!was.on || was.day !== day || was.hour !== hour)) {
+		await setSetting(AUTOBUILD_LAST, month(now));
+	}
+	await setSetting(AUTOBUILD_ON, on ? "1" : "0");
+	await setSetting(AUTOBUILD_DAY, String(day));
+	await setSetting(AUTOBUILD_HOUR, String(hour));
+	revalidatePath("/");
+	redirect(withParam("/", "done", on ? `Auto build aktif: tiap tanggal ${day} jam ${String(hour).padStart(2, "0")}:00` : "Auto build dimatikan"));
 }
 
 /* Build > Settings: which server restores download sources from. */
@@ -328,10 +388,10 @@ export async function savePackagesAction(formData: FormData) {
 }
 
 /** Persist what the build forms were set to, for the next visit. */
-async function rememberForm(kind: string, formData: FormData) {
+async function rememberForm(kind: string, formData: FormData, auto = false) {
 	try {
 		if (kind === "build-batch") {
-			await writeBatchPrefs({
+			await (auto ? writeAutoPrefs : writeBatchPrefs)({
 				targets: formData.getAll("targets").map(String),
 				restoreMissing: formData.get("restoreMissing") === "on",
 				cleanAfter: formData.get("cleanAfter") === "on",

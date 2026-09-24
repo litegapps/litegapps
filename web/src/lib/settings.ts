@@ -60,6 +60,38 @@ export async function readSource(): Promise<{ prefer: "sf" | "drive"; remote: st
 	return { prefer: p === "drive" ? "drive" : "sf", ...m };
 }
 
+/*
+ * Monthly auto build (switch on Build > Multi): whatever Multi has ticked,
+ * started by src/lib/scheduler.ts on the given day and hour of each month
+ * (server time; start.sh gives the container the host's time zone).
+ */
+export const AUTOBUILD_ON = "autobuild.on";
+export const AUTOBUILD_DAY = "autobuild.day";
+export const AUTOBUILD_HOUR = "autobuild.hour";
+/** YYYY-MM of the last month an auto build was started. */
+export const AUTOBUILD_LAST = "autobuild.last";
+
+export type AutoBuild = { on: boolean; day: number; hour: number; last: string };
+
+export async function readAutoBuild(): Promise<AutoBuild> {
+	const [on, day, hour, last] = await Promise.all(
+		[AUTOBUILD_ON, AUTOBUILD_DAY, AUTOBUILD_HOUR, AUTOBUILD_LAST].map(getSetting),
+	);
+	const d = Number(day);
+	const h = Number(hour);
+	return {
+		on: on === "1",
+		day: Number.isInteger(d) && d >= 1 && d <= 28 ? d : 1,
+		hour: Number.isInteger(h) && h >= 0 && h <= 23 ? h : 0,
+		last: last ?? "",
+	};
+}
+
+/** YYYY-MM of a date in server time. */
+export function month(d = new Date()): string {
+	return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
+
 /** Release retention as the build jobs get it (web/sf-prune.sh). */
 export async function readRetention(): Promise<{ on: boolean; keep: number }> {
 	const [on, keep] = await Promise.all([getSetting(RELEASE_PRUNE), getSetting(RELEASE_KEEP)]);
@@ -74,4 +106,38 @@ export async function readRetention(): Promise<{ on: boolean; keep: number }> {
 export function today(d = new Date()): string {
 	const p = (n: number) => String(n).padStart(2, "0");
 	return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+}
+
+/*
+ * File API auto refresh: the scheduler reruns web/make-addon-api.sh and
+ * web/make-release-api.sh for every target once their last full run is
+ * ADDONAPI_DAYS old (default 4 days), so the JSON and the README lists on
+ * SourceForge catch uploads made outside a panel batch build.
+ */
+export const ADDONAPI_ON = "addonapi.auto";
+export const ADDONAPI_DAYS = "addonapi.days";
+/** ISO time the last full run was started (by the scheduler or the page). */
+export const ADDONAPI_LAST = "addonapi.last";
+/** Same for the release index (web/make-release-api.sh), on the same switch and interval. */
+export const RELEASEAPI_LAST = "releaseapi.last";
+export const ADDONAPI_DAYS_DEFAULT = 4;
+export const ADDONAPI_DAYS_MAX = 30;
+
+export type AddonApiAuto = { on: boolean; days: number; last: string; releaseLast: string };
+
+export async function readAddonApiAuto(): Promise<AddonApiAuto> {
+	const [on, days, last, releaseLast] = await Promise.all([
+		getSetting(ADDONAPI_ON),
+		getSetting(ADDONAPI_DAYS),
+		getSetting(ADDONAPI_LAST),
+		getSetting(RELEASEAPI_LAST),
+	]);
+	const n = Number(days);
+	return {
+		// On unless switched off: the app relies on the list staying current.
+		on: on !== "0",
+		days: Number.isInteger(n) && n >= 1 && n <= ADDONAPI_DAYS_MAX ? n : ADDONAPI_DAYS_DEFAULT,
+		last: last ?? "",
+		releaseLast: releaseLast ?? "",
+	};
 }
