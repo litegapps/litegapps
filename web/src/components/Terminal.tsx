@@ -115,20 +115,28 @@ function elapsed(from: string | null, to: string | null): string {
 export default function Terminal({
 	jobId,
 	onClose,
+	onFinish,
 }: {
 	jobId: number;
 	/** clears the view; the panel itself stays on the page */
 	onClose?: () => void;
+	/** called once when a job this view saw running has ended */
+	onFinish?: () => void;
 }) {
 	const [job, setJob] = useState<JobLog | null>(null);
 	const [follow, setFollow] = useState(true);
 	const [copied, setCopied] = useState(false);
 	const box = useRef<HTMLPreElement>(null);
+	const finish = useRef(onFinish);
+	finish.current = onFinish;
 
 	// Poll while it runs, then once more after it ends so the last lines land.
 	useEffect(() => {
 		let alive = true;
 		let timer: ReturnType<typeof setTimeout>;
+		// Only a job seen running ends here: opening an old job's log must not
+		// fire onFinish, or a page refreshing on it would loop.
+		let sawRunning = false;
 
 		async function tick() {
 			try {
@@ -136,7 +144,13 @@ export default function Terminal({
 				if (r.ok && alive) {
 					const d: JobLog = await r.json();
 					setJob(d);
-					if (d.status === "running") timer = setTimeout(tick, 1500);
+					if (d.status === "running") {
+						sawRunning = true;
+						timer = setTimeout(tick, 1500);
+					} else if (sawRunning) {
+						sawRunning = false;
+						finish.current?.();
+					}
 					return;
 				}
 			} catch {

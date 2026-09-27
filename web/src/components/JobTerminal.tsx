@@ -106,6 +106,9 @@ export default function JobTerminal({ kinds }: { kinds: readonly string[] }) {
 			{mine && candidate ? (
 				<Terminal
 					jobId={candidate.id}
+					// The page shows what the job wrote (status.json, API files,
+					// mirror lists), so reload its server data once the job ends.
+					onFinish={() => router.refresh()}
 					onClose={() => {
 						setClosed(candidate.id);
 						if (asked) {

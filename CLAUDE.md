@@ -546,7 +546,11 @@ and 6.0 (SDK 21-23) were dropped. The floor is `MIN_SDK` in `build.sh`
 `web/src/lib/targets.ts`, whose `SDKS`/`ANDROID` no longer list 21-23. The
 panel's shell argument checks (`web/build-batch.sh`, `web/sf-prune.sh`,
 `web/clean-sources.sh`), `vps-build.sh` and the full GitHub workflow start at
-24 too. Releases already published for 21-23 stay on the FRS. The device-side
+24 too. On 2026-09-27 everything for 21-23 was deleted from the FRS
+(`litegapps/`, `addon/`, `files-server/litegapps/`; `files-server/package`
+never had them) and from the Drive mirror, and their `web/api` indexes were
+removed by hand: `release-api.mjs` never deletes a target's JSON, it only
+skips targets with no listing. The device-side
 `get_android_version()` copies in `installer/` and `packages/utils/` keep the
 21-23 names on purpose, so an old zip still prints its Android version when it
 is flashed.
