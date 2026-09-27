@@ -294,7 +294,9 @@ Logs: `log/make.log` and `log/make_live.log` — **read these first when a build
   "00:00" means midnight WIB.
   A restore from Drive that misses a file first mirrors it from SourceForge
   (`gdrive-mirror.sh file` with `MIRROR_QUICK=1`), then errors only if
-  SourceForge lacks it too.
+  SourceForge lacks it too. That script lists the file on SourceForge first
+  and exits 4 when it is not there, so `fetch_source`/`fetch_package` stop
+  at once instead of retrying rclone three times and then curl for a 404.
   **File API** (`/file-api`, tabs Addon / Rilis LiteGapps) publishes two
   JSON indexes on `https://litegapps.magisk.dev` (the panel behind
   Cloudflare): the addon list the LiteGapps Controller app
@@ -371,6 +373,10 @@ Logs: `log/make.log` and `log/make_live.log` — **read these first when a build
   and the panel redeployed before `build_config` was filled; a release job
   started in between built `-unofficial` zips as `yourname` and uploaded seven
   of them to the FRS before it was stopped and they were deleted.
+- Never edit `build.sh`, `packages/make` or a `web/*.sh` in place while a
+  job runs: a running shell reads its script as it goes and resumes at a
+  shifted offset. Write a new file and `mv` it over the old one (the running
+  process keeps the old inode), or wait for the job.
 - Jobs are the only way the panel touches the tree, they are serialised three
   ways (running-job row, process scan, `flock`), and each one's output is
   tailed by the terminal panel on the page that started it.
@@ -439,9 +445,11 @@ anything:
   zip exists nowhere (seen on `arm/32`, `arm/33`, `x86_64/31-33`). Downloads
   use `curl -f`, so SourceForge's 404 page (~48 KB of HTML) is no longer
   saved as the zip and misreported as `Extract status : Failed`.
-- `! <...>-lite.zip not on the Drive mirror ... falling back` followed by
-  `<N-lite.zip> unavailable, falling back to N.zip` is normal for lite on
-  non-arm64 targets: their `-lite.zip` sources were deleted on purpose.
+- `- <...>-lite.zip is not on SourceForge` / `is not on SourceForge either`
+  followed by `<N-lite.zip> unavailable, falling back to N.zip` is normal for
+  lite on non-arm64 targets (and arm64 24-28 and 34): their `-lite.zip`
+  sources were deleted on purpose. Only superlite and go are limited to
+  arm64 by rule; lite just falls back to `<sdk>.zip`.
 - `! file <packages/zip-server/<arch>/<sdk>.zip> is not found` - no addon
   source for that target; only the addon step fails, the zips still build.
 - `source tidak ada` - the gapps were missing and auto-restore was off.

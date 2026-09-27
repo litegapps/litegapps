@@ -274,13 +274,23 @@ fetch_package(){
 			# take it from Drive (same as fetch_source() in build.sh).
 			if [ -f "$BASED/../web/gdrive-mirror.sh" ] && [ -n "$SF_USER" ]; then
 				print "! <$rel> not on the Drive mirror - mirroring it from SourceForge"
-				if GDRIVE_REMOTE="${LG_GDRIVE_REMOTE:-gdrive}" GDRIVE_DIR="${LG_GDRIVE_DIR:-litegapps-mirror}" \
-					MIRROR_QUICK=1 bash "$BASED/../web/gdrive-mirror.sh" file "$rel" \
-					&& rclone copyto "${LG_GDRIVE_REMOTE:-gdrive}:${LG_GDRIVE_DIR:-litegapps-mirror}/files-server/$rel" "$out" \
-						--drive-acknowledge-abuse --retries 1 $progress \
-					&& unzip -tq "$out" >/dev/null 2>&1; then
-					return 0
-				fi
+				GDRIVE_REMOTE="${LG_GDRIVE_REMOTE:-gdrive}" GDRIVE_DIR="${LG_GDRIVE_DIR:-litegapps-mirror}" \
+					MIRROR_QUICK=1 bash "$BASED/../web/gdrive-mirror.sh" file "$rel"
+				case $? in
+					0)
+						if rclone copyto "${LG_GDRIVE_REMOTE:-gdrive}:${LG_GDRIVE_DIR:-litegapps-mirror}/files-server/$rel" "$out" \
+							--drive-acknowledge-abuse --retries 1 $progress \
+							&& unzip -tq "$out" >/dev/null 2>&1; then
+							return 0
+						fi
+						;;
+					4)
+						# it listed SourceForge and the file is not there
+						print "! <$rel> is not on SourceForge either"
+						rm -f "$out"
+						return 1
+						;;
+				esac
 				rm -f "$out"
 			fi
 			print "! <$rel> not on the Drive mirror (or broken) - falling back to SourceForge"

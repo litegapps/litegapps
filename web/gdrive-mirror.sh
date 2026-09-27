@@ -112,6 +112,15 @@ if [ "$MODE" = check ]; then
 		| grep --line-buffered -E "Skipped copy|NOTICE|ERROR|Transferred" | sed -u 's/^/  /'
 	RC=${PIPESTATUS[0]}
 elif [ "$MODE" = file ]; then
+	# A file missing on SourceForge is an answer, not an error to retry: most
+	# targets have no <sdk>-lite.zip on purpose and the restore falls back to
+	# <sdk>.zip. One listing tells that apart from a broken connection (ssh
+	# exits 255), and exit 4 tells fetch_source not to ask SourceForge again.
+	LS="$(rsync --list-only -e "ssh $SSH_OPTS" "$SF_USER@$SF_HOST:$SF_FRS/files-server/$FILE" 2>&1)"
+	if [ $? -ne 0 ] && printf '%s\n' "$LS" | grep -q "No such file or directory"; then
+		print "- <$FILE> is not on SourceForge"
+		exit 4
+	fi
 	print "--- Copying <$FILE> from SourceForge ---"
 	OUT="$(mktemp)"
 	rclone copyto "$SRC/$FILE" "$DST/$FILE" $STATS -v 2>&1 \

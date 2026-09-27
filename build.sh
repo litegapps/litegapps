@@ -80,12 +80,23 @@ fetch_source(){
 			# exist - the panel; a plain clone goes straight to SourceForge.
 			if [ -f "$base/web/gdrive-mirror.sh" ] && [ -n "$SF_USER" ]; then
 				printlog "     ! <$rel> not on the Drive mirror - mirroring it from SourceForge"
-				if GDRIVE_REMOTE="${LG_GDRIVE_REMOTE:-gdrive}" GDRIVE_DIR="${LG_GDRIVE_DIR:-litegapps-mirror}" \
-					MIRROR_QUICK=1 bash "$base/web/gdrive-mirror.sh" file "$rel" \
-					&& rclone_get "${LG_GDRIVE_REMOTE:-gdrive}:${LG_GDRIVE_DIR:-litegapps-mirror}/files-server/$rel" "$out" \
-					&& unzip -tq "$out" >/dev/null 2>&1; then
-					return 0
-				fi
+				GDRIVE_REMOTE="${LG_GDRIVE_REMOTE:-gdrive}" GDRIVE_DIR="${LG_GDRIVE_DIR:-litegapps-mirror}" \
+					MIRROR_QUICK=1 bash "$base/web/gdrive-mirror.sh" file "$rel"
+				case $? in
+					0)
+						if rclone_get "${LG_GDRIVE_REMOTE:-gdrive}:${LG_GDRIVE_DIR:-litegapps-mirror}/files-server/$rel" "$out" \
+							&& unzip -tq "$out" >/dev/null 2>&1; then
+							return 0
+						fi
+						;;
+					4)
+						# it listed SourceForge and the file is not there: a
+						# download from SourceForge would only 404 as well
+						printlog "     ! <$rel> is not on SourceForge either"
+						del "$out"
+						return 1
+						;;
+				esac
 				del "$out"
 			fi
 			printlog "     ! <$rel> not on the Drive mirror - falling back to SourceForge"
