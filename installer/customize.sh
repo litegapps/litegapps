@@ -491,7 +491,7 @@ INITIAL(){
     arm64) ARCH=arm64 ;;
     armeabi | arm) ARCH=arm ;;
     x86) ARCH=x86 ;;
-    x86_64) ARCH=x86_64 ;;
+    x86_64 | x64) ARCH=x86_64 ;;
     *) report_bug " <$ARCH> Your Architecture Not Support" ;;
     esac
     
