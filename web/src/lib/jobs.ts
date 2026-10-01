@@ -116,6 +116,7 @@ function plan(req: JobRequest): Plan {
 			};
 		}
 		case "build-batch": {
+			if (req.retry) return retryPlan(req);
 			// Targets are ticked one by one in the checklist ("<arch>-<sdk>");
 			// their variants are never chosen here - they come from the panel's
 			// per-target config, with the built-in default as fallback.
@@ -221,6 +222,66 @@ function plan(req: JobRequest): Plan {
 		default:
 			throw new Error(`unknown job kind: ${req.kind}`);
 	}
+}
+
+/*
+ * A retry of an earlier batch build: only what failed, as per-target steps
+ * ("<arch>:<sdk>@fresh+addon+upload=<variants>", see web/build-batch.sh).
+ * Every target starts from fresh sources, restored again, so a retry never
+ * reuses the download that may have broken the first run.
+ */
+function retryPlan(req: JobRequest): Plan {
+	const retry = req.retry!;
+	const targets = [...retry.targets].sort((a, b) => a.arch.localeCompare(b.arch) || b.sdk - a.sdk);
+	if (!targets.length) throw new Error("tidak ada yang dipilih untuk diulang");
+
+	const seen = new Set<string>();
+	const parts: string[] = [];
+	let count = 0;
+	for (const t of targets) {
+		const key = `${t.arch}-${t.sdk}`;
+		if (seen.has(key)) throw new Error(`target ganda: ${t.arch}/${t.sdk}`);
+		seen.add(key);
+		if (!(ARCHS as readonly string[]).includes(t.arch)) throw new Error(`bad arch: ${t.arch}`);
+		if (!(SDKS as readonly number[]).includes(t.sdk)) throw new Error(`bad sdk: ${t.sdk}`);
+		if (!targetSupported(t.arch, t.sdk)) {
+			throw new Error(`${t.arch}/${t.sdk}: ${unsupportedReason(t.arch, t.sdk)}`);
+		}
+		const variants = [...new Set(t.variants)];
+		for (const v of variants) {
+			if (!(VARIANTS as readonly string[]).includes(v)) throw new Error(`bad variant: ${v}`);
+			if (!variantSupported(v, t.arch, t.sdk)) throw new Error(GO_UNSUPPORTED_MSG);
+		}
+		if (!variants.length && !t.addon && !t.upload) continue;
+
+		// An upload-only retry keeps the sources: nothing is built from them.
+		const steps = [
+			...(variants.length || t.addon ? ["fresh"] : []),
+			...(t.addon ? ["addon"] : []),
+			...(t.upload ? ["upload"] : []),
+		];
+		parts.push(`${t.arch}:${t.sdk}@${steps.join("+")}=${variants.join(",")}`);
+		count += variants.length;
+	}
+	if (!parts.length) throw new Error("tidak ada yang dipilih untuk diulang");
+
+	const upload = targets.some((t) => t.upload);
+	const addon = targets.some((t) => t.addon);
+	return {
+		// Restore always on; clean after as the retry form says (the first
+		// run's choice), so a disk that filled up once is not filled again.
+		// Addon and upload come from the targets' own steps.
+		argv: ["bash", "web/build-batch.sh", parts.join(";"), "1", req.cleanAfter ? "1" : "0", "0", "0"],
+		label:
+			`retry #${retry.of} · build ${count} zip · ${parts.length} target` +
+			(addon ? " · addon" : "") +
+			(upload ? " · upload SF" : ""),
+		env: {
+			...packageEnv(req.packages ?? {}),
+			SF_PRUNE: req.retention?.on === false ? "0" : "1",
+			SF_KEEP_RELEASES: String(req.retention?.keep ?? 15),
+		},
+	};
 }
 
 /*

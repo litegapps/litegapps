@@ -192,7 +192,9 @@ redeploy and can be restored on another machine.
 
 Nothing about *which* targets are built is read from the repo: the panel
 resolves the variant list per target before the job starts and passes it in
-argv as `<arch>:<sdk>=<variant,...>`, then the batch script invokes
+argv as `<arch>:<sdk>=<variant,...>` (a retry adds per-target steps:
+`<arch>:<sdk>@fresh+addon+upload=<variant,...>`, see the header of
+`build-batch.sh`), then the batch script invokes
 `bash build.sh make litegapps <variant> <arch> <sdk>` per variant - the same
 call the maintainer release build makes. The main `config` still supplies
 version, compression, zip level, signer and builder.

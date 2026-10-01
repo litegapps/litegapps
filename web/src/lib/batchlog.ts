@@ -7,6 +7,8 @@
  *   " Builds   : 120"                         how many zips the run plans
  *   " Restore  : 1   Clean : 1   Addon : 1   Upload : 1"
  *   " - arm64 sdk 36 : lite,core,..."         the plan, one line per target
+ *   " - arm64 sdk 36 : lite [steps: upload]"  a target with its own addon/upload
+ *                                             steps (a retry); "(none)" = no variant
  *   "=== [34/120] superlite arm64 sdk 36 ==="  a build starts (variant first)
  *   "- gapps source missing, restoring"        that build had to restore first
  *   "- build ok <V A S>" / "! build failed <V A S>"
@@ -39,6 +41,8 @@ export type TargetProgress = {
 	upload: StepState;
 	/** the zips are up, but the addon upload or the prune complained */
 	uploadWarning?: string;
+	/** the target named its own steps (a retry run), overriding the run's flags */
+	steps?: { addon: boolean; upload: boolean };
 };
 
 export type BatchProgress = {
@@ -59,14 +63,29 @@ export type BatchProgress = {
 export const EVENT_LINE =
 	/^(?: *Builds +:| *Restore +:| *- [a-z0-9_]+ sdk \d+ :|=== |--- Release |- build ok |! build failed |- addon ok |! addon failed |! restore failed |- gapps source missing|! gapps source missing|- nothing to upload |! zip upload failed |! addon upload failed |! addon api failed |! release api failed |! prune failed | *Batch build done )/;
 
+/*
+ * The outcome the script prints right after a build or addon step. A step
+ * that dies mid-message (cp/mkdir out of disk space) leaves its last line
+ * without a newline, and the marker lands at the end of it:
+ *   "mkdir: cannot create directory '...! build failed <micro arm64 37> (0m15s)"
+ * Without picking it out of there the build stays "running" in the table.
+ */
+const GLUED = /(?:- build ok |! build failed |! restore failed |- addon ok |! addon failed )<[^<>]+>.*$/;
+
 export function eventLines(log: string): string {
-	return log
-		.split("\n")
-		.filter((l) => EVENT_LINE.test(l))
-		.join("\n");
+	const out: string[] = [];
+	for (const l of log.split("\n")) {
+		if (EVENT_LINE.test(l)) {
+			out.push(l);
+			continue;
+		}
+		const m = l.match(GLUED);
+		if (m) out.push(m[0]);
+	}
+	return out.join("\n");
 }
 
-const PLAN = /^ *- ([a-z0-9_]+) sdk (\d+) : (.*)$/;
+const PLAN = /^ *- ([a-z0-9_]+) sdk (\d+) : (.*?)(?: \[steps: ([a-z,]+)\])?$/;
 const BUILD = /^=== \[(\d+)\/(\d+)\] (\S+) (\S+) sdk (\d+) ===$/;
 const ADDON = /^=== addon (\S+) sdk (\d+) ===$/;
 const RELEASE = /^--- Release (\S+)\/(\d+) to SourceForge ---$/;
@@ -111,15 +130,18 @@ export function parseBatchLog(log: string): BatchProgress {
 			const arch = m[1];
 			const sdk = Number(m[2]);
 			const list = m[3].trim();
+			const steps = m[4]?.split(",");
 			const t: TargetProgress = {
 				arch,
 				sdk,
+				// "(skipped)", or "(none)" for a target that only runs its steps
 				variants:
-					list && list !== "(skipped)"
+					list && !list.startsWith("(")
 						? list.split(",").map((v) => ({ variant: v.trim(), state: "pending" as StepState }))
 						: [],
 				addon: "pending",
 				upload: "pending",
+				...(steps && { steps: { addon: steps.includes("addon"), upload: steps.includes("upload") } }),
 			};
 			targets.push(t);
 			byKey.set(`${arch}-${sdk}`, t);
@@ -150,6 +172,8 @@ export function parseBatchLog(log: string): BatchProgress {
 			continue;
 		}
 		if ((m = line.match(RELEASE))) {
+			// A retry that only uploads has release sections back to back.
+			closeUpload();
 			running = null;
 			const t = target(m[1], Number(m[2]));
 			if (t) {
@@ -263,8 +287,8 @@ export function parseBatchLog(log: string): BatchProgress {
 	// Anything never reached stays pending; an addon/upload that was switched
 	// off is not pending at all.
 	for (const t of targets) {
-		if (!options.addon) t.addon = "skipped";
-		if (!options.upload) t.upload = "skipped";
+		if (!options.addon || (t.steps && !t.steps.addon)) t.addon = "skipped";
+		if (!options.upload || (t.steps && !t.steps.upload)) t.upload = "skipped";
 	}
 
 	const ok = sumOk ?? count(targets, "ok");
@@ -278,4 +302,67 @@ function count(targets: TargetProgress[], state: StepState): number {
 	let n = 0;
 	for (const t of targets) for (const v of t.variants) if (v.state === state) n++;
 	return n;
+}
+
+/*
+ * What a finished run can retry: every failed variant, addon and zip upload,
+ * and, for a run that never reached its closing summary (stopped, or the
+ * panel went down), the builds and addons it did not get to. An upload left
+ * pending is not listed on its own - it comes back with the target's builds
+ * when the retry uploads - only one cut off mid-transfer is.
+ *
+ * Keys are what the retry form submits and the server action checks against
+ * this same list: "v:<variant>:<arch>:<sdk>", "a:<arch>:<sdk>", "u:<arch>:<sdk>".
+ */
+export type RetryItem = {
+	key: string;
+	step: "variant" | "addon" | "upload";
+	arch: string;
+	sdk: number;
+	variant?: string;
+	/** why it is listed, short */
+	why: string;
+	/** not failed, just never finished */
+	unfinished: boolean;
+};
+
+const UNFINISHED: StepState[] = ["pending", "running", "restoring"];
+
+export function retryItems(p: BatchProgress): RetryItem[] {
+	const cut = !p.finished;
+	const out: RetryItem[] = [];
+	for (const t of p.targets) {
+		const at = { arch: t.arch, sdk: t.sdk };
+		if (t.addon === "failed" || (cut && UNFINISHED.includes(t.addon))) {
+			out.push({
+				key: `a:${t.arch}:${t.sdk}`,
+				step: "addon",
+				...at,
+				why: t.addon === "failed" ? "addon gagal dibuat" : "belum dikerjakan",
+				unfinished: t.addon !== "failed",
+			});
+		}
+		for (const v of t.variants) {
+			if (v.state === "failed" || (cut && UNFINISHED.includes(v.state))) {
+				out.push({
+					key: `v:${v.variant}:${t.arch}:${t.sdk}`,
+					step: "variant",
+					...at,
+					variant: v.variant,
+					why: v.state === "failed" ? (v.note ?? "gagal") : "belum dikerjakan",
+					unfinished: v.state !== "failed",
+				});
+			}
+		}
+		if (t.upload === "failed" || (cut && t.upload === "running")) {
+			out.push({
+				key: `u:${t.arch}:${t.sdk}`,
+				step: "upload",
+				...at,
+				why: t.upload === "failed" ? "zip gagal diunggah" : "upload terputus",
+				unfinished: t.upload !== "failed",
+			});
+		}
+	}
+	return out;
 }

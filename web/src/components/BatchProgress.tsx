@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Icon from "./Icon";
-import type { BatchProgress as Progress, StepState } from "@/lib/batchlog";
+import BatchRetry from "./BatchRetry";
+import { retryItems, type BatchProgress as Progress, type StepState } from "@/lib/batchlog";
 
 /*
  * Progress table for a batch build, under the checklist that starts one.
@@ -162,6 +163,9 @@ export default function BatchProgress() {
 		if (t.uploadWarning) failures.push({ what: `upload ${t.arch}/${t.sdk}`, why: t.uploadWarning });
 	}
 
+	// Only once the job is over: a retry needs the job slot this one holds.
+	const retry = running ? [] : retryItems(p);
+
 	return (
 		<section className="card">
 			<div className="card-head">
@@ -216,8 +220,10 @@ export default function BatchProgress() {
 								</li>
 							))}
 						</ul>
-						Target yang gagal tidak menghentikan sisanya. Bangun ulang hanya yang gagal lewat
-						checklist di atas, atau lewat tab <b>Single</b>.
+						Target yang gagal tidak menghentikan sisanya.{" "}
+						{running
+							? "Setelah job selesai, yang gagal bisa diulang dari tombol di bawah tabel."
+							: "Ulangi yang gagal lewat tombol di bawah tabel."}
 					</div>
 				</div>
 			)}
@@ -297,6 +303,10 @@ export default function BatchProgress() {
 					</tbody>
 				</table>
 			</div>
+			)}
+
+			{!running && retry.length > 0 && (
+				<BatchRetry key={data.id} jobId={data.id} items={retry} upload={p.options.upload} clean={p.options.clean} />
 			)}
 
 			{!open && (

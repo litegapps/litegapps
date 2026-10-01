@@ -3,7 +3,17 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { currentUser, logout } from "@/lib/session";
-import { startJob, runningJob, stopJob, clearJobs, SOURCE_KINDS } from "@/lib/jobs";
+import {
+	startJob,
+	runningJob,
+	stopJob,
+	clearJobs,
+	getJob,
+	readJobEvents,
+	SOURCE_KINDS,
+	type JobRequest,
+} from "@/lib/jobs";
+import { parseBatchLog, retryItems } from "@/lib/batchlog";
 import { writeConfigDoc } from "@/lib/config";
 import { moveEntry, removeEntry, renameEntry } from "@/lib/files";
 import {
@@ -96,6 +106,68 @@ export async function startJobAction(formData: FormData) {
 	revalidatePath(back.split("?")[0]);
 	// The terminal dialog opens on this id, so even a job that finishes in a
 	// second still shows its output.
+	redirect(withParam(back, "job", String(id)));
+}
+
+/*
+ * Retry a finished batch build: restore and rebuild only what failed in it.
+ * The ticked items are checked against that job's own log, so the form can
+ * only ask for something that really failed there; upload follows the box,
+ * which the table pre-sets to what the first run did. It never goes through
+ * rememberForm - a retry must not change the Multi or Auto checklist.
+ */
+export async function retryBatchAction(formData: FormData) {
+	await requireAdmin();
+
+	const of = Number(formData.get("job"));
+	const back = backPath(String(formData.get("back") ?? "/"));
+
+	let id: number;
+	try {
+		const job = Number.isInteger(of) && of > 0 ? await getJob(of) : null;
+		if (!job || job.kind !== "build-batch") throw new Error(`job #${of} bukan batch build`);
+		if (job.status === "running") throw new Error(`job #${of} masih berjalan`);
+
+		const allowed = new Map(retryItems(parseBatchLog(await readJobEvents(of))).map((i) => [i.key, i]));
+		const picked = formData
+			.getAll("item")
+			.map((k) => allowed.get(String(k)))
+			.filter((i) => i !== undefined);
+		const upload = formData.get("upload") === "on";
+
+		const byTarget = new Map<string, NonNullable<JobRequest["retry"]>["targets"][number]>();
+		for (const i of picked) {
+			const k = `${i.arch}-${i.sdk}`;
+			let t = byTarget.get(k);
+			if (!t) {
+				t = { arch: i.arch, sdk: i.sdk, variants: [], addon: false, upload: false };
+				byTarget.set(k, t);
+			}
+			if (i.step === "variant" && i.variant) t.variants.push(i.variant);
+			if (i.step === "addon") t.addon = true;
+			if (i.step === "upload") t.upload = true;
+		}
+		// A target that builds anything again is released again when asked;
+		// rsync skips the zips that are already up.
+		for (const t of byTarget.values()) {
+			if (upload && (t.variants.length || t.addon)) t.upload = true;
+		}
+
+		id = await startJob({
+			kind: "build-batch",
+			retry: { of, targets: [...byTarget.values()] },
+			cleanAfter: formData.get("cleanAfter") === "on",
+			packages: await readPackageLists(),
+			config: await readPanelConfig(),
+			retention: await readRetention(),
+			source: await readSource(),
+		});
+	} catch (e) {
+		const reason = e instanceof Error ? e.message : "unknown error";
+		redirect(withParam(back, "error", reason));
+	}
+
+	revalidatePath(back.split("?")[0]);
 	redirect(withParam(back, "job", String(id)));
 }
 

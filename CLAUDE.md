@@ -189,7 +189,20 @@ Logs: `log/make.log` and `log/make_live.log` — **read these first when a build
   prints no marker, so it is inferred from a release section that ends without
   `! zip upload failed`; `! addon upload failed` and `! prune failed` are
   warnings on the row, not upload failures. Keep those messages in step with
-  the parser if the script's output changes. `/info` holds the release matrices (gapps/package source,
+  the parser if the script's output changes. A step that dies mid-message
+  (out of disk space) leaves `! build failed <...>` glued to the end of its
+  last line, so `eventLines()` also picks the outcome markers out of a line's
+  tail. Once a batch job is over, the table offers **retry**
+  (`BatchRetry.tsx` -> `retryBatchAction`): every failed variant, addon and
+  zip upload (plus, for a run cut off before its summary, what it never got
+  to) as ticked chips, started as a new `build-batch` job labelled
+  `retry #<id>`. The action re-reads the old job's log and accepts only items
+  `retryItems()` lists there. A retry always restores: it passes per-target
+  steps (`<arch>:<sdk>@fresh+addon+upload=<variants>`; `fresh` runs
+  `clean-sources.sh` first so a broken download is not reused), rebuilds only
+  the ticked variants, and releases a target again only when its upload is
+  ticked or "Upload ke SourceForge" is on. A spec without `@` behaves exactly
+  as before. `/info` holds the release matrices (gapps/package source,
   published releases) and the status refresh.
   The build forms fold: `src/components/Fold.tsx` turns a form section into a
   drawer with a one-line summary when it is closed (Multi's target matrix,
@@ -454,8 +467,10 @@ anything:
   source for that target; only the addon step fails, the zips still build.
 - `source tidak ada` - the gapps were missing and auto-restore was off.
 
-Rebuild only the failed targets afterwards (checklist, or Build > Satu
-perintah); nothing in the run needs to be repeated wholesale.
+Rebuild only what failed afterwards with the progress table's **Restore &
+build ulang** button (it restores those targets anew and builds only the
+failed variants, addons and uploads, as a new job); nothing in the run needs
+to be repeated wholesale.
 
 ## Release retention on SourceForge
 

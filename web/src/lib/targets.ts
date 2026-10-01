@@ -163,6 +163,16 @@ export type JobRequest = {
 	mirror?: { remote: string; dir: string };
 	/** started by the monthly scheduler, not by a person */
 	auto?: boolean;
+	/**
+	 * a batch build that redoes only what an earlier one (`of`) failed: per
+	 * target the variants to rebuild, whether to rebuild its addon and whether
+	 * to release it again. Its sources are always deleted and restored anew.
+	 * Resolved server side from that job's log; replaces `targets`.
+	 */
+	retry?: {
+		of: number;
+		targets: { arch: string; sdk: number; variants: string[]; addon: boolean; upload: boolean }[];
+	};
 	/** one mirrored file for mirror-file, relative to files-server/ */
 	path?: string;
 	/** where restores download sources from, resolved by the caller */

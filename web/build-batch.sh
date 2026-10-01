@@ -12,6 +12,16 @@
 #   targets   "<arch>:<sdk>=<variant,variant,...>" per target, separated by ";"
 #             e.g. "arm64:36=lite,pixel;arm:36=core"
 #             an empty variant list means: skip that target
+#             "<arch>:<sdk>@<steps>=<variants>" sets the addon/upload steps
+#             for that target alone, instead of the addon/upload flags below:
+#             <steps> is any of "fresh", "addon", "upload" joined by "+", or
+#             empty (neither addon nor upload). "fresh" deletes the target's
+#             sources first (web/clean-sources.sh), so they are restored anew
+#             instead of reusing a broken or half-finished download.
+#             The panel's retry uses it to redo only what failed, e.g.
+#             "arm64:36@fresh+upload=lite;arm:30@fresh+addon=" restores and
+#             rebuilds lite arm64/36 and releases that target again, and only
+#             restores and rebuilds arm/30's addon.
 #   restore   1 = restore missing sources first, 0 = build what is on disk
 #   clean     1 = delete the target's sources after it is built, 0 = keep
 #   addon     1 = build the addon packages for the target first
@@ -55,16 +65,37 @@ case "$DO_RESTORE" in 0 | 1) ;; *) die "bad restore flag <$DO_RESTORE>" ;; esac
 case "$DO_CLEAN" in 0 | 1) ;; *) die "bad clean flag <$DO_CLEAN>" ;; esac
 case "$DO_ADDON" in 0 | 1) ;; *) die "bad addon flag <$DO_ADDON>" ;; esac
 case "$DO_UPLOAD" in 0 | 1) ;; *) die "bad upload flag <$DO_UPLOAD>" ;; esac
-[ "$DO_UPLOAD" = 1 ] && need_sf
-
-# "<arch>:<sdk>=<variants>" -> validated "<arch> <sdk> <variants>" lines
+# "<arch>:<sdk>[@<steps>]=<variants>" -> validated
+# "<arch> <sdk> <addon> <upload> <has steps> <variants>" lines
 PLAN="$(printf '%s\n' "$TARGETS" | tr ';' '\n')"
 PARSED=""
 TOTAL=0
+ANY_ADDON=0
+ANY_UPLOAD=0
 for ENTRY in $PLAN; do
 	[ -n "$ENTRY" ] || continue
 	TARGET="${ENTRY%%=*}"
 	LIST="${ENTRY#*=}"
+	T_ADDON="$DO_ADDON"
+	T_UPLOAD="$DO_UPLOAD"
+	T_FRESH=0
+	HAS_STEPS=0
+	case "$TARGET" in
+		*@*)
+			HAS_STEPS=1
+			T_ADDON=0
+			T_UPLOAD=0
+			for STEP in $(echo "${TARGET#*@}" | tr '+' ' '); do
+				case "$STEP" in
+					addon) T_ADDON=1 ;;
+					upload) T_UPLOAD=1 ;;
+					fresh) T_FRESH=1 ;;
+					*) die "bad step <$STEP>" ;;
+				esac
+			done
+			TARGET="${TARGET%%@*}"
+			;;
+	esac
 	A="${TARGET%%:*}"
 	S="${TARGET#*:}"
 
@@ -80,9 +111,21 @@ for ENTRY in $PLAN; do
 		echo "$ALL_VARIANTS" | tr ' ' '\n' | grep -qx "$V" || die "bad variant <$V>"
 		TOTAL=$((TOTAL + 1))
 	done
-	PARSED="$PARSED$A $S $LIST
+	[ "$T_ADDON" = 1 ] && ANY_ADDON=1
+	[ "$T_UPLOAD" = 1 ] && ANY_UPLOAD=1
+	PARSED="$PARSED$A $S $T_ADDON $T_UPLOAD $T_FRESH $HAS_STEPS $LIST
 "
 done
+[ "$ANY_UPLOAD" = 1 ] && need_sf
+
+# The steps a target runs, for its plan line: "[steps: fresh,addon,upload]".
+steps_of(){
+	local out=""
+	[ "$3" = 1 ] && out="fresh"
+	[ "$1" = 1 ] && out="${out:+$out,}addon"
+	[ "$2" = 1 ] && out="${out:+$out,}upload"
+	echo "${out:-none}"
+}
 
 # took <start epoch>: "3m12s" since then, for the per-step timings in the log
 took(){
@@ -157,12 +200,18 @@ echo "==================================================="
 echo " Batch build"
 echo " Targets  : $(printf '%s' "$PLAN" | grep -c .)"
 echo " Builds   : $TOTAL"
-echo " Restore  : $DO_RESTORE   Clean : $DO_CLEAN   Addon : $DO_ADDON   Upload : $DO_UPLOAD"
+# Addon/Upload say whether any target runs that step; a target that does
+# not names its own steps on its plan line.
+echo " Restore  : $DO_RESTORE   Clean : $DO_CLEAN   Addon : $ANY_ADDON   Upload : $ANY_UPLOAD"
 echo "==================================================="
 echo " "
-printf '%s' "$PARSED" | while read -r A S LIST; do
+printf '%s' "$PARSED" | while read -r A S TA TU TF HS LIST; do
 	[ -n "$A" ] || continue
-	echo " - $A sdk $S : ${LIST:-(skipped)}"
+	if [ "$HS" = 1 ]; then
+		echo " - $A sdk $S : ${LIST:-(none)} [steps: $(steps_of "$TA" "$TU" "$TF")]"
+	else
+		echo " - $A sdk $S : ${LIST:-(skipped)}"
+	fi
 done
 echo " "
 
@@ -187,9 +236,12 @@ IFS='
 for LINE in $PARSED; do
 	IFS="$OLD_IFS"
 	set -- $LINE
-	A="$1"; S="$2"; LIST="$(echo "${3:-}" | tr ',' ' ')"
+	A="$1"; S="$2"; T_ADDON="$3"; T_UPLOAD="$4"; T_FRESH="$5"; HAS_STEPS="$6"
+	LIST="$(echo "${7:-}" | tr ',' ' ')"
 
-	if [ -z "$LIST" ]; then
+	# No variant skips the target, unless it was given steps of its own (a
+	# retry that only rebuilds the addon or only uploads again).
+	if [ -z "$LIST" ] && { [ "$HAS_STEPS" != 1 ] || [ "$T_ADDON$T_UPLOAD" = 00 ]; }; then
 		echo " "
 		echo "=== $A sdk $S: no variant selected - skipping ==="
 		IFS='
@@ -197,7 +249,13 @@ for LINE in $PARSED; do
 		continue
 	fi
 
-	if [ "$DO_ADDON" = 1 ]; then
+	if [ "$T_FRESH" = 1 ]; then
+		echo " "
+		echo "--- fresh sources for $A/$S ---"
+		bash "$BASED/web/clean-sources.sh" "$A" "$S"
+	fi
+
+	if [ "$T_ADDON" = 1 ]; then
 		echo " "
 		echo "=== addon $A sdk $S ==="
 		T0=$(date +%s)
@@ -239,7 +297,7 @@ for LINE in $PARSED; do
 		fi
 	done
 
-	if [ "$DO_UPLOAD" = 1 ]; then
+	if [ "$T_UPLOAD" = 1 ]; then
 		T0=$(date +%s)
 		release_target "$A" "$S"
 		echo "- release <$A/$S> took $(took "$T0")"
