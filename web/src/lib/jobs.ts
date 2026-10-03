@@ -159,6 +159,20 @@ function plan(req: JobRequest): Plan {
 				},
 			};
 		}
+		case "db-backup":
+			return { argv: ["bash", "web/db-backup.sh"], label: "backup database ke SourceForge" };
+		case "db-list":
+			return { argv: ["bash", "web/db-list.sh"], label: "refresh daftar backup" };
+		case "db-restore": {
+			const name = req.name ?? "";
+			if (!BACKUP_NAME.test(name)) throw new Error(`bad backup name: ${name}`);
+			// JOB_ID_TOKEN becomes this job's own id once the row exists, so the
+			// restore can keep its own history row.
+			return {
+				argv: ["bash", "web/db-restore.sh", name, JOB_ID_TOKEN],
+				label: `restore database dari ${name}`,
+			};
+		}
 		case "clean-sources":
 			needArch(); needSdk();
 			return {
@@ -287,12 +301,13 @@ function retryPlan(req: JobRequest): Plan {
 /*
  * Job kinds that touch the build tree. Starting a second one while something
  * is already building would have two processes writing the same output/,
- * log/ and gapps directories.
+ * log/ and gapps directories. A database restore is one too: it rewrites the
+ * shell build configs a running build reads.
  */
 const BUILD_KINDS = new Set<string>([
 	"make", "packages", "build-batch",
 	"restore", "restore-bin", "restore-package", "restore-gapps",
-	"clean", "clean-sources", "clear-output",
+	"clean", "clean-sources", "clear-output", "db-restore",
 ]);
 
 /** Only one build may run at a time — they share output/ and log/. */
