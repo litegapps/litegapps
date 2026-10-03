@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { readdir, readFile, stat } from "node:fs/promises";
 import { createHash } from "node:crypto";
 import path from "node:path";
@@ -22,8 +23,10 @@ export type Backup = {
 };
 
 export type BackupState = {
-	/** first 8 hex of sha256(key), or null when DB_BACKUP_KEY is not set */
+	/** first 8 hex of sha256(key) new backups are sealed with, or null without a key */
 	fingerprint: string | null;
+	/** where that key comes from: the SourceForge ssh key, or DB_BACKUP_KEY */
+	keySource: "ssh" | "env" | null;
 	generated: string | null;
 	backups: Backup[];
 };
@@ -32,10 +35,31 @@ function backupDir(): string {
 	return path.join(repoRoot(), "web", "db-backups");
 }
 
-export function keyFingerprint(): string | null {
+/*
+ * Same choice as key() in web/db-tool.mjs: the key derived from the ssh key
+ * (so a new VPS with the same ssh key opens every backup), DB_BACKUP_KEY only
+ * when there is no ssh key. Keep the two in step.
+ */
+function sealKey(): { key: Buffer; source: "ssh" | "env" } | null {
+	try {
+		const ssh = readFileSync(
+			/*turbopackIgnore: true*/ path.join(process.env.HOME ?? "", ".ssh", "id_rsa"),
+		);
+		return {
+			key: createHash("sha256").update("litegapps-db-backup\n").update(ssh).digest(),
+			source: "ssh",
+		};
+	} catch {
+		// no ssh key imported
+	}
 	const raw = (process.env.DB_BACKUP_KEY ?? "").trim();
-	if (!/^[0-9a-fA-F]{64}$/.test(raw)) return null;
-	return createHash("sha256").update(Buffer.from(raw, "hex")).digest("hex").slice(0, 8);
+	if (/^[0-9a-fA-F]{64}$/.test(raw)) return { key: Buffer.from(raw, "hex"), source: "env" };
+	return null;
+}
+
+export function keyFingerprint(): string | null {
+	const k = sealKey();
+	return k ? createHash("sha256").update(k.key).digest("hex").slice(0, 8) : null;
 }
 
 export async function readBackups(): Promise<BackupState> {
@@ -72,5 +96,5 @@ export async function readBackups(): Promise<BackupState> {
 	}
 
 	const backups = [...map.values()].sort((a, b) => b.name.localeCompare(a.name));
-	return { fingerprint: keyFingerprint(), generated, backups };
+	return { fingerprint: keyFingerprint(), keySource: sealKey()?.source ?? null, generated, backups };
 }

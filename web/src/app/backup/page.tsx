@@ -62,7 +62,8 @@ export default async function BackupPage({
 						Backup Database
 					</h1>
 					<p style={{ margin: 0, color: "var(--md-on-surface-variant)" }}>
-						Isi database panel (akun admin, riwayat job, pengaturan, dan config target) disimpan
+						Semua data panel kecuali kredensial (riwayat job beserta log, pengaturan, config
+						target, package list, identitas build, indeks File API, dan status mirror) disimpan
 						terenkripsi ke SourceForge di{" "}
 						<code>project/litegapps/db</code>.
 					</p>
@@ -107,9 +108,10 @@ export default async function BackupPage({
 					<div className="note" style={{ marginTop: 20 }}>
 						<Icon name="warning" />
 						<div>
-							<b>DB_BACKUP_KEY belum ada di web/.env.</b> Backup ditolak tanpa kunci, karena area
-							rilis SourceForge bisa diunduh siapa saja. Jalankan <code>bash web/start.sh</code>{" "}
-							untuk membuatnya.
+							<b>Kunci SSH SourceForge belum ada di container.</b> Backup ditolak tanpa kunci,
+							karena area rilis SourceForge bisa diunduh siapa saja. Letakkan kunci di{" "}
+							<code>SSH_DIR/SSH_KEY_NAME</code> (web/.env), lalu jalankan{" "}
+							<code>bash web/start.sh</code>.
 						</div>
 					</div>
 				)}
@@ -160,16 +162,24 @@ export default async function BackupPage({
 						<span className="item">
 							<Icon name="lock" />
 							<span>
-								File dienkripsi AES-256-GCM dengan <code>DB_BACKUP_KEY</code> sebelum diunggah.
-								Simpan kunci itu di tempat lain — tanpa kunci, backup tidak bisa dipulihkan.
+								File dienkripsi AES-256-GCM sebelum diunggah, dengan kunci{" "}
+								{state.keySource === "env" ? (
+									<>
+										dari <code>DB_BACKUP_KEY</code> — simpan kunci itu di tempat lain.
+									</>
+								) : (
+									<>
+										yang diturunkan dari kunci SSH SourceForge. VPS baru dengan kunci SSH yang
+										sama bisa langsung memulihkan backup ini.
+									</>
+								)}
 							</span>
 						</span>
 						<span className="item">
 							<Icon name="info" />
 							<span>
-								Sesi login tidak ikut dibackup, jadi restore tidak membuat siapa pun logout. Kalau
-								password admin berubah setelah backup dibuat, hash lama otomatis diperbarui saat
-								login berikutnya.
+								Akun admin, sesi login, <code>.env</code>, kunci SSH, dan token rclone tidak ikut
+								dibackup, jadi restore tidak mengubah login dan tidak membuat siapa pun logout.
 							</span>
 						</span>
 					</div>
@@ -251,7 +261,7 @@ export default async function BackupPage({
 														tone="tonal"
 														icon="settings_backup_restore"
 														label="Restore"
-														confirmText={`Pulihkan database dari backup ${fromName(b.name)}? Akun admin dan riwayat job saat ini akan diganti.`}
+														confirmText={`Pulihkan database dari backup ${fromName(b.name)}? Riwayat job, pengaturan, dan config saat ini akan diganti.`}
 													/>
 												</form>
 											</td>

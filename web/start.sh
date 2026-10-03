@@ -211,14 +211,10 @@ if unset_env ADMIN_PASSWORD; then
 	ok "[OK] ADMIN_PASSWORD generated (shown once at the end)"
 fi
 
-# Database backups are uploaded to the SourceForge release area, which is
-# world readable, so they are always encrypted. No key, no backup.
-GENERATED_DB_KEY=""
-if unset_env DB_BACKUP_KEY; then
-	GENERATED_DB_KEY="$(openssl rand -hex 32 2>/dev/null || head -c 32 /dev/urandom | od -An -tx1 | tr -d ' \n')"
-	set_env DB_BACKUP_KEY "$GENERATED_DB_KEY"
-	ok "[OK] DB_BACKUP_KEY generated (shown once at the end)"
-fi
+# Database backups are encrypted with a key derived from the SourceForge ssh
+# key (web/db-tool.mjs), so a new VPS with the same ssh key restores them
+# with nothing else to carry over. DB_BACKUP_KEY is no longer generated; one
+# already in .env only opens the backups it made.
 
 if unset_env PUID; then set_env PUID "$REPO_UID"; fi
 if unset_env PGID; then set_env PGID "$REPO_GID"; fi
@@ -419,6 +415,20 @@ until code="$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:$PORT/log
 done
 ok "[OK] panel answers"
 
+# A fresh VPS: list the backups on SourceForge so /backup can restore one
+# right away, and say so when the database has no panel data yet.
+if [ ! -f "$WEB_DIR/db-backups.json" ]; then
+	if $DOCKER exec -u "$(get_env PUID)" -w /litegapps litegapps-web bash web/db-list.sh >/dev/null 2>&1; then
+		ok "[OK] backup list fetched from SourceForge"
+	else
+		warn "[WARN] could not list the backups on SourceForge (check SF_USER and the ssh key)"
+	fi
+fi
+FRESH_DB=0
+if [ "$($COMPOSE exec -T mysql sh -c 'mysql -uroot -p"$MYSQL_ROOT_PASSWORD" -N -e "SELECT (SELECT COUNT(*) FROM litegapps.build_config) + (SELECT COUNT(*) FROM litegapps.jobs)" 2>/dev/null' 2>/dev/null | tr -dc 0-9)" = "0" ]; then
+	FRESH_DB=1
+fi
+
 if [ ! -f "$WEB_DIR/status.json" ]; then
 	warn "[WARN] status.json is missing - use \"Segarkan status\" in the panel"
 fi
@@ -438,10 +448,9 @@ if [ -n "$GENERATED_ADMIN_PASSWORD" ]; then
 else
 	echo    "  Login : $(get_env ADMIN_USER)  (password in web/.env)"
 fi
-if [ -n "$GENERATED_DB_KEY" ]; then
-	echo    "  DB key: $GENERATED_DB_KEY"
-	echo    "          (encrypts database backups - keep a copy somewhere else,"
-	echo    "           without it an uploaded backup cannot be restored)"
+if [ "$FRESH_DB" = 1 ]; then
+	warn "  Data  : the database is empty - moving from another VPS? open /backup"
+	warn "          and restore the newest backup (same ssh key = same backup key)"
 fi
 echo    "  Logs  : $COMPOSE logs -f web"
 echo -e "${BLUE}========================================================================${NC}"

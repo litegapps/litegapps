@@ -349,9 +349,14 @@ Logs: `log/make.log` and `log/make_live.log` — **read these first when a build
   and old releases were pruned (`! addon api failed <A/S>` / `! release api
   failed <A/S>` are warnings on the progress row). Verified 2026-09-24: all 1388 entries matched lico's bundled
   index.
-  `/backup` dumps the database (users + jobs; never
-  sessions) with `web/db-tool.mjs`, **always AES-256-GCM encrypted** with
-  `DB_BACKUP_KEY` because the upload target `$HOMEE/db` is world readable,
+  `/backup` dumps everything the panel keeps except credentials (all tables
+  but `users`/`sessions`, plus `web/job-logs/`, `web/api/`, the mirror
+  state files and the `/config` values minus the build identity; never
+  `.env`, keys or tokens) with `web/db-tool.mjs`, **always AES-256-GCM encrypted** because
+  the upload target `$HOMEE/db` is world readable - with a key derived from
+  the SourceForge ssh key, so a new VPS with that key restores every backup
+  (`DB_BACKUP_KEY` only opens older backups made with a random per-VPS key;
+  moving the panel: `.claude/skills/migrate-panel/SKILL.md`),
   and uploads it with rsync of a staged directory (that restricted account
   cannot mkdir and its rsync has no `--mkpath`). A switch on that page turns
   on a daily backup, run by an in-process scheduler

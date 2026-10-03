@@ -45,7 +45,9 @@ never reimplements build logic.
   builds or sources for SDK 31+ (`target_supported()` in `build.sh`,
   `targetSupported()` in `web/src/lib/targets.ts`).
 - Anything uploaded to `$HOMEE` (`/home/frs/project/litegapps`) is public.
-  Database backups that go to `<project>/db/` are therefore always encrypted.
+  Database backups that go to `<project>/db/` are therefore always encrypted,
+  with a key derived from the SourceForge ssh key so a new VPS with that key
+  can restore them. Moving the panel: `.claude/skills/migrate-panel/SKILL.md`.
 
 ## Before deploying the panel
 

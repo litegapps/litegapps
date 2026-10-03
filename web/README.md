@@ -273,14 +273,19 @@ area at `<project>/db/`, and restores it back. Three jobs do the work:
 listing lands in `web/db-backups.json`, so the page never talks to
 SourceForge inside a request).
 
-**The dump is always encrypted** (AES-256-GCM, `DB_BACKUP_KEY` in `.env`,
-generated and printed once by `start.sh`). The release area is world
-readable and the database holds the admin password hash, so `db-tool.mjs`
-refuses to run without a key rather than falling back to plaintext. The file
+**The dump is always encrypted** (AES-256-GCM). The release area is world
+readable, so `db-tool.mjs` refuses to run without a key rather than falling
+back to plaintext. The key is derived from the SourceForge ssh key
+(`sha256("litegapps-db-backup\n" + id_rsa)`): every machine that can reach
+the backups already holds it, so a new VPS with the same ssh key restores
+them with nothing else to carry over, and whoever holds that key already has
+write access to the release area. `DB_BACKUP_KEY` in `.env` is only a
+fallback - it opens backups made with the random per-VPS key `start.sh`
+used to generate, and seals new ones only when there is no ssh key. The file
 header carries the key fingerprint in the clear, so a restore with the wrong
-key says so instead of failing on an authentication error — the page shows
-the current fingerprint. Keep a copy of the key off the VPS: without it an
-uploaded backup cannot be restored.
+key says which one it needs instead of failing on an authentication error -
+the page shows the current fingerprint. Moving the panel step by step:
+`.claude/skills/migrate-panel/SKILL.md`.
 
 The page also has an on/off switch for a **daily** backup. There is no cron in
 the image and no second process to run one, so the panel schedules it itself:
@@ -296,15 +301,25 @@ tomorrow rather than every five minutes.
 
 Details worth knowing:
 
-- `users`, `jobs`, `settings`, `build_targets`, `package_lists` and `build_config` are dumped. `sessions.token` is the raw login
-  cookie, so sessions never leave the machine — and a restore therefore never
-  logs anyone out.
+- A backup holds everything the panel keeps **except credentials**: the
+  tables `jobs`, `settings`, `build_targets`, `package_lists` and
+  `build_config`, plus the panel's state files under `web/` — `job-logs/`
+  (so restored job rows still open their logs), `api/` (the File API
+  indexes, whose `md5` values cannot be rebuilt from SourceForge) and
+  `mirror-status.json` / `mirror-files.json` / `mirror-copied.tsv`. Only file
+  names on that allowlist are read or written back. `users` and `sessions`
+  stay on the VPS: `sessions.token` is the raw login cookie, and the admin
+  account comes from `ADMIN_USER` / `ADMIN_PASSWORD` in `.env`, so a restore
+  never logs anyone out or changes the login. `.env`, the ssh key and the
+  rclone token are never read. The values of the shell build configs the
+  `/config` page edits travel too; a restore rewrites only keys the file
+  still has (like `/config`) and never the build identity keys in `config`,
+  which belong to `build_config`. Backups from before files were included
+  (format `version: 1`) restore their tables only.
 - The restore keeps its own job row (`plan()` passes a `__JOB_ID__`
   placeholder that `startJob` fills in with the new id), so the history does
   not end before the restore that produced it. Rows that were `running` in
   the backup come back as `unknown`.
-- A restored admin hash that predates an `ADMIN_PASSWORD` change is re-hashed
-  from the environment on the next login by `ensureAdmin()`.
 - `mysqldump` is not usable here (Debian ships the MariaDB client, which
   cannot do `caching_sha2_password` against MySQL 8.4), so the dump is JSON
   written through mysql2 and restored with parameterised inserts. mysql2 is

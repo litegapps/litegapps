@@ -9,7 +9,7 @@
  *
  * Why a JSON dump instead of mysqldump: the image has no MySQL 8 client (the
  * Debian one is MariaDB and cannot speak caching_sha2_password), and the panel
- * only stores three small tables. Rows go back in through parameterised
+ * only stores a few small tables. Rows go back in through parameterised
  * inserts, so nothing is ever parsed back out of SQL text.
  *
  * The file is ALWAYS encrypted (AES-256-GCM, key DB_BACKUP_KEY). Backups are
@@ -17,10 +17,13 @@
  * and this database holds the admin password hash - a plaintext dump there
  * would be a public credential leak. Without a key the tool refuses to run.
  *
- * Live sessions are deliberately not part of a backup: session.token is the
- * raw login cookie, so the safest place for it is nowhere but the VPS.
- * Everything else the panel keeps - the admin account, job history, its
- * settings and the per-target build config - travels with the backup.
+ * A backup holds everything the panel keeps except credentials: every table
+ * but `users` and `sessions`, plus the panel's own state files under web/
+ * (job logs, the File API indexes, the Drive mirror state). Credentials stay
+ * on the VPS: session.token is the raw login cookie, and the admin account is
+ * created from ADMIN_USER / ADMIN_PASSWORD in .env by ensureAdmin(). .env,
+ * the ssh key and the rclone token live outside these paths and are never
+ * read. Backups made before files were added restore their tables only.
  *
  * Copyright 2020 - 2025 The LiteGapps Project
  */
@@ -28,15 +31,143 @@
 import { createRequire } from "node:module";
 import { createHash, createCipheriv, createDecipheriv, randomBytes } from "node:crypto";
 import { gzipSync, gunzipSync } from "node:zlib";
-import { readFileSync, writeFileSync, existsSync } from "node:fs";
+import { readFileSync, writeFileSync, existsSync, readdirSync, mkdirSync, renameSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.dirname(HERE);
 
-// Tables worth keeping. `sessions` is omitted on purpose (see header).
-const TABLES = ["users", "jobs", "settings", "build_targets", "package_lists", "build_config"];
+// Tables worth keeping. `users` and `sessions` are omitted on purpose (see
+// header), so a restore never touches the login account or logs anyone out.
+const TABLES = ["jobs", "settings", "build_targets", "package_lists", "build_config"];
+
+// Panel state files, relative to web/. Only names matching `match` are read
+// or written, so a backup can never reach .env, keys or anything outside.
+const FILE_SETS = [
+	{ dir: "job-logs", match: /^\d+\.(log|exit)$/, recursive: false },
+	{ dir: "api", match: /^[\w.-]+\.(json|md)$/, recursive: true },
+	{ dir: ".", match: /^(mirror-status\.json|mirror-files\.json|mirror-copied\.tsv)$/, recursive: false },
+];
+
+// The shell build configs the /config page edits (CONFIG_FILES in
+// src/lib/config.ts), repo-relative. They are git-tracked files, so a backup
+// keeps only their values: a restore rewrites the value of keys the file
+// still has and leaves comments, order and keys added by later commits alone,
+// exactly like the /config editor does.
+const CONFIG_FILES = [
+	"config",
+	"packages/config",
+	...["lite", "core", "go", "micro", "pixel", "nano", "basic", "user", "superlite"].map(
+		(v) => `core/litegapps/${v}/config`,
+	),
+	"core/litegappsx/microg/config",
+];
+// The build identity lives in the build_config table and must never be
+// written back into the repo `config` (see CLAUDE.md), so it is skipped there.
+const IDENTITY_KEYS = new Set(["version", "version.code", "codename", "name.builder", "build.status"]);
+const KEY_LINE = /^([A-Za-z0-9_.-]+)=(.*)$/;
+
+function configKeySkipped(file, key) {
+	return file === "config" && IDENTITY_KEYS.has(key);
+}
+
+function readConfigValues(file) {
+	let raw;
+	try {
+		raw = readFileSync(path.join(ROOT, file), "utf8");
+	} catch {
+		return null;
+	}
+	const values = {};
+	for (const line of raw.split("\n")) {
+		const m = KEY_LINE.exec(line);
+		if (m && !(m[1] in values) && !configKeySkipped(file, m[1])) values[m[1]] = m[2];
+	}
+	return values;
+}
+
+/** Returns the keys whose value changed. */
+function writeConfigValues(file, values) {
+	const full = path.join(ROOT, file);
+	let raw;
+	try {
+		raw = readFileSync(full, "utf8");
+	} catch {
+		return null;
+	}
+	const done = new Set();
+	const changed = [];
+	const out = raw.split("\n").map((line) => {
+		const m = KEY_LINE.exec(line);
+		if (!m || done.has(m[1])) return line;
+		const key = m[1];
+		done.add(key);
+		if (configKeySkipped(file, key) || !Object.hasOwn(values, key)) return line;
+		const next = values[key];
+		// Same rule as badValue(): one plain line a shell grep | cut can read.
+		if (typeof next !== "string" || next.length > 500 || /[\p{Cc}]/u.test(next) || next !== next.trim()) {
+			return line;
+		}
+		if (next === m[2]) return line;
+		changed.push(key);
+		return `${key}=${next}`;
+	});
+	if (changed.length) {
+		const tmp = `${full}.restore-${process.pid}`;
+		writeFileSync(tmp, out.join("\n"), "utf8");
+		renameSync(tmp, full);
+	}
+	return changed;
+}
+
+function listFiles(set) {
+	const out = [];
+	const walk = (rel) => {
+		let entries;
+		try {
+			entries = readdirSync(path.join(HERE, rel), { withFileTypes: true });
+		} catch {
+			return; // directory not there yet
+		}
+		for (const e of entries) {
+			const p = rel === "." ? e.name : `${rel}/${e.name}`;
+			if (e.isDirectory() && set.recursive && /^[\w.-]+$/.test(e.name)) walk(p);
+			else if (e.isFile() && set.match.test(e.name)) out.push(p);
+		}
+	};
+	walk(set.dir);
+	return out;
+}
+
+/** A relative path a backup may write: inside one of FILE_SETS, no "..". */
+function allowedFile(rel) {
+	if (typeof rel !== "string" || rel.includes("..") || rel.startsWith("/")) return false;
+	const parts = rel.split("/");
+	const name = parts[parts.length - 1];
+	return FILE_SETS.some((s) => {
+		const top = s.dir === "." ? parts.length === 1 : parts[0] === s.dir && (s.recursive || parts.length === 2);
+		return top && s.match.test(name);
+	});
+}
+
+// Logs are text, but rclone and builds can print stray bytes; keep those
+// byte-exact instead of letting utf8 replace them.
+function encodeFile(buf) {
+	const text = buf.toString("utf8");
+	return Buffer.from(text, "utf8").equals(buf) ? { text } : { base64: buf.toString("base64") };
+}
+
+function decodeFile(f) {
+	if (typeof f.text === "string") return Buffer.from(f.text, "utf8");
+	if (typeof f.base64 === "string") return Buffer.from(f.base64, "base64");
+	return null;
+}
+
+function jobIdOf(rel) {
+	const m = /^job-logs\/(\d+)\./.exec(rel);
+	return m ? Number(m[1]) : null;
+}
 const MAGIC = "LGDB1";
 
 function die(msg) {
@@ -60,16 +191,52 @@ function loadEnv() {
 	}
 }
 
-function key() {
-	const raw = (process.env.DB_BACKUP_KEY ?? "").trim();
-	if (!raw) {
-		die(
-			"DB_BACKUP_KEY is not set in web/.env - refusing to write an unencrypted backup " +
-				"(the SourceForge release area is public). Run bash web/start.sh to generate one.",
-		);
+/*
+ * The backup key is derived from the SourceForge ssh key by default. That key
+ * has to be on every machine that can reach the backups at all, so moving the
+ * panel to a new VPS needs nothing beyond what it needs anyway: copy the ssh
+ * key, deploy, restore. It also grants write access to the release area, so
+ * whoever holds it gains nothing from reading a backup. DB_BACKUP_KEY in .env
+ * (64 hex) is only a fallback: it opens backups made with it before the
+ * derivation existed, and seals new ones only when there is no ssh key.
+ */
+function sshKeyFile() {
+	return path.join(process.env.HOME ?? "", ".ssh", "id_rsa");
+}
+
+function derivedKey() {
+	try {
+		const ssh = readFileSync(sshKeyFile());
+		return createHash("sha256").update("litegapps-db-backup\n").update(ssh).digest();
+	} catch {
+		return null;
 	}
+}
+
+function envKey() {
+	const raw = (process.env.DB_BACKUP_KEY ?? "").trim();
+	if (!raw) return null;
 	if (!/^[0-9a-fA-F]{64}$/.test(raw)) die("DB_BACKUP_KEY must be 64 hex characters (32 bytes)");
 	return Buffer.from(raw, "hex");
+}
+
+/** The key new backups are sealed with. */
+function key() {
+	const k = derivedKey() ?? envKey();
+	if (!k) {
+		die(
+			`no backup key: neither DB_BACKUP_KEY in web/.env nor the ssh key ${sshKeyFile()} - ` +
+				"refusing to write an unencrypted backup (the SourceForge release area is public)",
+		);
+	}
+	return k;
+}
+
+/** Every key a backup may have been sealed with, for a restore. */
+function keys() {
+	const all = [derivedKey(), envKey()].filter(Boolean);
+	if (!all.length) die(`no backup key: set DB_BACKUP_KEY in web/.env or import the ssh key ${sshKeyFile()}`);
+	return all;
 }
 
 /** Short public identifier of a key, so a backup can say which key it needs. */
@@ -127,13 +294,17 @@ function seal(json, k) {
 	return Buffer.concat([head, body, cipher.getAuthTag()]);
 }
 
-function unseal(buf, k) {
+function unseal(buf, candidates) {
 	const nl = buf.indexOf(0x0a);
 	if (nl < 0) die("not a LiteGapps backup file");
 	const [magic, fp, ivHex] = buf.subarray(0, nl).toString("utf8").split(" ");
 	if (magic !== MAGIC) die(`unknown backup format <${magic}>`);
-	if (fp !== fingerprint(k)) {
-		die(`backup was made with another key (needs ${fp}, DB_BACKUP_KEY is ${fingerprint(k)})`);
+	const k = candidates.find((c) => fingerprint(c) === fp);
+	if (!k) {
+		die(
+			`backup was made with another key (needs ${fp}, this panel has ${candidates.map(fingerprint).join(", ")}) - ` +
+				"import the ssh key it was made with, or put that key in DB_BACKUP_KEY",
+		);
 	}
 	const body = buf.subarray(nl + 1, buf.length - 16);
 	const tag = buf.subarray(buf.length - 16);
@@ -154,7 +325,7 @@ async function dump(file) {
 	const k = key();
 	const mysql = loadMysql();
 	const c = await connect(mysql);
-	const data = { version: 1, created: new Date().toISOString(), tables: {} };
+	const data = { version: 2, created: new Date().toISOString(), tables: {}, files: {}, configs: {} };
 	try {
 		for (const t of TABLES) {
 			const [rows] = await c.query(`SELECT * FROM \`${t}\``);
@@ -165,14 +336,33 @@ async function dump(file) {
 		await c.end();
 	}
 
+	for (const set of FILE_SETS) {
+		const files = listFiles(set);
+		let bytes = 0;
+		for (const rel of files) {
+			const buf = readFileSync(path.join(HERE, rel));
+			data.files[rel] = encodeFile(buf);
+			bytes += buf.length;
+		}
+		console.log(`- web/${set.dir === "." ? "mirror-*" : set.dir}: ${files.length} file(s), ${bytes} bytes`);
+	}
+
+	let nkeys = 0;
+	for (const file of CONFIG_FILES) {
+		const values = readConfigValues(file);
+		if (!values) continue;
+		data.configs[file] = values;
+		nkeys += Object.keys(values).length;
+	}
+	console.log(`- build configs: ${Object.keys(data.configs).length} file(s), ${nkeys} key(s)`);
+
 	writeFileSync(file, seal(data, k));
 	console.log(`- written : ${file}`);
 	console.log(`- key     : ${fingerprint(k)}`);
 }
 
 async function load(file, keepJobId) {
-	const k = key();
-	const data = unseal(readFileSync(file), k);
+	const data = unseal(readFileSync(file), keys());
 	if (!data?.tables) die("backup has no tables");
 	console.log(`- backup from ${data.created}`);
 
@@ -221,6 +411,40 @@ async function load(file, keepJobId) {
 		await c.query("SET FOREIGN_KEY_CHECKS = 1");
 	} finally {
 		await c.end();
+	}
+
+	if (data.files && typeof data.files === "object") {
+		let n = 0;
+		let skipped = 0;
+		for (const [rel, f] of Object.entries(data.files)) {
+			const buf = f && typeof f === "object" ? decodeFile(f) : null;
+			// The restore job's own log is being written right now.
+			if (!buf || !allowedFile(rel) || (keepJobId && jobIdOf(rel) === Number(keepJobId))) {
+				skipped++;
+				continue;
+			}
+			const dest = path.join(HERE, rel);
+			mkdirSync(path.dirname(dest), { recursive: true });
+			const tmp = `${dest}.restore-${process.pid}`;
+			writeFileSync(tmp, buf);
+			renameSync(tmp, dest);
+			n++;
+		}
+		console.log(`- files: ${n} restored${skipped ? `, ${skipped} skipped` : ""}`);
+	} else {
+		console.log("- files: not in this backup (made before files were included)");
+	}
+
+	if (data.configs && typeof data.configs === "object") {
+		for (const [file, values] of Object.entries(data.configs)) {
+			if (!CONFIG_FILES.includes(file) || !values || typeof values !== "object") continue;
+			const changed = writeConfigValues(file, values);
+			if (changed === null) console.log(`- ${file}: not in this checkout, skipped`);
+			else if (changed.length) console.log(`- ${file}: ${changed.join(", ")}`);
+		}
+		console.log("- build configs: restored");
+	} else {
+		console.log("- build configs: not in this backup");
 	}
 	console.log("- done");
 }
