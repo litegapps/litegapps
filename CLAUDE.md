@@ -656,3 +656,24 @@ check afterwards found nothing left to copy. Things learned setting it up:
 - Unproven: the per-gapps-base `files.tar` cache key - build lite and superlite
   for one target with `litegapps.tar=multi` and marker files, then compare the
   two zips' `files.tar.xz`, on a free tree.
+- **Bug (reported 2026-10-27, open): Setup Wizard stops after a ROM update.**
+  The user updated the ROM over a Kopi (system) install; `27-litegapps.sh`
+  restored LiteGapps, and on first boot Setup Wizard crashes ("has stopped").
+  Not reproduced or diagnosed yet. Needed first: the device, ROM (before and
+  after), arch/SDK and variant, the recovery log of the addon.d run (does
+  every stage print, is anything skipped), and `adb logcat -b crash` /
+  `adb logcat | grep -iE 'setupwizard|AndroidRuntime'` from the crash.
+  Suspects to check, none confirmed:
+  - a file the wizard needs was not restored: backup only saves entries of
+    `list_install_<part>` that are regular files under `$S`, so anything the
+    ROM's backuptool did not mount, or a list path that does not resolve
+    under `$S`, is silently dropped (GmsCore, GSF, SetupWizard, the
+    `etc/permissions` / `privapp-permissions` xml, `etc/sysconfig`);
+  - SELinux labels / permissions of the restored files (`restore_file` copies
+    with `cp -dp`);
+  - the debloat replay removing a ROM app the new ROM's setup flow relies on
+    (e.g. `Provision`) while LiteGapps' own wizard was not restored;
+  - the Setup Wizard props patched into `build.prop` (`set_prop`, non-lite
+    variants) clashing with what the new ROM ships;
+  - old restored GMS apps against the new ROM's framework (fresh flash of the
+    same LiteGapps zip after the update would rule this in or out).
